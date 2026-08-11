@@ -1,0 +1,33 @@
+{
+  "name": "pos-engine",
+  "version": "1.0.0",
+  "description": "POS Engine - Node.js Backend with SQLite",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "dev:gateway": "nodemon src/gateway/index.js",
+    "dev:auth": "nodemon src/services/auth/index.js",
+    "dev:store": "nodemon src/services/store/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "ejs": "^6.0.1",
+    "escpos": "^3.0.0-alpha.6",
+    "escpos-usb": "^3.0.0-alpha.2",
+    "express": "^4.21.0",
+    "http-proxy-middleware": "^4.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "kafkajs": "^2.2.4",
+    "node-thermal-printer": "^4.6.0",
+    "socket.io": "^4.8.3",
+    "sql.js": "^1.11.0",
+    "usb": "^1.9.2",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

@@ -1,0 +1,38 @@
+<%#
+  Default Receipt Template (ESJ - Embedded Script for JS)
+  Renders a POS receipt for thermal printers (58/80mm).
+
+  Available variables (provided by payload):
+    store.name, store.address, store.phone
+    order.orderNumber, order.createdAt, order.items[], order.subtotal,
+    order.discount, order.tax, order.total, order.paymentMethod,
+    order.cashier, order.customer
+
+  Helper: formatMoney(number) → "12,000 ₫"
+%>
+<center><b><%= store.name %></b></center>
+<center><%= store.address %></center>
+<center>Hotline: <%= store.phone %></center>
+<line>
+Số HĐ: <%= order.orderNumber %>
+Ngày:   <%= order.createdAt %>
+NV:     <%= order.cashier %>
+<% if (order.customer) { %>KH:     <%= order.customer %><% } %>
+<line>
+<% for (const item of order.items) { %>
+<%= item.name %> x<%= item.quantity %>
+<right><%= formatMoney(item.subtotal) %></right>
+<% } %>
+<line>
+Tạm tính:  <right><%= formatMoney(order.subtotal) %></right>
+<% if (order.discount > 0) { %>Giảm giá: <right>-<%= formatMoney(order.discount) %></right><% } %>
+<% if (order.tax > 0) { %>Thuế VAT: <right><%= formatMoney(order.tax) %></right><% } %>
+<line>
+<b>TỔNG CỘNG:  <right><%= formatMoney(order.total) %></right></b>
+<line>
+<%= order.paymentMethod %>
+<line>
+<center>Cảm ơn quý khách!</center>
+<center>Hẹn gặp lại</center>
+<feed>3
+<cut>

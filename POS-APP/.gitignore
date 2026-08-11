@@ -1,0 +1,5 @@
+# Keep this folder lightweight until the app is added.
+*
+!.gitignore
+!.gitkeep
+!README.md

@@ -1,0 +1,59 @@
+{
+  "name": "pos-app",
+  "version": "1.0.0",
+  "description": "POS - Phần mềm bán hàng",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:portable": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.pos.app",
+    "productName": "POS Bán Hàng",
+    "directories": {
+      "output": "build-output"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "printer/**/*",
+      "printer-config.json",
+      "renderer/**/*",
+      "node_modules/**/*",
+      "!node_modules/electron/**",
+      "!node_modules/electron-builder/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "POS Bán Hàng"
+    },
+    "portable": {
+      "artifactName": "POS-BanHang-Portable-${version}.exe"
+    }
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.5"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}

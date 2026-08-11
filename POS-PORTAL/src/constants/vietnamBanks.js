@@ -1,0 +1,38 @@
+export const VIETNAM_BANKS = [
+  { bin: '970422', name: 'MB Bank' },
+  { bin: '970436', name: 'Vietcombank' },
+  { bin: '970407', name: 'Techcombank' },
+  { bin: '970418', name: 'BIDV' },
+  { bin: '970415', name: 'VietinBank' },
+  { bin: '970416', name: 'ACB' },
+  { bin: '970423', name: 'TPBank' },
+  { bin: '970432', name: 'VPBank' },
+  { bin: '970403', name: 'Sacombank' },
+  { bin: '970441', name: 'VIB' },
+  { bin: '970448', name: 'OCB' },
+  { bin: '970426', name: 'MSB' },
+  { bin: '970443', name: 'SHB' },
+  { bin: '970437', name: 'HDBank' },
+  { bin: '970405', name: 'Agribank' },
+  { bin: '970414', name: 'OceanBank' },
+  { bin: '970431', name: 'Eximbank' },
+  { bin: '970412', name: 'PVcomBank' },
+  { bin: '970454', name: 'VietCapitalBank' },
+  { bin: '970400', name: 'SaigonBank' },
+  { bin: '970429', name: 'SCB' },
+  { bin: '970452', name: 'KienlongBank' },
+  { bin: '970421', name: 'VRB' },
+  { bin: '970406', name: 'DongABank' },
+  { bin: '970425', name: 'ABBank' },
+  { bin: '970419', name: 'NCB' },
+  { bin: '970440', name: 'SeABank' },
+  { bin: '970409', name: 'BacABank' },
+  { bin: '970438', name: 'BaoVietBank' },
+  { bin: '970427', name: 'VietABank' },
+  { bin: '970457', name: 'Woori Bank' },
+  { bin: '970458', name: 'United Overseas Bank' },
+];
+
+export function findBankByBin(bankBin) {
+  return VIETNAM_BANKS.find(bank => bank.bin === bankBin) || null;
+}

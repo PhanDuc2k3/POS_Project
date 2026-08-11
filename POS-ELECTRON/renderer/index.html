@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <div id="login-screen" class="screen active">
+      <div class="login-container">
+        <div class="login-logo">POS</div>
+        <h1 id="login-title"></h1>
+        <form id="login-form">
+          <input type="text" id="login-username" value="admin" required>
+          <input type="password" id="login-password" required>
+          <button type="submit" id="login-btn"></button>
+          <p id="login-error" class="error-msg"></p>
+        </form>
+      </div>
+    </div>
+
+    <div id="pos-screen" class="screen">
+      <div class="pos-menu">
+        <div class="pos-menu-header">
+          <div class="store-name" id="store-name"></div>
+          <div class="pos-categories" id="categories-bar"></div>
+        </div>
+        <div class="pos-products" id="products-grid"></div>
+      </div>
+
+      <div class="pos-cart">
+        <div class="cart-header">
+          <h2 id="cart-title"></h2>
+          <button id="clear-cart-btn" class="btn-icon">X</button>
+        </div>
+        <div class="cart-items" id="cart-items"></div>
+        <div class="cart-footer">
+          <div class="cart-total">
+            <span id="cart-total-label"></span>
+            <span id="cart-total-value">0</span>
+          </div>
+          <div class="cart-actions">
+            <button id="pay-cash-btn" class="btn-pay cash"></button>
+            <button id="pay-transfer-btn" class="btn-pay transfer"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="success-overlay" class="overlay hidden">
+      <div class="success-content">
+        <div class="success-icon">&#10003;</div>
+        <h2 id="success-title"></h2>
+        <p id="success-amount"></p>
+        <p id="success-order-number"></p>
+      </div>
+    </div>
+
+    <!-- QR Payment overlay -->
+    <div id="qr-overlay" class="overlay hidden">
+      <div class="qr-content">
+        <div class="qr-header">
+          <h2 id="qr-title"></h2>
+          <button id="qr-close" class="popup-close">&#215;</button>
+        </div>
+        <div class="qr-amount" id="qr-amount"></div>
+        <div class="qr-image-wrap">
+          <img id="qr-image" alt="QR" />
+        </div>
+        <p class="qr-instruction" id="qr-instruction"></p>
+        <div class="qr-bank-info" id="qr-bank-info"></div>
+        <div class="qr-debug" id="qr-debug">
+          <div class="qr-debug-header">
+            <span>Postman test</span>
+            <button id="qr-copy-debug-btn" type="button">Copy JSON</button>
+          </div>
+          <div class="qr-debug-url" id="qr-debug-url"></div>
+          <pre id="qr-debug-body"></pre>
+        </div>
+        <div class="qr-actions">
+          <button id="qr-confirm-btn" class="btn-pay cash"></button>
+          <button id="qr-cancel-btn" class="btn-pay-outline"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

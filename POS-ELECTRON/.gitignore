@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Electron build/package output
+build-output/
+dist/
+out/
+release/
+releases/
+*.AppImage
+*.dmg
+*.exe
+*.msi
+*.deb
+*.rpm
+*.snap
+*.blockmap
+*.asar
+
+# Local runtime config
+printer-config.json
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Logs and caches
+logs/
+*.log
+.cache/
+coverage/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak

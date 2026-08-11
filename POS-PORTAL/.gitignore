@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Vite build output and caches
+dist/
+.vite/
+.cache/
+coverage/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+*.tmp
+*.bak
