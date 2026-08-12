@@ -6,7 +6,8 @@ const dashboardService = require('../services/dashboard.service');
 
 function getStats(req, res) {
   const storeId = parseInt(req.headers['x-store-id']) || 1;
-  const stats = dashboardService.getStats(storeId);
+  const { period } = req.query;
+  const stats = dashboardService.getStats(storeId, period);
   res.json(stats);
 }
 
@@ -26,8 +27,8 @@ function getRevenueReport(req, res) {
 
 function getTopProducts(req, res) {
   const storeId = parseInt(req.headers['x-store-id']) || 1;
-  const { date } = req.query;
-  const data = dashboardService.getTopProducts(storeId, date);
+  const { date, period } = req.query;
+  const data = dashboardService.getTopProducts(storeId, { date, period });
   res.json(data);
 }
 

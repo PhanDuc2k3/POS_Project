@@ -1,23 +1,34 @@
-﻿import { useState, useEffect, useRef } from 'react';
-import { RECEIPT_BLOCKS, RECEIPT_PRESETS, getReceiptFlagsFromBlocks } from '../constants/receipt';
+import { useState, useEffect, useRef } from 'react';
+import { Image, Save, Store as StoreIcon, Upload, X } from 'lucide-react';
+import { RECEIPT_BLOCKS, getReceiptFlagsFromBlocks } from '../constants/receipt';
 import { REALTIME_EVENTS } from '../constants/realtimeEvents';
 import { storeAPI } from '../services/store.api';
 import { dispatchEvent } from '../services/socket';
-import { Store as StoreIcon, Phone, MapPin, Upload, X, Check } from 'lucide-react';
 import './Store.css';
 
+const BASE_RECEIPT_BLOCKS = [
+  RECEIPT_BLOCKS.HEADER,
+  RECEIPT_BLOCKS.STORE_INFO,
+  RECEIPT_BLOCKS.DIVIDER,
+  RECEIPT_BLOCKS.ORDER_INFO,
+  RECEIPT_BLOCKS.DIVIDER,
+  RECEIPT_BLOCKS.ITEMS,
+  RECEIPT_BLOCKS.TOTAL,
+  RECEIPT_BLOCKS.FOOTER,
+];
 
 function Store() {
-  const [store, setStore] = useState({ name: '', address: '', phone: '', logo: '' });
-  const [receiptConfig, setReceiptConfig] = useState({ header: '', footer: 'Xin cảm ơn quý khách!', paperWidth: '58mm' });
-  const [activePreset, setActivePreset] = useState('standard');
+  const [store, setStore] = useState({ name: '', address: '', phone: '', email: '', logo: '' });
+  const [receiptConfig, setReceiptConfig] = useState({
+    header: '',
+    footer: 'Cảm ơn quý khách và hẹn gặp lại!',
+    paperWidth: '58mm',
+  });
+  const [receiptOptions, setReceiptOptions] = useState({ logo: true, staff: true, barcode: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   const logoInputRef = useRef(null);
-
-  const currentPreset = RECEIPT_PRESETS.find(p => p.id === activePreset) || RECEIPT_PRESETS[1];
-  const blocks = currentPreset.blocks;
 
   useEffect(() => { loadData(); }, []);
 
@@ -32,24 +43,22 @@ function Store() {
         name: s.name || '',
         address: s.address || '',
         phone: s.phone || '',
+        email: s.email || '',
         logo: s.logo || '',
       });
+
       if (r) {
         setReceiptConfig({
           header: r.header || '',
-          footer: r.footer || 'Xin cảm ơn quý khách!',
+          footer: r.footer || 'Cảm ơn quý khách và hẹn gặp lại!',
           paperWidth: r.paperWidth || '58mm',
         });
-        // Match preset by comparing sorted blocks (order-independent)
         const savedBlocks = r.blocks || [];
-        const sortedSaved = [...savedBlocks].sort().join(',');
-        const matched = RECEIPT_PRESETS.find(p => {
-          const sortedPreset = [...p.blocks].sort().join(',');
-          return sortedSaved === sortedPreset;
+        setReceiptOptions({
+          logo: savedBlocks.includes(RECEIPT_BLOCKS.LOGO) || Boolean(s.logo),
+          staff: savedBlocks.includes(RECEIPT_BLOCKS.PAYMENT),
+          barcode: savedBlocks.includes(RECEIPT_BLOCKS.QR),
         });
-        if (matched) {
-          setActivePreset(matched.id);
-        }
       }
     } catch {
       showToast('Không thể tải dữ liệu');
@@ -63,11 +72,22 @@ function Store() {
     setTimeout(() => setToast(''), 3000);
   }
 
+  function getReceiptBlocks() {
+    const blocks = [...BASE_RECEIPT_BLOCKS];
+    if (receiptOptions.logo) blocks.unshift(RECEIPT_BLOCKS.LOGO);
+    if (receiptOptions.staff) blocks.splice(blocks.indexOf(RECEIPT_BLOCKS.TOTAL) + 1, 0, RECEIPT_BLOCKS.PAYMENT);
+    if (receiptOptions.barcode) blocks.splice(blocks.length - 1, 0, RECEIPT_BLOCKS.QR);
+    return blocks;
+  }
+
   function handleLogoChange(e) {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => setStore(s => ({ ...s, logo: ev.target.result }));
+    reader.onload = ev => {
+      setStore(s => ({ ...s, logo: ev.target.result }));
+      setReceiptOptions(options => ({ ...options, logo: true }));
+    };
     reader.readAsDataURL(file);
   }
 
@@ -76,9 +96,9 @@ function Store() {
     if (logoInputRef.current) logoInputRef.current.value = '';
   }
 
-  async function handleSave(e) {
-    e.preventDefault();
+  async function handleSave() {
     setSaving(true);
+    const blocks = getReceiptBlocks();
     try {
       await Promise.all([
         storeAPI.updateStore(store),
@@ -88,7 +108,7 @@ function Store() {
           blocks,
         }),
       ]);
-      showToast('Đã lưu hóa đơn cho cửa hàng');
+      showToast('Đã lưu thông tin cửa hàng');
       dispatchEvent(REALTIME_EVENTS.STORE_RECEIPT_UPDATED, {
         storeId: store.id || 1,
         blocks,
@@ -103,199 +123,178 @@ function Store() {
     }
   }
 
-  const storeName = store.name || 'Tên cửa hàng';
-  const headerText = receiptConfig.header || storeName;
+  const storeName = store.name || 'Cửa hàng Flagship Q1';
+  const headerText = receiptConfig.header || `${storeName}\n123 Lê Lợi, Q1, TP.HCM\nSĐT: ${store.phone || '090 123 4567'}`;
+  const blocks = getReceiptBlocks();
 
   if (loading) {
     return (
       <div className="store-page">
-        <div className="settings-section">
-          <p style={{ color: 'var(--gray-400)' }}>Đang tải...</p>
-        </div>
+        <div className="store-panel"><p className="store-muted">Đang tải...</p></div>
       </div>
     );
   }
 
   return (
     <div className="store-page">
-      <form className="settings-section" onSubmit={handleSave}>
-        <h2 className="settings-section-title">Mẫu hóa đơn</h2>
-        <p className="settings-section-desc">Chọn mẫu và nhập thông tin. Dữ liệu sẽ được lưu làm hóa đơn mặc định cho cửa hàng.</p>
+      <div className="store-heading">
+        <h1>Cửa hàng</h1>
+        <p>Thông tin và nhận diện cửa hàng</p>
+      </div>
 
-        <div className="preset-selector">
-          {RECEIPT_PRESETS.map(p => (
-            <div key={p.id}
-              className={'preset-card' + (activePreset === p.id ? ' active' : '')}
-              onClick={() => setActivePreset(p.id)}>
-              <div className="preset-card-header">
-                <span className="preset-card-name">{p.name}</span>
-                {activePreset === p.id && <Check size={14} className="preset-card-check" />}
-              </div>
-              <div className="preset-card-blocks">
-                {p.blocks.filter(b => b !== 'divider').map(b => (
-                  <span key={b} className="preset-block-tag">{b}</span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="content-row">
-          <div className="content-left">
-            <div className="form-section">
-              <h3 className="form-section-title">
-                {activePreset === 'minimal' ? 'Thông tin cơ bản' :
-                 activePreset === 'standard' ? 'Thông tin đầy đủ' : 'Thông tin chuyên nghiệp'}
-              </h3>
-
-              <div className="form-grid">
-                {blocks.includes(RECEIPT_BLOCKS.LOGO) && (
-                  <div className="form-group">
-                    <label className="form-label">Logo</label>
-                    <div className="logo-upload">
-                      {store.logo ? (
-                        <div className="logo-preview">
-                          <img src={store.logo} alt="logo" />
-                          <button type="button" className="logo-remove" onClick={removeLogo}>
-                            <X size={12} />
-                          </button>
-                        </div>
-                      ) : (
-                        <label className="logo-dropzone">
-                          <Upload size={20} />
-                          <span>Tải ảnh lên</span>
-                          <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoChange} />
-                        </label>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {blocks.includes(RECEIPT_BLOCKS.HEADER) && (
-                  <div className="form-group">
-                    <label className="form-label">Tiêu đề hóa đơn</label>
-                    <input className="form-input" value={receiptConfig.header}
-                      onChange={e => setReceiptConfig({ ...receiptConfig, header: e.target.value })}
-                      placeholder={storeName} />
-                  </div>
-                )}
-
-                {blocks.includes(RECEIPT_BLOCKS.FOOTER) && (
-                  <div className="form-group">
-                    <label className="form-label">Chân hóa đơn</label>
-                    <input className="form-input" value={receiptConfig.footer}
-                      onChange={e => setReceiptConfig({ ...receiptConfig, footer: e.target.value })}
-                      placeholder="Xin cảm ơn quý khách!" />
-                  </div>
-                )}
-
-                {blocks.includes(RECEIPT_BLOCKS.STORE_INFO) && (
-                  <>
-                    <div className="form-group">
-                      <label className="form-label"><StoreIcon size={14} /> Tên cửa hàng</label>
-                      <input className="form-input" value={store.name}
-                        onChange={e => setStore({ ...store, name: e.target.value })}
-                        placeholder="VD: Bún Bò ABC" required />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label"><Phone size={14} /> Điện thoại</label>
-                      <input className="form-input" value={store.phone}
-                        onChange={e => setStore({ ...store, phone: e.target.value })}
-                        placeholder="VD: 0901 234 567" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label"><MapPin size={14} /> Địa chỉ</label>
-                      <input className="form-input" value={store.address}
-                        onChange={e => setStore({ ...store, address: e.target.value })}
-                        placeholder="VD: 123 Nguyễn Huệ, Q1, TP.HCM" />
-                    </div>
-                  </>
-                )}
-
-                <div className="form-group">
-                  <label className="form-label">Khổ giấy</label>
-                  <select className="form-input"
-                    value={receiptConfig.paperWidth}
-                    onChange={e => setReceiptConfig({ ...receiptConfig, paperWidth: e.target.value })}>
-                    <option value="58mm">58mm (nhỏ)</option>
-                    <option value="80mm">80mm (lớn)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="content-right">
-            <div className="receipt-preview">
-              <h3 className="receipt-preview-title">Xem trước hóa đơn</h3>
-              <div className={'receipt-paper' + (receiptConfig.paperWidth === '80mm' ? ' wide' : '')}>
-                {blocks.map((bid, i) => (
-                  <ReceiptBlock key={bid + i} id={bid} config={receiptConfig} store={store} headerText={headerText} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="form-actions">
-          <button type="submit" className="btn btn-primary" disabled={saving}>
+      <section className="store-panel">
+        <div className="store-panel-header">
+          <h2>Thông tin cơ bản</h2>
+          <button type="button" className="store-save-btn" onClick={handleSave} disabled={saving}>
+            <Save size={13} />
             {saving ? 'Đang lưu...' : 'Lưu thông tin'}
           </button>
         </div>
-      </form>
+
+        <div className="store-basic-grid">
+          <div className="store-logo-column">
+            <button type="button" className="store-logo-upload" onClick={() => logoInputRef.current?.click()}>
+              {store.logo ? (
+                <img src={store.logo} alt="Logo cửa hàng" />
+              ) : (
+                <span>
+                  <StoreIcon size={34} />
+                  <strong>Cửa hàng</strong>
+                </span>
+              )}
+            </button>
+            <input ref={logoInputRef} type="file" accept="image/*" hidden onChange={handleLogoChange} />
+            {store.logo && (
+              <button type="button" className="store-logo-remove" onClick={removeLogo}>
+                <X size={12} /> Xóa logo
+              </button>
+            )}
+            <p>Khuyến nghị: 512x512px. Định dạng JPG, PNG.</p>
+          </div>
+
+          <div className="store-form-grid">
+            <label className="store-field">
+              <span>Tên cửa hàng <b>*</b></span>
+              <input value={store.name} onChange={e => setStore({ ...store, name: e.target.value })} placeholder="Cửa hàng Flagship Q1" />
+            </label>
+            <label className="store-field">
+              <span>Số điện thoại</span>
+              <input value={store.phone} onChange={e => setStore({ ...store, phone: e.target.value })} placeholder="090 123 4567" />
+            </label>
+            <label className="store-field full">
+              <span>Email liên hệ</span>
+              <input value={store.email} onChange={e => setStore({ ...store, email: e.target.value })} placeholder="contact@flagship.vn" />
+            </label>
+            <label className="store-field full">
+              <span>Địa chỉ</span>
+              <input value={store.address} onChange={e => setStore({ ...store, address: e.target.value })} placeholder="123 Đường Lê Lợi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh" />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section className="store-panel receipt-panel">
+        <div className="store-panel-header">
+          <h2>Mẫu hóa đơn</h2>
+          <button type="button" className="store-save-btn" onClick={handleSave} disabled={saving}>
+            In thử
+          </button>
+        </div>
+
+        <div className="receipt-layout">
+          <div className="receipt-config">
+            <label className="store-field">
+              <span>Tiêu đề hóa đơn (Header)</span>
+              <textarea
+                value={receiptConfig.header}
+                onChange={e => setReceiptConfig({ ...receiptConfig, header: e.target.value })}
+                placeholder={`Cửa hàng Flagship Q1\n123 Lê Lợi, Q1, TP.HCM\nSĐT: 090 123 4567`}
+              />
+            </label>
+            <label className="store-field">
+              <span>Lời cảm ơn (Footer)</span>
+              <textarea
+                value={receiptConfig.footer}
+                onChange={e => setReceiptConfig({ ...receiptConfig, footer: e.target.value })}
+                placeholder="Cảm ơn quý khách và hẹn gặp lại!"
+              />
+            </label>
+
+            <div className="receipt-options">
+              <span>Tùy chọn hiển thị</span>
+              <ToggleRow label="Hiển thị Logo" checked={receiptOptions.logo} onChange={() => setReceiptOptions(o => ({ ...o, logo: !o.logo }))} />
+              <ToggleRow label="Hiển thị tên nhân viên" checked={receiptOptions.staff} onChange={() => setReceiptOptions(o => ({ ...o, staff: !o.staff }))} />
+              <ToggleRow label="Hiển thị mã vạch (Barcode)" checked={receiptOptions.barcode} onChange={() => setReceiptOptions(o => ({ ...o, barcode: !o.barcode }))} />
+            </div>
+          </div>
+
+          <div className="receipt-preview-wrap">
+            <div className="receipt-paper-preview">
+              {blocks.map((bid, i) => (
+                <ReceiptBlock key={bid + i} id={bid} config={receiptConfig} store={store} headerText={headerText} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
 }
 
+function ToggleRow({ label, checked, onChange }) {
+  return (
+    <label className="toggle-row">
+      <span>{label}</span>
+      <button type="button" className={`store-switch ${checked ? 'on' : ''}`} onClick={onChange}>
+        <i />
+      </button>
+    </label>
+  );
+}
+
 function ReceiptBlock({ id, config, store, headerText }) {
   switch (id) {
     case 'logo':
-      return store.logo ? (
-        <div className="receipt-logo"><img src={store.logo} alt="" /></div>
-      ) : null;
+      return (
+        <div className="receipt-logo">
+          {store.logo ? <img src={store.logo} alt="" /> : <Image size={18} />}
+        </div>
+      );
     case 'header':
       return <div className="receipt-header">{headerText}</div>;
     case 'storeInfo':
       return (
         <div className="receipt-store-info">
-          {store.name && <div style={{ fontWeight: 700, fontSize: 12 }}>{store.name}</div>}
-          {store.address && <div>{store.address}</div>}
-          {store.phone && <div>ĐT: {store.phone}</div>}
+          <div>{store.address || '123 Lê Lợi, Q1, TP.HCM'}</div>
+          <div>SĐT: {store.phone || '090 123 4567'}</div>
         </div>
       );
     case 'divider':
-      return <div className="receipt-divider">{'─'.repeat(config.paperWidth === '80mm' ? 38 : 28)}</div>;
+      return <div className="receipt-divider" />;
     case 'orderInfo':
       return (
         <div className="receipt-order-info">
-          <div>ORD-20260806-001</div>
-          <div>06/08/2026, 10:30</div>
+          <div><span>Ngày: 24/10/2023</span><span>14:38</span></div>
+          <div>Số HĐ: HD-00123</div>
+          <div>Thu ngân: Nguyễn Văn A</div>
         </div>
       );
     case 'items':
       return (
         <div className="receipt-items">
-          <div className="receipt-item"><span>Bún bò x1</span><span>37.000đ</span></div>
-          <div className="receipt-item"><span>Trà đá x2</span><span>10.000đ</span></div>
-          <div className="receipt-item"><span>Chả giò x1</span><span>33.000đ</span></div>
+          <div className="receipt-item receipt-item-head"><span>Món</span><span>SL</span><span>TT</span></div>
+          <div className="receipt-item"><span>Cà phê sữa đá</span><span>2</span><span>78.000</span></div>
+          <div className="receipt-item"><span>Bánh mì thịt</span><span>1</span><span>35.000</span></div>
         </div>
       );
     case 'total':
-      return (
-        <div className="receipt-total">
-          <span>Tổng cộng:</span><span>80.000đ</span>
-        </div>
-      );
+      return <div className="receipt-total"><span>Tổng cộng:</span><span>113.000 đ</span></div>;
     case 'payment':
-      return <div className="receipt-payment">Thanh toán: Tiền mặt</div>;
+      return null;
     case 'qr':
-      return (
-        <div className="receipt-qr">
-          <div className="receipt-qr-box">QR</div>
-        </div>
-      );
+      return <div className="receipt-barcode">|||| ||| |||| ||</div>;
     case 'footer':
       return <div className="receipt-footer">{config.footer}</div>;
     default:

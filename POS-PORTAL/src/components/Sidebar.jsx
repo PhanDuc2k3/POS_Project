@@ -1,35 +1,41 @@
-﻿import { NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
+  Activity,
+  Building2,
   LayoutDashboard,
+  LogOut,
+  Package,
   Receipt,
   Settings,
   Store,
   User,
-  LogOut,
-  Activity,
-  ShoppingBag,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import './Sidebar.css';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/transactions', icon: Receipt, label: 'Giao d\u1ECBch' },
-  { to: '/products', icon: ShoppingBag, label: 'S\u1EA3n ph\u1EA9m' },
-  { to: '/store', icon: Store, label: 'C\u1EEDa h\u00E0ng' },
-  { to: '/settings', icon: Settings, label: 'C\u00E0i \u0111\u1EB7t' },
-  { to: '/activity', icon: Activity, label: 'Nh\u1EADt k\u00FD' },
-  { to: '/profile', icon: User, label: 'T\u00E0i kho\u1EA3n' },
+  { to: '/transactions', icon: Receipt, label: 'Giao dịch' },
+  { to: '/products', icon: Package, label: 'Sản phẩm' },
+  { to: '/store', icon: Building2, label: 'Cửa hàng' },
+  { to: '/settings', icon: Settings, label: 'Cài đặt' },
+  { to: '/activity', icon: Activity, label: 'Nhật ký' },
+  { to: '/profile', icon: User, label: 'Tài khoản' },
 ];
 
 function Sidebar() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
 
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="sidebar-brand-icon">P</div>
-        <span className="sidebar-brand-text">POS Control</span>
+        <div className="sidebar-brand-icon">
+          <Store size={18} strokeWidth={2.5} />
+        </div>
+        <div>
+          <span className="sidebar-brand-text">POS<br />Control</span>
+          <span className="sidebar-brand-subtitle">Admin Management</span>
+        </div>
       </div>
 
       <nav className="sidebar-nav">
@@ -37,29 +43,19 @@ function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
-            className={({ isActive }) =>
-              `sidebar-link${isActive ? ' active' : ''}`
-            }
+            className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
           >
-            <item.icon size={18} />
+            <item.icon size={15} />
             <span>{item.label}</span>
           </NavLink>
         ))}
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sidebar-user">
-          <div className="sidebar-user-avatar">
-            {(user?.displayName || 'A').charAt(0).toUpperCase()}
-          </div>
-          <div className="sidebar-user-info">
-            <span className="sidebar-user-name">{user?.displayName || 'Admin'}</span>
-            <span className="sidebar-user-role">{user?.role === 'admin' ? 'Chủ cửa hàng' : user?.role}</span>
-          </div>
-          <button className="sidebar-logout" onClick={logout} title="Đăng xuất">
-            <LogOut size={16} />
-          </button>
-        </div>
+        <button className="sidebar-logout" onClick={logout}>
+          <LogOut size={15} />
+          <span>Đăng xuất</span>
+        </button>
       </div>
     </aside>
   );

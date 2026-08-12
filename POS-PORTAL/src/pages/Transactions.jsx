@@ -1,13 +1,23 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { ChevronRight, Download, Search } from 'lucide-react';
 import { ORDER_STATUS_LABELS } from '../constants/orderStatus';
 import { REALTIME_EVENTS } from '../constants/realtimeEvents';
 import { transactionAPI } from '../services/transaction.api';
 import { useRealtime } from '../hooks/useRealtime';
-import { formatVietnamDateTime, formatVietnamTime } from '../utils/time';
+import { formatVietnamDateTime } from '../utils/time';
 import './Transactions.css';
 
+const PAGE_SIZE = 50;
 
-function formatCurrency(v) { return new Intl.NumberFormat('vi-VN').format(v) + ' đ'; }
+function formatCurrency(v) { return new Intl.NumberFormat('vi-VN').format(v || 0) + ' đ'; }
+
+function paymentLabel(method) {
+  if (method === 'cash') return 'Tiền mặt';
+  if (method === 'transfer') return 'Chuyển khoản';
+  if (method === 'card') return 'Thẻ tín dụng';
+  if (method === 'wallet') return 'Ví điện tử';
+  return method || '—';
+}
 
 function Transactions() {
   const [orders, setOrders] = useState([]);
@@ -15,16 +25,16 @@ function Transactions() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('');
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
 
-  useEffect(() => { loadOrders(); }, [page, statusFilter]);
+  useEffect(() => { loadOrders(); }, [page, statusFilter, paymentFilter]);
 
-  // Realtime: auto-refresh when transactions change
   const handleTxnChange = useCallback(() => {
     loadOrders();
-  }, [page, statusFilter]);
+  }, [page, statusFilter, paymentFilter]);
 
   useRealtime(REALTIME_EVENTS.TRANSACTION_CREATED, handleTxnChange);
   useRealtime(REALTIME_EVENTS.TRANSACTION_CANCELLED, handleTxnChange);
@@ -33,8 +43,9 @@ function Transactions() {
   async function loadOrders() {
     setLoading(true);
     try {
-      const params = { page, limit: 20 };
+      const params = { page, limit: PAGE_SIZE };
       if (statusFilter) params.status = statusFilter;
+      if (paymentFilter) params.paymentMethod = paymentFilter;
       if (search) params.search = search;
       const data = await transactionAPI.getOrders(params);
       setOrders(data.items);
@@ -58,67 +69,124 @@ function Transactions() {
 
   async function handleCancel(id) {
     if (!confirm('Hủy giao dịch này?')) return;
-    try { await transactionAPI.cancelOrder(id); setSelected(null); loadOrders(); showToast('Đã hủy giao dịch'); }
-    catch (err) { showToast(err.message); }
+    try {
+      await transactionAPI.cancelOrder(id);
+      setSelected(null);
+      loadOrders();
+      showToast('Đã hủy giao dịch');
+    } catch (err) { showToast(err.message); }
+  }
+
+  function exportCsv() {
+    const header = ['Thời gian', 'Mã GD', 'Số tiền', 'Thanh toán', 'Trạng thái', 'Thiết bị'];
+    const rows = orders.map((o) => [
+      formatVietnamDateTime(o.createdAt),
+      o.orderNumber,
+      o.finalTotal,
+      paymentLabel(o.paymentMethod),
+      ORDER_STATUS_LABELS[o.status] || o.status,
+      o.deviceName || '',
+    ]);
+    const csv = [header, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'giao-dich.csv';
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 3000); }
 
-  const totalPages = Math.ceil(total / 20);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const startItem = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const endItem = Math.min(page * PAGE_SIZE, total);
 
   return (
     <div className="transactions">
-      <form className="transactions-toolbar" onSubmit={handleSearch}>
-        <input className="search-input" placeholder="Tìm theo mã GD, số tiền..."
-          value={search} onChange={(e) => setSearch(e.target.value)} />
-        <select className="select-filter" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
-          <option value="">Tất cả trạng thái</option>
-          <option value="completed">Thành công</option>
-          <option value="pending">Đang chờ</option>
-          <option value="cancelled">Đã hủy</option>
-          <option value="refunded">Hoàn tiền</option>
-        </select>
-        <span className="transactions-count">{total} giao dịch</span>
-      </form>
-
-      <div className="transactions-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Thời gian</th>
-              <th>Mã GD</th>
-              <th>Số tiền</th>
-              <th>Thanh toán</th>
-              <th>Trạng thái</th>
-              <th>Thiết bị</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && <tr><td colSpan="6" style={{textAlign:'center',color:'var(--gray-400)'}}>Đang tải...</td></tr>}
-            {!loading && orders.length === 0 && <tr><td colSpan="6" style={{textAlign:'center',color:'var(--gray-400)'}}>Chưa có giao dịch</td></tr>}
-            {orders.map((o) => (
-              <tr key={o.id} onClick={() => handleSelectOrder(o)}>
-                <td>{formatVietnamTime(o.createdAt)}</td>
-                <td>{o.orderNumber}</td>
-                <td>{formatCurrency(o.finalTotal)}</td>
-                <td>{o.paymentMethod === 'cash' ? 'Tiền mặt' : o.paymentMethod === 'transfer' ? 'Chuyển khoản' : o.paymentMethod}</td>
-                <td><span className={`status-badge ${o.status}`}>{ORDER_STATUS_LABELS[o.status] || o.status}</span></td>
-                <td>{o.deviceName || '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="transactions-heading">
+        <div>
+          <h1>Giao dịch</h1>
+          <p>Theo dõi và quản lý lịch sử thanh toán</p>
+        </div>
+        <button className="export-btn" type="button" onClick={exportCsv}>
+          <Download size={14} />
+          Xuất Excel
+        </button>
       </div>
 
-      {totalPages > 1 && (
-        <div className="transactions-pagination">
-          <button disabled={page <= 1} onClick={() => setPage(page - 1)}>← Trước</button>
-          <span>Trang {page} / {totalPages}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Sau →</button>
-        </div>
-      )}
+      <section className="transactions-card">
+        <form className="transactions-toolbar" onSubmit={handleSearch}>
+          <label className="search-input-wrap">
+            <Search size={14} />
+            <input
+              className="search-input"
+              placeholder="Tìm theo Mã GD..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+          <select className="select-filter" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+            <option value="">Tất cả trạng thái</option>
+            <option value="completed">Thành công</option>
+            <option value="pending">Đang chờ</option>
+            <option value="cancelled">Đã hủy</option>
+            <option value="refunded">Hoàn tiền</option>
+          </select>
+          <select className="select-filter" value={paymentFilter} onChange={(e) => { setPaymentFilter(e.target.value); setPage(1); }}>
+            <option value="">PT Thanh toán</option>
+            <option value="cash">Tiền mặt</option>
+            <option value="transfer">Chuyển khoản</option>
+          </select>
+          <span className="transactions-count">Hiển thị {PAGE_SIZE} giao dịch gần nhất</span>
+        </form>
 
-      {/* Order detail modal */}
+        <div className="transactions-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Thời gian</th>
+                <th>Mã GD</th>
+                <th>Số tiền</th>
+                <th>Thanh toán</th>
+                <th>Trạng thái</th>
+                <th>Thiết bị</th>
+                <th aria-label="Chi tiết"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && <tr><td colSpan="7" className="empty-cell">Đang tải...</td></tr>}
+              {!loading && orders.length === 0 && <tr><td colSpan="7" className="empty-cell">Chưa có giao dịch</td></tr>}
+              {orders.map((o) => (
+                <tr key={o.id} onClick={() => handleSelectOrder(o)}>
+                  <td>{formatVietnamDateTime(o.createdAt)}</td>
+                  <td className="order-code">{o.orderNumber}</td>
+                  <td className="amount-cell">{formatCurrency(o.finalTotal)}</td>
+                  <td><span className={`payment-method ${o.paymentMethod || ''}`}>{paymentLabel(o.paymentMethod)}</span></td>
+                  <td><span className={`status-badge ${o.status}`}>{ORDER_STATUS_LABELS[o.status] || o.status}</span></td>
+                  <td>{o.deviceName || '—'}</td>
+                  <td className="row-action"><ChevronRight size={15} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="transactions-pagination">
+          <span>Đang hiển thị {startItem}-{endItem} trong số {total} giao dịch</span>
+          <div className="pagination-actions">
+            <button disabled={page <= 1} onClick={() => setPage(page - 1)}>‹</button>
+            {[1, 2, 3].filter((p) => p <= totalPages).map((p) => (
+              <button key={p} className={page === p ? 'active' : ''} onClick={() => setPage(p)}>{p}</button>
+            ))}
+            {totalPages > 4 && <span>...</span>}
+            {totalPages > 3 && <button className={page === totalPages ? 'active' : ''} onClick={() => setPage(totalPages)}>{totalPages}</button>}
+            <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>›</button>
+          </div>
+        </div>
+      </section>
+
       {selected && (
         <div className="modal-overlay" onClick={() => setSelected(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -138,7 +206,7 @@ function Transactions() {
               </div>
             )}
             {selected.discount > 0 && (
-              <div className="modal-item" style={{color:'var(--danger)'}}>
+              <div className="modal-item danger-line">
                 <span>Giảm giá</span><span>-{formatCurrency(selected.discount)}</span>
               </div>
             )}

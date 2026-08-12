@@ -1,8 +1,9 @@
 import { apiFetch } from './client';
 
 export const dashboardAPI = {
-  async getStats() {
-    const response = await apiFetch('/txn/dashboard/stats');
+  async getStats(period) {
+    const query = period ? `?period=${period}` : '';
+    const response = await apiFetch(`/txn/dashboard/stats${query}`);
     if (!response.ok) throw new Error('Failed to fetch stats');
     return response.json();
   },
@@ -20,8 +21,16 @@ export const dashboardAPI = {
     return response.json();
   },
 
-  async getTopProducts(date) {
-    const query = date ? `?date=${date}` : '';
+  async getTopProducts(dateOrOptions) {
+    let query = '';
+    if (dateOrOptions && typeof dateOrOptions === 'object') {
+      const params = new URLSearchParams();
+      if (dateOrOptions.date) params.set('date', dateOrOptions.date);
+      if (dateOrOptions.period) params.set('period', dateOrOptions.period);
+      query = params.toString() ? `?${params.toString()}` : '';
+    } else {
+      query = dateOrOptions ? `?date=${dateOrOptions}` : '';
+    }
     const response = await apiFetch(`/txn/dashboard/top-products${query}`);
     if (!response.ok) throw new Error('Failed to fetch top products');
     return response.json();

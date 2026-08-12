@@ -2,7 +2,7 @@
 import { REALTIME_EVENTS } from '../constants/realtimeEvents';
 import { productAPI } from '../services/product.api';
 import { useRealtime } from '../hooks/useRealtime';
-import { Plus, Edit2, Trash2, Power, Search, Tag, Image } from 'lucide-react';
+import { Grid2X2, Image, List, MoreVertical, Plus, Search, Tag, Trash2 } from 'lucide-react';
 import './Products.css';
 
 function formatCurrency(v) {
@@ -16,6 +16,8 @@ function Products() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -130,31 +132,42 @@ function Products() {
   const filtered = products.filter(p => {
     const matchCat = !filterCat || String(p.categoryId) === filterCat;
     const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
+    const matchStatus = !statusFilter || (statusFilter === 'available' ? p.isAvailable : !p.isAvailable);
+    return matchCat && matchSearch && matchStatus;
   });
 
   return (
     <div className="products-page">
-      <div className="products-toolbar">
+      <div className="products-heading">
+        <div>
+          <h1>Sản phẩm</h1>
+          <p>Quản lý menu, danh mục, topping và sản phẩm bán hàng</p>
+        </div>
+        <div className="products-toolbar-right">
+          <button className="products-action secondary" onClick={() => setShowCatForm(true)}><Tag size={14} /> Quản lý danh mục</button>
+          <button className="products-action primary" onClick={openAddForm}><Plus size={14} /> Thêm sản phẩm</button>
+        </div>
+      </div>
+
+      <div className="products-filter-card">
         <div className="products-toolbar-left">
-          <div className="search-box"><Search size={16} />
-            <input placeholder="Tìm sản phẩm..." value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
+          <label className="search-box"><Search size={14} />
+            <input placeholder="Tìm kiếm sản phẩm..." value={search} onChange={e => setSearch(e.target.value)} />
+          </label>
           <select className="filter-select" value={filterCat} onChange={e => setFilterCat(e.target.value)}>
             <option value="">Tất cả danh mục</option>
             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
+          <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="">Trạng thái: Tất cả</option>
+            <option value="available">Đang bán</option>
+            <option value="unavailable">Hết hàng</option>
+          </select>
         </div>
-        <div className="products-toolbar-right">
-          <button className="btn btn-ghost" onClick={() => setShowCatForm(true)}><Tag size={14} /> Danh mục</button>
-          <button className="btn btn-primary" onClick={openAddForm}><Plus size={14} /> Thêm sản phẩm</button>
+        <div className="products-view-toggle" aria-label="Chế độ hiển thị">
+          <button className="active" type="button"><Grid2X2 size={16} /></button>
+          <button type="button"><List size={16} /></button>
         </div>
-      </div>
-
-      <div className="products-stats">
-        <span>{products.length} sản phẩm</span><span>•</span>
-        <span>{products.filter(p => p.isAvailable).length} đang bán</span><span>•</span>
-        <span>{categories.length} danh mục</span>
       </div>
 
       <div className="products-grid">
@@ -162,22 +175,36 @@ function Products() {
         {!loading && filtered.length === 0 && <p className="products-empty">Chưa có sản phẩm nào</p>}
         {filtered.map(p => (
           <div className={`product-card${!p.isAvailable ? ' unavailable' : ''}`} key={p.id}>
-            {p.image && <img className="product-card-img" src={p.image} alt={p.name} />}
-            {!p.image && <div className="product-card-img-empty"><Image size={24} /></div>}
+            <div className="product-card-media">
+              {p.image && <img className="product-card-img" src={p.image} alt={p.name} />}
+              {!p.image && <div className="product-card-img-empty"><Image size={24} /></div>}
+              <span className={`product-status-badge ${p.isAvailable ? 'available' : 'unavailable'}`}>
+                {p.isAvailable ? 'Đang bán' : 'Hết hàng'}
+              </span>
+            </div>
             <div className="product-card-body">
               <div className="product-card-info">
+                {p.categoryName && <span className="product-cat">{p.categoryName}</span>}
                 <span className="product-name">{p.name}</span>
                 <span className="product-price">{formatCurrency(p.price)}</span>
-                {p.categoryName && <span className="product-cat">{p.categoryName}</span>}
-                {p.description && <span className="product-desc">{p.description}</span>}
               </div>
-              {!p.isAvailable && <span className="product-badge-off">Hết hàng</span>}
-            </div>
-            <div className="product-card-actions">
-              <button title={p.isAvailable ? 'Đánh dấu hết' : 'Mở bán lại'} onClick={() => handleToggle(p.id)}
-                className={`action-btn ${p.isAvailable ? 'on' : 'off'}`}><Power size={14} /></button>
-              <button title="Sửa" onClick={() => handleEdit(p)} className="action-btn"><Edit2 size={14} /></button>
-              <button title="Xóa" onClick={() => handleDelete(p.id)} className="action-btn danger"><Trash2 size={14} /></button>
+              <button className="product-menu-btn" type="button" onClick={() => setOpenMenuId(openMenuId === p.id ? null : p.id)}>
+                <MoreVertical size={16} />
+              </button>
+              {openMenuId === p.id && (
+                <div className="product-menu">
+                  <button type="button" onClick={() => { setOpenMenuId(null); handleEdit(p); }}>Sửa</button>
+                  <button type="button" className="danger" onClick={() => { setOpenMenuId(null); handleDelete(p.id); }}>Xóa</button>
+                </div>
+              )}
+              <button
+                title={p.isAvailable ? 'Đánh dấu hết' : 'Mở bán lại'}
+                onClick={() => handleToggle(p.id)}
+                className={`product-switch ${p.isAvailable ? 'on' : 'off'}`}
+                type="button"
+              >
+                <span />
+              </button>
             </div>
           </div>
         ))}

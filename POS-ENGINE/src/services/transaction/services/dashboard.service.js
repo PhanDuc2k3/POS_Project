@@ -4,12 +4,12 @@
 
 const dashboardRepo = require('../repositories/dashboard.repo');
 
-function getStats(storeId) {
-  const today = dashboardRepo.getTodayStats(storeId);
+function getStats(storeId, period) {
+  const stats = period ? dashboardRepo.getStatsByPeriod(storeId, period) : dashboardRepo.getTodayStats(storeId);
   return {
-    todayRevenue: today.revenue,
-    todayOrders: today.orders,
-    avgOrderValue: today.avgValue,
+    todayRevenue: stats.revenue,
+    todayOrders: stats.orders,
+    avgOrderValue: stats.avgValue,
   };
 }
 
@@ -21,7 +21,8 @@ function getRevenueReport(storeId, period) {
   return dashboardRepo.getRevenueByPeriod(storeId, period);
 }
 
-function getTopProducts(storeId, date) {
+function getTopProducts(storeId, { date, period } = {}) {
+  if (period) return dashboardRepo.getTopProductsByPeriod(storeId, period);
   return dashboardRepo.getTopProducts(storeId, date);
 }
 
