@@ -483,8 +483,6 @@ async function handlePaidEvent(data) {
 }
 
 async function finishPaidOrder(order) {
-  await printReceipt(order);
-
   $('success-amount').textContent = fmt(order.finalTotal);
   $('success-order-number').textContent = order.orderNumber;
   $('success-overlay').classList.remove('hidden');

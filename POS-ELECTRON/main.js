@@ -177,16 +177,35 @@ function connectSocket(token) {
   // Print job received from backend
   socket.on('print:job', async (data) => {
     const { jobId, storeId, type, payload } = data || {};
+    const resolved = resolvePrintContext(payload);
     console.log(`[Device Agent] Print job received: #${jobId}`);
+    console.log('[Device Agent] Print job payload summary:', JSON.stringify({
+      jobId,
+      storeId,
+      type,
+      hasOrder: !!(payload?.order || payload),
+      orderNumber: payload?.order?.orderNumber || payload?.orderNumber,
+      itemCount: (payload?.order?.items || payload?.items || []).length,
+      finalTotal: payload?.order?.finalTotal || payload?.finalTotal,
+      storeName: resolved.store?.name,
+      receiptSource: resolved.receiptSource,
+      receiptPaperWidth: resolved.receipt?.paperWidth,
+      receiptHeader: resolved.receipt?.header,
+      receiptFooter: resolved.receipt?.footer,
+      receiptBlocks: resolved.receipt?.blocks,
+    }));
 
     try {
-      // Get cached store/receipt config
-      const store = payload?.store || storeConfig;
-      const receipt = payload?.receipt || receiptConfig;
-
       // Format and print
-      const buffer = printer.formatReceipt(payload?.order || payload, store, receipt);
+      const buffer = printer.formatReceipt(resolved.order, resolved.store, resolved.receipt);
+      console.log('[Device Agent] Receipt buffer ready:', JSON.stringify({
+        jobId,
+        bytes: buffer.length,
+        firstBytesHex: buffer.subarray(0, 96).toString('hex'),
+        previewText: buffer.subarray(0, 512).toString('ascii').replace(/[^\x20-\x7e\r\n]/g, '.'),
+      }));
       const result = await printer.print(buffer);
+      console.log('[Device Agent] Printer result:', JSON.stringify({ jobId, ...result }));
 
       // Report success back to backend
       socket.emit('device:printResult', {
@@ -233,6 +252,41 @@ function connectSocket(token) {
       }
     });
   });
+}
+
+function resolvePrintContext(payload = {}) {
+  const order = payload?.order || payload;
+  const payloadStore = payload?.store || null;
+  const payloadReceipt = payload?.receipt || null;
+  const cachedReceipt = receiptConfig || null;
+
+  const receiptSource = chooseReceiptSource(payloadReceipt, cachedReceipt);
+  const baseReceipt = receiptSource === 'cache' ? payloadReceipt : cachedReceipt;
+  const preferredReceipt = receiptSource === 'cache' ? cachedReceipt : payloadReceipt;
+  const receipt = mergeReceiptConfig(baseReceipt, preferredReceipt);
+
+  return {
+    order,
+    store: { ...(storeConfig || {}), ...(payloadStore || {}) },
+    receipt,
+    receiptSource,
+  };
+}
+
+function chooseReceiptSource(payloadReceipt, cachedReceipt) {
+  if (cachedReceipt) return 'cache';
+  if (payloadReceipt) return 'payload';
+  return 'default';
+}
+
+function mergeReceiptConfig(base, preferred) {
+  return {
+    ...(base || {}),
+    ...(preferred || {}),
+    blocks: Array.isArray(preferred?.blocks) && preferred.blocks.length
+      ? preferred.blocks
+      : (Array.isArray(base?.blocks) && base.blocks.length ? base.blocks : undefined),
+  };
 }
 
 function disconnectSocket() {
@@ -390,6 +444,14 @@ ipcMain.handle('printer:setStoreConfig', (event, { store, receipt }) => {
   storeConfig = store;
   receiptConfig = receipt;
   currentStoreId = store?.id || null;
+  console.log('[Device Agent] Store/receipt config cached:', JSON.stringify({
+    storeId: storeConfig?.id,
+    storeName: storeConfig?.name,
+    receiptPaperWidth: receiptConfig?.paperWidth,
+    receiptHeader: receiptConfig?.header,
+    receiptFooter: receiptConfig?.footer,
+    receiptBlocks: receiptConfig?.blocks,
+  }));
   // Re-register with storeId so backend can route print jobs correctly
   if (store && store.id) {
     if (socket && socket.connected) {

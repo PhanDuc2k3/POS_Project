@@ -6,7 +6,7 @@ const { publish } = require('../../../shared/event-bus');
 const storeRepo = require('../repositories/store.repo');
 const receiptRepo = require('../repositories/receipt.repo');
 
-const DEFAULT_BLOCKS = ['header','storeInfo','divider','orderInfo','divider','items','total','divider','footer'];
+const DEFAULT_BLOCKS = ['header','storeInfo','divider','orderInfo','divider','items','total','qr','footer'];
 
 function getReceiptConfig(userId) {
   const store = storeRepo.getOrCreate(userId);

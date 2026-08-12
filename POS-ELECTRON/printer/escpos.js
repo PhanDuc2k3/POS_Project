@@ -6,6 +6,16 @@
 const ESC = 0x1B;
 const GS = 0x1D;
 const LF = 0x0A;
+const CR = 0x0D;
+
+function toPrinterText(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .replace(/[^\x20-\x7E]/g, '?');
+}
 
 class ReceiptBuilder {
   constructor(options = {}) {
@@ -18,6 +28,9 @@ class ReceiptBuilder {
 
   init() {
     this.buffer.push(Buffer.from([ESC, 0x40])); // Initialize
+    this.buffer.push(Buffer.from([ESC, 0x74, 0x00])); // Code page PC437
+    this.buffer.push(Buffer.from([ESC, 0x21, 0x00])); // Normal print mode
+    this.buffer.push(Buffer.from([GS, 0x21, 0x00])); // Normal character size
     return this;
   }
 
@@ -57,13 +70,13 @@ class ReceiptBuilder {
   }
 
   text(str) {
-    this.buffer.push(Buffer.from(str, this.encoding));
+    this.buffer.push(Buffer.from(toPrinterText(str), 'ascii'));
     return this;
   }
 
   newLine(count = 1) {
     for (let i = 0; i < count; i++) {
-      this.buffer.push(Buffer.from([LF]));
+      this.buffer.push(Buffer.from([CR, LF]));
     }
     return this;
   }

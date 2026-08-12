@@ -4,7 +4,7 @@
 
 const { getDatabase, saveDatabase } = require('../database');
 
-const DEFAULT_BLOCKS = ['header','storeInfo','divider','orderInfo','divider','items','total','divider','footer'];
+const DEFAULT_BLOCKS = ['header','storeInfo','divider','orderInfo','divider','items','total','qr','footer'];
 
 function findByStoreId(storeId) {
   const db = getDatabase();

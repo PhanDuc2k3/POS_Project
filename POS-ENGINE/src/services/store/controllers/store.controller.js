@@ -34,7 +34,7 @@ function getPosConfig(req, res) {
   const store = storeRepo.getOrCreate(user.id);
 
   const bank = bankRepo.findActiveByStoreId(store.id);
-  const defaultBlocks = ['header','storeInfo','divider','orderInfo','divider','items','total','divider','footer'];
+  const defaultBlocks = ['header','storeInfo','divider','orderInfo','divider','items','total','qr','footer'];
   const receipt = receiptRepo.findByStoreId(store.id) || {
     header: store.name, footer: 'Xin cảm ơn quý khách',
     showQR: true, showLogo: false, showTime: true, showTxnId: true, showStoreInfo: true, paperWidth: '58mm',

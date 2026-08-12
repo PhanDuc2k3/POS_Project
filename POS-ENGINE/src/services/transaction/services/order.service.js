@@ -74,6 +74,36 @@ function createOrder(storeId, { items, paymentMethod, discount, note, deviceId, 
     itemCount: orderItems.length,
   });
 
+  if (!isTransfer) {
+    const payload = {
+      id: orderId,
+      orderNumber,
+      total,
+      discount: discountAmount,
+      finalTotal,
+      paymentMethod: normalizedPaymentMethod,
+      status: 'completed',
+      items: orderItems,
+      createdAt,
+      deviceId,
+      deviceName,
+      cashierId,
+      cashierName,
+    };
+
+    publish('transaction.paid', {
+      key: String(storeId),
+      storeId,
+      orderId,
+      orderNumber,
+      finalTotal,
+      paymentMethod: normalizedPaymentMethod,
+      paymentReference: 'cash',
+      order: payload,
+    });
+    publish('dashboard.refresh', { key: String(storeId), storeId });
+  }
+
   return {
     data: {
       id: orderId,
