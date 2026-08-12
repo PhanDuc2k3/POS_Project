@@ -11,11 +11,42 @@
   <div id="app">
     <div id="login-screen" class="screen active">
       <div class="login-container">
-        <div class="login-logo">POS</div>
+        <div class="login-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img">
+            <path d="M4.75 8.25h14.5l-.85-3.4a1.5 1.5 0 0 0-1.46-1.14H7.06A1.5 1.5 0 0 0 5.6 4.85l-.85 3.4Z"/>
+            <path d="M5.25 8.25v9.5a2 2 0 0 0 2 2h9.5a2 2 0 0 0 2-2v-9.5"/>
+            <path d="M8 8.25v-2.1M11 8.25v-2.1M14 8.25v-2.1M17 8.25v-2.1"/>
+          </svg>
+        </div>
         <h1 id="login-title"></h1>
+        <p class="login-subtitle" id="login-subtitle"></p>
         <form id="login-form">
-          <input type="text" id="login-username" value="admin" required>
-          <input type="password" id="login-password" required>
+          <label class="login-field">
+            <span id="login-username-label"></span>
+            <span class="input-wrap">
+              <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 21a8 8 0 0 0-16 0"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <input type="text" id="login-username" autocomplete="username" required>
+            </span>
+          </label>
+          <label class="login-field">
+            <span id="login-password-label"></span>
+            <span class="input-wrap">
+              <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="10" width="14" height="11" rx="2"/>
+                <path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+              </svg>
+              <input type="password" id="login-password" autocomplete="current-password" required>
+              <button type="button" id="toggle-password" class="password-toggle" aria-label="Hiện mật khẩu">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </span>
+          </label>
           <button type="submit" id="login-btn"></button>
           <p id="login-error" class="error-msg"></p>
         </form>
@@ -23,39 +54,111 @@
     </div>
 
     <div id="pos-screen" class="screen">
-      <div class="pos-menu">
-        <div class="pos-menu-header">
-          <div class="store-name" id="store-name"></div>
-          <div class="pos-categories" id="categories-bar"></div>
+      <div class="pos-shell">
+        <div class="pos-topbar">
+          <div class="brand">
+            <span class="brand-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M4.75 8.25h14.5l-.85-3.4a1.5 1.5 0 0 0-1.46-1.14H7.06A1.5 1.5 0 0 0 5.6 4.85l-.85 3.4Z"/>
+                <path d="M5.25 8.25v9.5a2 2 0 0 0 2 2h9.5a2 2 0 0 0 2-2v-9.5"/>
+              </svg>
+            </span>
+            <span>RetailPOS</span>
+          </div>
+          <div class="topbar-tab">Bán hàng</div>
+          <div class="topbar-status">
+            <span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></svg>
+              Đã kết nối
+            </span>
+            <span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+              Máy in sẵn sàng
+            </span>
+            <span class="admin-chip">
+              <span class="admin-avatar">A</span>
+              Admin
+            </span>
+          </div>
         </div>
-        <div class="pos-products" id="products-grid"></div>
+
+        <div class="pos-main">
+          <aside class="pos-sidebar">
+            <div class="pos-categories" id="categories-bar"></div>
+            <div class="sidebar-bottom">
+              <button class="side-btn" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"/><path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.02-.66-.07-.98l2.11-1.65-2-3.46-2.49 1a7.28 7.28 0 0 0-1.69-.98L15 3h-4l-.36 2.93c-.6.24-1.16.57-1.69.98l-2.49-1-2 3.46 2.11 1.65c-.04.32-.07.65-.07.98s.02.66.07.98l-2.11 1.65 2 3.46 2.49-1c.52.4 1.08.73 1.69.98L11 21h4l.36-2.93c.6-.24 1.16-.57 1.69-.98l2.49 1 2-3.46-2.11-1.65Z"/></svg>
+                Cài đặt
+              </button>
+              <button class="side-btn danger" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+                Đăng xuất
+              </button>
+            </div>
+          </aside>
+
+          <div class="pos-menu">
+            <div class="pos-menu-header">
+              <div class="store-name" id="store-name"></div>
+              <div class="product-tools">
+                <label class="product-search">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                  <input id="product-search-input" type="search" placeholder="Tìm kiếm sản phẩm...">
+                </label>
+                <button id="scan-btn" class="scan-btn" type="button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V4h3"/><path d="M17 4h3v3"/><path d="M20 17v3h-3"/><path d="M7 20H4v-3"/><path d="M7 8h1v8H7z"/><path d="M11 8h2v8h-2z"/><path d="M16 8h1v8h-1z"/></svg>
+                  Quét mã
+                </button>
+              </div>
+            </div>
+            <div class="pos-products" id="products-grid"></div>
+          </div>
+        </div>
       </div>
 
       <div class="pos-cart">
         <div class="cart-header">
           <h2 id="cart-title"></h2>
-          <button id="clear-cart-btn" class="btn-icon">X</button>
+          <button id="clear-cart-btn" class="btn-icon" aria-label="Xóa đơn hàng">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          </button>
         </div>
         <div class="cart-items" id="cart-items"></div>
         <div class="cart-footer">
+          <div class="cart-summary">
+            <div><span>Tạm tính</span><strong id="cart-subtotal-value">0</strong></div>
+            <div><span>Thuế (VAT 8%)</span><strong id="cart-tax-value">0</strong></div>
+          </div>
           <div class="cart-total">
             <span id="cart-total-label"></span>
             <span id="cart-total-value">0</span>
           </div>
           <div class="cart-actions">
-            <button id="pay-cash-btn" class="btn-pay cash"></button>
             <button id="pay-transfer-btn" class="btn-pay transfer"></button>
+            <button id="pay-cash-btn" class="btn-pay cash"></button>
           </div>
+          <button class="print-last-btn" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            In lại hóa đơn gần nhất
+          </button>
         </div>
       </div>
     </div>
 
     <div id="success-overlay" class="overlay hidden">
       <div class="success-content">
-        <div class="success-icon">&#10003;</div>
+        <div class="success-icon" aria-hidden="true">
+          <span>&#10003;</span>
+        </div>
         <h2 id="success-title"></h2>
-        <p id="success-amount"></p>
-        <p id="success-order-number"></p>
+        <p class="success-order-line"><span id="success-order-label"></span> <strong id="success-order-number"></strong></p>
+        <div class="success-total-box">
+          <span id="success-total-label"></span>
+          <strong id="success-amount"></strong>
+        </div>
+        <p class="success-printing" id="success-printing"></p>
+        <button id="new-order-btn" class="success-new-order" type="button"></button>
+        <button id="success-print-btn" class="success-print-btn" type="button"></button>
       </div>
     </div>
 
@@ -64,14 +167,42 @@
       <div class="qr-content">
         <div class="qr-header">
           <h2 id="qr-title"></h2>
-          <button id="qr-close" class="popup-close">&#215;</button>
+          <button id="qr-close" class="popup-close" aria-label="Dong">&#215;</button>
         </div>
-        <div class="qr-amount" id="qr-amount"></div>
-        <div class="qr-image-wrap">
-          <img id="qr-image" alt="QR" />
+        <div class="qr-body">
+          <div class="qr-left">
+            <div class="qr-image-wrap">
+              <img id="qr-image" alt="QR" />
+            </div>
+            <p class="qr-instruction" id="qr-instruction"></p>
+          </div>
+          <div class="qr-right">
+            <div class="qr-amount-box">
+              <span id="qr-amount-label"></span>
+              <strong id="qr-amount"></strong>
+            </div>
+            <div class="qr-bank-info" id="qr-bank-info"></div>
+            <label class="qr-copy-field">
+              <span id="qr-account-label"></span>
+              <div>
+                <input id="qr-account-number" readonly>
+                <button id="qr-copy-account-btn" type="button" aria-label="Copy account">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              </div>
+            </label>
+            <label class="qr-copy-field">
+              <span id="qr-content-label"></span>
+              <div>
+                <input id="qr-payment-code" readonly>
+                <button id="qr-copy-code-btn" type="button" aria-label="Copy content">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              </div>
+            </label>
+            <div class="qr-waiting" id="qr-waiting"></div>
+          </div>
         </div>
-        <p class="qr-instruction" id="qr-instruction"></p>
-        <div class="qr-bank-info" id="qr-bank-info"></div>
         <div class="qr-debug" id="qr-debug">
           <div class="qr-debug-header">
             <span>Postman test</span>

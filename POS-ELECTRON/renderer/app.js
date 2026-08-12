@@ -9,17 +9,36 @@ let storeInfo = null;
 let bankConfig = null;
 let activeCategory = 'all';
 let pendingTransferOrder = null;
+let productSearch = '';
+let lastPaidOrder = null;
 
 // UI Text (Unicode escapes)
 const T = {
   login: '\u0110\u0103ng nh\u1EADp',
+  loginTitle: 'POS B\u00E1n H\u00E0ng',
+  loginSubtitle: '\u0110\u0103ng nh\u1EADp h\u1EC7 th\u1ED1ng',
   username: 'T\u00EAn \u0111\u0103ng nh\u1EADp',
+  usernamePlaceholder: 'Nh\u1EADp m\u00E3 nh\u00E2n vi\u00EAn',
   password: 'M\u1EADt kh\u1EA9u',
+  passwordPlaceholder: 'Nh\u1EADp m\u1EADt kh\u1EA9u',
   order: '\u0110\u01A1n h\u00E0ng',
   total: 'T\u1ED5ng c\u1ED9ng',
   cash: 'Ti\u1EC1n m\u1EB7t',
   transfer: 'Chuy\u1EC3n kho\u1EA3n',
   success: 'Thanh to\u00E1n th\u00E0nh c\u00F4ng!',
+  orderCode: 'M\u00E3 \u0111\u01A1n:',
+  totalPayment: 'T\u1ED5ng thanh to\u00E1n',
+  amountDue: 'S\u1ED1 ti\u1EC1n c\u1EA7n thanh to\u00E1n',
+  bank: 'Ng\u00E2n h\u00E0ng',
+  accountOwner: 'Ch\u1EE7 t\u00E0i kho\u1EA3n',
+  accountNumber: 'S\u1ED1 t\u00E0i kho\u1EA3n',
+  transferContent: 'N\u1ED9i dung chuy\u1EC3n kho\u1EA3n',
+  waitingPayment: '\u0110ang ch\u1EDD thanh to\u00E1n...',
+  scanToPay: 'S\u1EED d\u1EE5ng \u1EE9ng d\u1EE5ng ng\u00E2n h\u00E0ng \u0111\u1EC3 qu\u00E9t m\u00E3 QR v\u00E0 thanh to\u00E1n',
+  cancelPayment: 'H\u1EE7y thanh to\u00E1n',
+  printing: 'H\u00F3a \u0111\u01A1n \u0111ang \u0111\u01B0\u1EE3c in...',
+  newOrder: '\u0110\u01A1n h\u00E0ng m\u1EDBi',
+  reprint: 'In l\u1EA1i h\u00F3a \u0111\u01A1n',
   empty: 'Ch\u01B0a c\u00F3 m\u00F3n n\u00E0o',
   noProducts: 'Ch\u01B0a c\u00F3 s\u1EA3n ph\u1EA9m',
   all: 'T\u1EA5t c\u1EA3',
@@ -31,13 +50,25 @@ const T = {
 const $ = id => document.getElementById(id);
 
 // Set text
-$('login-title').textContent = T.login;
-$('login-username').placeholder = T.username;
-$('login-password').placeholder = T.password;
+$('login-title').textContent = T.loginTitle;
+$('login-subtitle').textContent = T.loginSubtitle;
+$('login-username-label').textContent = T.username;
+$('login-password-label').textContent = T.password;
+$('login-username').placeholder = T.usernamePlaceholder;
+$('login-password').placeholder = T.passwordPlaceholder;
 $('login-btn').textContent = T.login;
 $('cart-title').textContent = T.order;
 $('cart-total-label').textContent = T.total;
 $('success-title').textContent = T.success;
+$('success-order-label').textContent = T.orderCode;
+$('success-total-label').textContent = T.totalPayment;
+$('success-printing').textContent = T.printing;
+$('new-order-btn').textContent = T.newOrder;
+$('success-print-btn').textContent = T.reprint;
+$('qr-amount-label').textContent = T.amountDue;
+$('qr-account-label').textContent = T.accountNumber;
+$('qr-content-label').textContent = T.transferContent;
+$('qr-waiting').textContent = T.waitingPayment;
 $('pay-cash-btn').textContent = T.cash;
 $('pay-transfer-btn').textContent = T.transfer;
 
@@ -116,8 +147,8 @@ async function loadData() {
 // ─── Categories ──────────────────────────────
 
 function renderCategories() {
-  let html = '<button class="cat-btn active" data-cat="all">' + T.all + '</button>';
-  categories.forEach(c => { html += '<button class="cat-btn" data-cat="' + c.id + '">' + esc(c.name) + '</button>'; });
+  let html = buildCategoryButton('all', T.all, true);
+  categories.forEach(c => { html += buildCategoryButton(c.id, c.name, false); });
   $('categories-bar').innerHTML = html;
   $('categories-bar').querySelectorAll('.cat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -129,22 +160,53 @@ function renderCategories() {
   });
 }
 
+function buildCategoryButton(id, label, active) {
+  return '<button class="cat-btn' + (active ? ' active' : '') + '" data-cat="' + esc(String(id)) + '">' +
+    categoryIcon(label) +
+    '<span>' + esc(label) + '</span>' +
+  '</button>';
+}
+
+function categoryIcon(label) {
+  const normalized = (label || '').toLowerCase();
+  if (normalized.includes('c\u00E0 ph\u00EA') || normalized.includes('coffee')) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Z"/><path d="M16 10h2a2 2 0 0 1 0 4h-2"/><path d="M6 2v2"/><path d="M10 2v2"/><path d="M14 2v2"/></svg>';
+  }
+  if (normalized.includes('tr\u00E0') || normalized.includes('tea')) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h13v7a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4Z"/><path d="M18 10h1a2 2 0 0 1 0 4h-1"/><path d="M7 4h10"/></svg>';
+  }
+  if (normalized.includes('n\u01B0\u1EDBc')) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z"/></svg>';
+  }
+  if (normalized.includes('\u0111\u1ED3 \u0103n') || normalized.includes('food')) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v18"/><path d="M10 3v18"/><path d="M6 8h4"/><path d="M17 3v18"/><path d="M14 3h6v8h-6z"/></svg>';
+  }
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4z"/><path d="M14 4h6v6h-6z"/><path d="M4 14h6v6H4z"/><path d="M14 14h6v6h-6z"/></svg>';
+}
+
 // ─── Products Grid ───────────────────────────
 
 function renderProducts() {
-  const filtered = activeCategory === 'all' ? products : products.filter(p => String(p.categoryId) === activeCategory);
+  const query = productSearch.trim().toLowerCase();
+  const filtered = products.filter(p => {
+    const inCategory = activeCategory === 'all' || String(p.categoryId) === activeCategory;
+    const matchesSearch = !query || (p.name || '').toLowerCase().includes(query);
+    return inCategory && matchesSearch;
+  });
   if (!filtered.length) {
     $('products-grid').innerHTML = '<p class="grid-empty">' + T.noProducts + '</p>';
     return;
   }
-  $('products-grid').innerHTML = filtered.map(p =>
-    '<button class="product-btn" data-id="' + p.id + '">' +
+  $('products-grid').innerHTML = filtered.map(p => {
+    const selected = cart.some(item => item.productId === p.id);
+    return '<button class="product-btn' + (selected ? ' selected' : '') + '" data-id="' + p.id + '">' +
       (p.image ? '<img class="p-img" src="' + esc(p.image) + '" alt="">' : '<div class="p-img-placeholder"></div>') +
+      '<span class="p-selected">\u2713</span>' +
       '<span class="p-name">' + esc(p.name) + '</span>' +
       '<span class="p-price">' + fmt(p.price) + '</span>' +
       (p.toppingGroups && p.toppingGroups.length ? '<span class="p-has-topping">+</span>' : '') +
-    '</button>'
-  ).join('');
+    '</button>';
+  }).join('');
 
   $('products-grid').querySelectorAll('.product-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -200,10 +262,11 @@ function showToppingPopup(product) {
 function buildToppingPopupHTML(product) {
   let toppingHtml = '';
   product.toppingGroups.forEach(group => {
-    toppingHtml += '<div class="topping-group-title">' + esc(group.name) + '</div>';
+    toppingHtml += '<div class="topping-group-title">Ch\u1ECDn Topping</div>';
     group.toppings.forEach(t => {
       toppingHtml += '<label class="topping-item">' +
         '<input type="checkbox" class="topping-check" data-id="' + t.id + '" data-name="' + esc(t.name) + '" data-price="' + t.price + '">' +
+        '<span class="topping-box"></span>' +
         '<span class="topping-name">' + esc(t.name) + '</span>' +
         '<span class="topping-price">+' + fmt(t.price) + '</span>' +
       '</label>';
@@ -215,13 +278,10 @@ function buildToppingPopupHTML(product) {
       '<h3>' + esc(product.name) + '</h3>' +
       '<button class="popup-close">\u00D7</button>' +
     '</div>' +
-    (product.image ? '<img class="popup-img" src="' + esc(product.image) + '">' : '') +
-    (product.description ? '<p class="popup-desc">' + esc(product.description) + '</p>' : '') +
-    '<div class="popup-base-price">' + fmt(product.price) + '</div>' +
     '<div class="popup-toppings">' + toppingHtml + '</div>' +
     '<div class="popup-footer">' +
-      '<div class="popup-total">' + fmt(product.price) + '</div>' +
-      '<button class="popup-add-btn">' + T.addToOrder + '</button>' +
+      '<div class="popup-total-wrap"><span>T\u1ED5ng c\u1ED9ng</span><div class="popup-total">' + fmt(product.price) + '</div></div>' +
+      '<button class="popup-add-btn"><span aria-hidden="true">\uD83D\uDED2</span> ' + T.addToOrder + '</button>' +
     '</div>' +
   '</div>';
 }
@@ -255,6 +315,7 @@ function addToCart(item) {
     });
   }
   renderCart();
+  renderProducts();
 }
 
 function updateQty(key, delta) {
@@ -263,16 +324,23 @@ function updateQty(key, delta) {
   item.quantity += delta;
   if (item.quantity <= 0) cart = cart.filter(c => c.key !== key);
   renderCart();
+  renderProducts();
 }
 
-function clearCart() { cart = []; renderCart(); }
+function clearCart() { cart = []; renderCart(); renderProducts(); }
 
 function getTotal() { return cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0); }
+function getTaxAmount() { return Math.round(getTotal() * 0.08); }
+function getGrandTotal() { return getTotal() + getTaxAmount(); }
 
 function renderCart() {
   const el = $('cart-items');
+  const itemCount = cart.reduce((s, i) => s + i.quantity, 0);
+  $('cart-title').textContent = T.order + (itemCount ? ' (' + itemCount + ' m\u00F3n)' : '');
   if (!cart.length) {
     el.innerHTML = '<p class="cart-empty">' + T.empty + '</p>';
+    $('cart-subtotal-value').textContent = '0';
+    $('cart-tax-value').textContent = '0';
     $('cart-total-value').textContent = '0';
     $('pay-cash-btn').disabled = true;
     $('pay-transfer-btn').disabled = true;
@@ -287,7 +355,7 @@ function renderCart() {
       '<div class="cart-item-info">' +
         '<div class="cart-item-name">' + esc(item.productName) + '</div>' +
         toppingText +
-        '<div class="cart-item-price">' + fmt(item.unitPrice) + '</div>' +
+        '<div class="cart-item-price">' + fmt(item.unitPrice) + ' / ly</div>' +
       '</div>' +
       '<div class="cart-item-qty">' +
         '<button class="qty-btn" data-key="' + esc(item.key) + '" data-d="-1">\u2212</button>' +
@@ -301,7 +369,11 @@ function renderCart() {
     btn.addEventListener('click', () => updateQty(btn.dataset.key, parseInt(btn.dataset.d)));
   });
 
-  $('cart-total-value').textContent = fmt(getTotal());
+  const subtotal = getTotal();
+  const tax = getTaxAmount();
+  $('cart-subtotal-value').textContent = fmt(subtotal);
+  $('cart-tax-value').textContent = fmt(tax);
+  $('cart-total-value').textContent = fmt(getGrandTotal());
 }
 
 // ─── Payment ─────────────────────────────────
@@ -340,29 +412,29 @@ async function startTransferPayment() {
 function showQRPayment(order) {
   const total = order?.finalTotal || getTotal();
   const paymentCode = order?.paymentCode || '';
+  const accountNumber = bankConfig?.accountNumber || '';
 
   // Generate VietQR URL
   const qrUrl = generateVietQR(total, paymentCode);
 
-  $('qr-title').textContent = 'Chuy\u1EC3n kho\u1EA3n';
+  $('qr-title').textContent = 'Thanh to\u00E1n chuy\u1EC3n kho\u1EA3n';
   $('qr-amount').textContent = fmt(total);
   $('qr-image').src = qrUrl;
-  $('qr-instruction').textContent = paymentCode
-    ? 'N\u1ED9i dung chuy\u1EC3n kho\u1EA3n: ' + paymentCode
-    : 'Qu\u00E9t m\u00E3 QR \u0111\u1EC3 thanh to\u00E1n';
+  $('qr-instruction').textContent = T.scanToPay;
+  $('qr-account-number').value = accountNumber;
+  $('qr-payment-code').value = paymentCode;
 
   // Show bank info
   if (bankConfig) {
     $('qr-bank-info').innerHTML =
-      esc(bankConfig.bankName || '') + ' - ' + esc(bankConfig.accountName || '') +
-      '<br>STK: ' + esc(bankConfig.accountNumber || '') +
-      (bankConfig.bankBin ? '<br>BIN: ' + esc(bankConfig.bankBin) : '');
+      '<div><span>' + T.bank + '</span><strong>' + esc(bankConfig.bankName || '') + '</strong></div>' +
+      '<div><span>' + T.accountOwner + '</span><strong>' + esc(bankConfig.accountName || '') + '</strong></div>';
   } else {
     $('qr-bank-info').textContent = '';
   }
 
   $('qr-confirm-btn').textContent = 'X\u00E1c nh\u1EADn th\u1EE7 c\u00F4ng';
-  $('qr-cancel-btn').textContent = 'H\u1EE7y';
+  $('qr-cancel-btn').textContent = T.cancelPayment;
   renderWebhookDebug(order, total, paymentCode);
 
   $('qr-overlay').classList.remove('hidden');
@@ -459,12 +531,22 @@ async function processOrder(method) {
 }
 
 function buildOrderItems() {
-  return cart.map(item => ({
+  const items = cart.map(item => ({
     productId: item.productId,
     productName: item.productName + (item.toppings.length ? ' (' + item.toppings.map(t => t.name).join(', ') + ')' : ''),
     quantity: item.quantity,
     unitPrice: item.unitPrice,
   }));
+  const tax = getTaxAmount();
+  if (tax > 0) {
+    items.push({
+      productId: null,
+      productName: 'Thu\u1EBF VAT 8%',
+      quantity: 1,
+      unitPrice: tax,
+    });
+  }
+  return items;
 }
 
 async function handlePaidEvent(data) {
@@ -483,10 +565,11 @@ async function handlePaidEvent(data) {
 }
 
 async function finishPaidOrder(order) {
+  lastPaidOrder = order;
   $('success-amount').textContent = fmt(order.finalTotal);
-  $('success-order-number').textContent = order.orderNumber;
+  $('success-order-number').textContent = order.paymentCode || order.orderNumber || '';
   $('success-overlay').classList.remove('hidden');
-  setTimeout(() => $('success-overlay').classList.add('hidden'), 3000);
+  printReceipt(order);
   clearCart();
 }
 
@@ -521,7 +604,17 @@ async function printReceipt(order) {
 $('clear-cart-btn').addEventListener('click', clearCart);
 $('pay-cash-btn').addEventListener('click', () => pay('cash'));
 $('pay-transfer-btn').addEventListener('click', () => pay('transfer'));
-$('success-overlay').addEventListener('click', () => $('success-overlay').classList.add('hidden'));
+$('product-search-input').addEventListener('input', (e) => {
+  productSearch = e.target.value;
+  renderProducts();
+});
+$('scan-btn').addEventListener('click', () => $('product-search-input').focus());
+$('new-order-btn').addEventListener('click', () => $('success-overlay').classList.add('hidden'));
+$('success-print-btn').addEventListener('click', () => {
+  if (lastPaidOrder) printReceipt(lastPaidOrder);
+});
+$('qr-copy-account-btn').addEventListener('click', () => copyInputValue('qr-account-number'));
+$('qr-copy-code-btn').addEventListener('click', () => copyInputValue('qr-payment-code'));
 $('qr-copy-debug-btn').addEventListener('click', async () => {
   const json = $('qr-debug-body').textContent || '';
   try {
@@ -531,6 +624,23 @@ $('qr-copy-debug-btn').addEventListener('click', async () => {
   } catch {
     console.log('[SePay demo] Copy this JSON:', json);
   }
+});
+
+async function copyInputValue(id) {
+  const value = $(id).value || '';
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    console.log('[Copy]', value);
+  }
+}
+
+$('toggle-password').addEventListener('click', () => {
+  const passwordInput = $('login-password');
+  const isHidden = passwordInput.type === 'password';
+  passwordInput.type = isHidden ? 'text' : 'password';
+  $('toggle-password').setAttribute('aria-label', isHidden ? '\u1EA8n m\u1EADt kh\u1EA9u' : 'Hi\u1EC7n m\u1EADt kh\u1EA9u');
 });
 
 // QR overlay events
