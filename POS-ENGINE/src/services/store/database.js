@@ -61,6 +61,7 @@ async function initDatabase() {
       show_txn_id INTEGER DEFAULT 1,
       show_store_info INTEGER DEFAULT 1,
       paper_width TEXT DEFAULT '58mm',
+      tax_rate REAL DEFAULT 8,
       blocks TEXT DEFAULT '["header","storeInfo","divider","orderInfo","divider","items","total","divider","footer"]',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -71,6 +72,13 @@ async function initDatabase() {
   // Migration: Add blocks column if not exists (for existing databases)
   try {
     db.run(`ALTER TABLE receipt_configs ADD COLUMN blocks TEXT DEFAULT '["header","storeInfo","divider","orderInfo","divider","items","total","divider","footer"]'`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
+  // Migration: Add VAT rate for existing receipt config records.
+  try {
+    db.run('ALTER TABLE receipt_configs ADD COLUMN tax_rate REAL DEFAULT 8');
   } catch (e) {
     // Column already exists, ignore
   }

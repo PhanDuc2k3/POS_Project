@@ -38,7 +38,7 @@ function getPosConfig(req, res) {
   const receipt = receiptRepo.findByStoreId(store.id) || {
     header: store.name, footer: 'Xin cảm ơn quý khách',
     showQR: true, showLogo: false, showTime: true, showTxnId: true, showStoreInfo: true, paperWidth: '58mm',
-    blocks: defaultBlocks,
+    taxRate: 8, blocks: defaultBlocks,
   };
   if (!receipt.blocks) receipt.blocks = defaultBlocks;
 

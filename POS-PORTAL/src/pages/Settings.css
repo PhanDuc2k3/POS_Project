@@ -70,6 +70,79 @@
   gap: 16px;
 }
 
+.tax-config-box {
+  min-height: 86px;
+  border: 1px solid #cad6ea;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 118px;
+  align-items: center;
+  gap: 14px;
+}
+
+.tax-config-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  background: #eaf1ff;
+  color: #2f66e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tax-config-copy strong {
+  display: block;
+  color: #061938;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tax-config-copy span {
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.tax-rate-input {
+  height: 38px;
+  border: 1px solid #cad6ea;
+  border-radius: 6px;
+  background: white;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.tax-rate-input input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  padding: 0 10px;
+  color: #061938;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.tax-rate-input span {
+  width: 34px;
+  height: 100%;
+  border-left: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .settings-field {
   display: flex;
   flex-direction: column;
@@ -273,5 +346,13 @@
 
   .vietqr-card {
     width: min(330px, 100%);
+  }
+
+  .tax-config-box {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .tax-rate-input {
+    grid-column: 1 / -1;
   }
 }

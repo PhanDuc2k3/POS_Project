@@ -20,8 +20,8 @@ function getReceiptConfig(req, res) {
 
 function updateReceiptConfig(req, res) {
   const user = getUserFromHeaders(req);
-  const { header, footer, showQR, showLogo, showTime, showTxnId, showStoreInfo, paperWidth, blocks } = req.body;
-  const result = receiptService.updateReceiptConfig(user.id, { header, footer, showQR, showLogo, showTime, showTxnId, showStoreInfo, paperWidth, blocks });
+  const { header, footer, showQR, showLogo, showTime, showTxnId, showStoreInfo, paperWidth, blocks, taxRate } = req.body;
+  const result = receiptService.updateReceiptConfig(user.id, { header, footer, showQR, showLogo, showTime, showTxnId, showStoreInfo, paperWidth, blocks, taxRate });
   res.json(result);
 }
 

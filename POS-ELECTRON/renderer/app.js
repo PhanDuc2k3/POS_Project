@@ -7,6 +7,7 @@ let products = [];
 let categories = [];
 let storeInfo = null;
 let bankConfig = null;
+let receiptConfig = null;
 let activeCategory = 'all';
 let pendingTransferOrder = null;
 let productSearch = '';
@@ -100,9 +101,16 @@ function connectWS() {
   // Listen for events forwarded from main process
   window.posAPI.onSocketEvent(({ event, data }) => {
     console.log('[WS] Event received:', event);
+    if (event === 'store:receiptUpdated') {
+      receiptConfig = { ...(receiptConfig || {}), ...(data || {}) };
+      renderTaxLabel();
+      renderCart();
+      loadData();
+      return;
+    }
     // Reload menu on any product/store change
     if (event.startsWith('product:') || event.startsWith('store:')) {
-      loadData();
+      loadData().then(() => renderCart());
     }
     if (event === 'transaction:paid') {
       handlePaidEvent(data);
@@ -130,9 +138,11 @@ async function loadData() {
     products = menu.products || [];
     storeInfo = storeConfig?.store || null;
     bankConfig = storeConfig?.bank || null;
+    receiptConfig = storeConfig?.receipt || null;
     $('store-name').textContent = storeInfo?.name || 'POS';
     renderCategories();
     renderProducts();
+    renderTaxLabel();
 
     // Cache store config for printer (main process)
     if (window.posAPI?.setStoreConfig) {
@@ -330,8 +340,17 @@ function updateQty(key, delta) {
 function clearCart() { cart = []; renderCart(); renderProducts(); }
 
 function getTotal() { return cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0); }
-function getTaxAmount() { return Math.round(getTotal() * 0.08); }
+function getTaxRate() {
+  const rate = Number(receiptConfig?.taxRate);
+  if (!Number.isFinite(rate) || rate < 0) return 8;
+  return Math.min(100, rate);
+}
+function getTaxAmount() { return Math.round(getTotal() * (getTaxRate() / 100)); }
 function getGrandTotal() { return getTotal() + getTaxAmount(); }
+function renderTaxLabel() {
+  const el = $('cart-tax-label');
+  if (el) el.textContent = 'Thu\u1EBF (VAT ' + getTaxRate().toLocaleString('vi-VN') + '%)';
+}
 
 function renderCart() {
   const el = $('cart-items');
@@ -539,9 +558,10 @@ function buildOrderItems() {
   }));
   const tax = getTaxAmount();
   if (tax > 0) {
+    const taxRateText = getTaxRate().toLocaleString('vi-VN');
     items.push({
       productId: null,
-      productName: 'Thu\u1EBF VAT 8%',
+      productName: 'Thu\u1EBF VAT ' + taxRateText + '%',
       quantity: 1,
       unitPrice: tax,
     });

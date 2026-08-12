@@ -17,7 +17,7 @@ function getReceiptConfig(userId) {
       data: {
         header: store.name, footer: 'Xin cảm ơn quý khách',
         showQR: true, showLogo: false, showTime: true, showTxnId: true, showStoreInfo: true, paperWidth: '58mm',
-        blocks: DEFAULT_BLOCKS,
+        taxRate: 8, blocks: DEFAULT_BLOCKS,
       },
     };
   }

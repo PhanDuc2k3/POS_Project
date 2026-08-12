@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Building2, Printer, Save } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Building2, Percent, Printer, Save } from 'lucide-react';
 import { storeAPI } from '../services/store.api';
 import { VIETNAM_BANKS, findBankByBin } from '../constants/vietnamBanks';
 import './Settings.css';
@@ -7,6 +7,7 @@ import './Settings.css';
 function Settings() {
   const [bank, setBank] = useState({ bankName: '', bankBin: '', accountName: '', accountNumber: '', qrProvider: 'VietQR' });
   const [receipt, setReceipt] = useState({ header: '', footer: '', showQR: true, showLogo: false, showTime: true, showTxnId: true, showStoreInfo: true, paperWidth: '80mm' });
+  const [taxRate, setTaxRate] = useState(8);
   const [autoPrintQr, setAutoPrintQr] = useState(true);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
@@ -32,28 +33,42 @@ function Settings() {
           paperWidth: receiptData.paperWidth || '80mm',
           footer: receiptData.footer || '',
         });
+        setTaxRate(Number.isFinite(Number(receiptData.taxRate)) ? Number(receiptData.taxRate) : 8);
         setAutoPrintQr(Boolean(receiptData.showQR));
       }
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
+    } catch {
+      // Keep defaults when the config service is unavailable.
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function showToast(msg) {
-    setToast(msg);
+  function showToast(message) {
+    setToast(message);
     setTimeout(() => setToast(''), 3000);
   }
 
-  async function handleSave() {
+  async function handleSaveBank() {
     try {
       if (!bank.bankBin || !bank.accountName.trim() || !bank.accountNumber.trim()) {
         showToast('Vui lòng chọn ngân hàng, nhập tên và số tài khoản');
         return;
       }
-      await Promise.all([
-        storeAPI.updateBankConfig(bank),
-        storeAPI.updateReceiptConfig({ ...receipt, showQR: autoPrintQr }),
-      ]);
-      showToast('Đã lưu thay đổi');
+      await storeAPI.updateBankConfig(bank);
+      showToast('Đã lưu cấu hình ngân hàng');
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
+  async function handleSaveReceipt() {
+    try {
+      if (!Number.isFinite(Number(taxRate)) || Number(taxRate) < 0 || Number(taxRate) > 100) {
+        showToast('Thuế VAT phải nằm trong khoảng 0-100%');
+        return;
+      }
+      await storeAPI.updateReceiptConfig({ ...receipt, showQR: autoPrintQr, taxRate: Number(taxRate) });
+      showToast('Đã lưu cấu hình hóa đơn');
     } catch (err) {
       showToast(err.message);
     }
@@ -72,7 +87,7 @@ function Settings() {
       <section className="settings-panel bank-panel">
         <div className="settings-panel-header">
           <h2><Building2 size={18} /> Cấu hình ngân hàng & VietQR</h2>
-          <button className="settings-save-btn" type="button" onClick={handleSave}>
+          <button className="settings-save-btn" type="button" onClick={handleSaveBank}>
             <Save size={13} />
             Lưu thay đổi
           </button>
@@ -138,10 +153,34 @@ function Settings() {
       <section className="settings-panel">
         <div className="settings-panel-header">
           <h2><Printer size={18} /> Cấu hình máy in & Hóa đơn</h2>
+          <button className="settings-save-btn" type="button" onClick={handleSaveReceipt}>
+            <Save size={13} />
+            Lưu thay đổi
+          </button>
         </div>
 
         <div className="printer-settings-grid">
           <div className="settings-form">
+            <div className="tax-config-box">
+              <div className="tax-config-icon">
+                <Percent size={20} />
+              </div>
+              <div className="tax-config-copy">
+                <strong>Thuế VAT</strong>
+                <span>Áp dụng khi tính tổng thanh toán trên POS</span>
+              </div>
+              <label className="tax-rate-input">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={taxRate}
+                  onChange={e => setTaxRate(e.target.value)}
+                />
+                <span>%</span>
+              </label>
+            </div>
             <label className="settings-field">
               <span>Máy in mặc định</span>
               <select>
@@ -162,7 +201,7 @@ function Settings() {
             <textarea
               value={receipt.footer || ''}
               onChange={e => setReceipt({ ...receipt, footer: e.target.value })}
-              placeholder="Cảm ơn quý khách đã mua sắm!&#10;Hẹn gặp lại quý khách."
+              placeholder={'Cảm ơn quý khách đã mua sắm!\nHẹn gặp lại quý khách.'}
             />
           </label>
         </div>
