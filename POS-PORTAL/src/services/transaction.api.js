@@ -1,5 +1,13 @@
 import { apiFetch } from './client';
 
+function unwrapArrayPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.orders)) return payload.orders;
+  return [];
+}
+
 export const transactionAPI = {
   async createOrder(data) {
     const response = await apiFetch('/txn/orders', {
@@ -41,7 +49,8 @@ export const transactionAPI = {
   async getRecent(limit = 10) {
     const response = await apiFetch(`/txn/orders/recent/list?limit=${limit}`);
     if (!response.ok) throw new Error('Failed to fetch recent orders');
-    return response.json();
+    const result = await response.json();
+    return unwrapArrayPayload(result);
   },
 
   async getDiningSessions(params = {}) {

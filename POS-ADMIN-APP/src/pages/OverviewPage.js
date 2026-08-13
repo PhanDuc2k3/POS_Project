@@ -24,8 +24,8 @@ export function renderOverviewPage(state, helpers) {
         </div>
         <div class="panel-body detail-grid">
           ${detail('Store', tenant.name)}
-          ${detail('Owner', tenant.owner)}
-          ${detail('Email', tenant.email)}
+          ${detail('Owner', tenant.ownerName || tenant.owner)}
+          ${detail('Email', tenant.ownerEmail || tenant.email)}
           ${detail('Package', tenant.packageTier)}
           ${detail('Mode', tenant.operatingMode)}
           ${detail('Renewal', tenant.renewalDate)}

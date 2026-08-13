@@ -56,6 +56,39 @@ function rowToPermission(row) {
   };
 }
 
+function rowToTrialRequest(row) {
+  return {
+    id: row[0],
+    restaurantName: row[1],
+    contactName: row[2],
+    email: row[3],
+    phone: row[4],
+    packageTier: row[5],
+    operatingMode: row[6],
+    message: row[7],
+    submittedByUserId: row[8],
+    submittedByUsername: row[9],
+    status: row[10],
+    tenantId: row[11],
+    accountId: row[12],
+    portalUsername: row[13],
+    portalPassword: row[14],
+    reviewedBy: row[15],
+    reviewedAt: row[16],
+    createdAt: row[17],
+    updatedAt: row[18],
+  };
+}
+
+function createId(prefix) {
+  const random = Math.floor(Math.random() * 900 + 100);
+  return `${prefix}-${Date.now().toString().slice(-6)}-${random}`;
+}
+
+function createPassword() {
+  return `POS-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
 function listPackages() {
   const db = getDatabase();
   const result = db.exec('SELECT id, name, level, price, modules, sort_order FROM platform_packages ORDER BY sort_order ASC, price ASC');
@@ -71,6 +104,18 @@ function listTenants() {
 function findTenantById(id) {
   const db = getDatabase();
   const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date FROM platform_tenants WHERE id = ?', [id]);
+  return result[0]?.values?.[0] ? rowToTenant(result[0].values[0]) : null;
+}
+
+function createTenant({ name, ownerName, ownerEmail, packageTier, operatingMode, status = 'trial', renewalDate = null }) {
+  const db = getDatabase();
+  db.run(
+    `INSERT INTO platform_tenants (name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date)
+     VALUES (?, ?, ?, ?, ?, ?, 1, 1, 0, ?)`,
+    [name, ownerName, ownerEmail, packageTier, operatingMode, status, renewalDate]
+  );
+  saveDatabase();
+  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date FROM platform_tenants ORDER BY id DESC LIMIT 1');
   return result[0]?.values?.[0] ? rowToTenant(result[0].values[0]) : null;
 }
 
@@ -103,15 +148,88 @@ function listAccounts() {
   return result[0]?.values?.map(rowToAccount) || [];
 }
 
-function createAccount({ tenantId, name, email, role }) {
+function createAccount({ tenantId, name, email, role, status = 'invited' }) {
   const db = getDatabase();
   db.run(
     'INSERT INTO platform_accounts (tenant_id, name, email, role, status) VALUES (?, ?, ?, ?, ?)',
-    [tenantId, name, email, role, 'invited']
+    [tenantId, name, email, role, status]
   );
   saveDatabase();
   const result = db.exec('SELECT id, tenant_id, name, email, role, status FROM platform_accounts ORDER BY id DESC LIMIT 1');
   return result[0]?.values?.[0] ? rowToAccount(result[0].values[0]) : null;
+}
+
+function listTrialRequests() {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, restaurant_name, contact_name, email, phone, package_tier, operating_mode, message, submitted_by_user_id, submitted_by_username, status, tenant_id, account_id, portal_username, portal_password, reviewed_by, reviewed_at, created_at, updated_at
+     FROM platform_trial_requests
+     ORDER BY created_at DESC`
+  );
+  return result[0]?.values?.map(rowToTrialRequest) || [];
+}
+
+function listTrialRequestsByUserId(userId) {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, restaurant_name, contact_name, email, phone, package_tier, operating_mode, message, submitted_by_user_id, submitted_by_username, status, tenant_id, account_id, portal_username, portal_password, reviewed_by, reviewed_at, created_at, updated_at
+     FROM platform_trial_requests
+     WHERE submitted_by_user_id = ?
+     ORDER BY created_at DESC`,
+    [userId]
+  );
+  return result[0]?.values?.map(rowToTrialRequest) || [];
+}
+
+function findTrialRequestById(id) {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, restaurant_name, contact_name, email, phone, package_tier, operating_mode, message, submitted_by_user_id, submitted_by_username, status, tenant_id, account_id, portal_username, portal_password, reviewed_by, reviewed_at, created_at, updated_at
+     FROM platform_trial_requests
+     WHERE id = ?`,
+    [id]
+  );
+  return result[0]?.values?.[0] ? rowToTrialRequest(result[0].values[0]) : null;
+}
+
+function createTrialRequest({ restaurantName, contactName, email, phone, packageTier, operatingMode, message, submittedByUserId = null, submittedByUsername = null }) {
+  const id = createId('TR');
+  const db = getDatabase();
+  db.run(
+    `INSERT INTO platform_trial_requests (id, restaurant_name, contact_name, email, phone, package_tier, operating_mode, message, submitted_by_user_id, submitted_by_username, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    [id, restaurantName, contactName, email, phone || '', packageTier, operatingMode, message || '', submittedByUserId, submittedByUsername]
+  );
+  saveDatabase();
+  return findTrialRequestById(id);
+}
+
+function updateTrialRequest(id, updates) {
+  const current = findTrialRequestById(id);
+  if (!current) return null;
+  const next = { ...current, ...updates };
+  const db = getDatabase();
+  db.run(
+    `UPDATE platform_trial_requests
+     SET status = ?, tenant_id = ?, account_id = ?, portal_username = ?, portal_password = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [
+      next.status,
+      next.tenantId || null,
+      next.accountId || null,
+      next.portalUsername || null,
+      next.portalPassword || null,
+      next.reviewedBy || null,
+      id,
+    ]
+  );
+  saveDatabase();
+  return findTrialRequestById(id);
+}
+
+function findLatestTrialRequestByUserId(userId) {
+  const requests = listTrialRequestsByUserId(userId);
+  return requests[0] || null;
 }
 
 function listOrders() {
@@ -155,6 +273,7 @@ function togglePermission(role, permission) {
 function getSummary() {
   const tenants = listTenants();
   const orders = listOrders();
+  const trialRequests = listTrialRequests();
   const activeMrr = tenants.reduce((sum, tenant) => {
     if (tenant.status !== 'active') return sum;
     const pkg = listPackages().find((item) => item.id === tenant.packageTier);
@@ -165,6 +284,7 @@ function getSummary() {
     tenants: tenants.length,
     activeMrr,
     paidOrders: orders.filter((order) => order.status === 'paid').length,
+    pendingTrials: trialRequests.filter((request) => request.status === 'pending').length,
     roles: 6,
   };
 }
@@ -174,6 +294,7 @@ function bootstrap() {
   const packages = listPackages();
   const orders = listOrders();
   const accounts = listAccounts();
+  const trialRequests = listTrialRequests();
   const permissions = ['platform_admin', 'store_owner', 'chain_admin', 'manager', 'cashier', 'kitchen'].map((role) => getPermissionRole(role));
   return {
     summary: getSummary(),
@@ -181,6 +302,7 @@ function bootstrap() {
     packages,
     orders,
     accounts,
+    trialRequests,
     permissions,
   };
 }
@@ -190,11 +312,19 @@ module.exports = {
   getSummary,
   listTenants,
   findTenantById,
+  createTenant,
   updateTenantPackage,
   toggleTenantStatus,
   listPackages,
   listAccounts,
   createAccount,
+  listTrialRequests,
+  listTrialRequestsByUserId,
+  findTrialRequestById,
+  findLatestTrialRequestByUserId,
+  createTrialRequest,
+  updateTrialRequest,
+  createPassword,
   listOrders,
   createOrder,
   getPermissionRole,

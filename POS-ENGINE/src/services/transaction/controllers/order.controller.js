@@ -59,7 +59,7 @@ function markOrderPaid(req, res) {
 
 function getRecentOrders(req, res) {
   const storeId = parseInt(req.headers['x-store-id']) || 1;
-  const result = orderService.getRecentOrders(storeId);
+  const result = orderService.getRecentOrders(storeId, req.query.limit);
   res.json(result);
 }
 

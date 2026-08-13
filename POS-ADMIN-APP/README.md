@@ -31,3 +31,15 @@ The backend seeds a project-owner account:
 - Role: `platform_admin`
 
 This first app version uses local demo data so the management model can be refined before wiring full admin APIs.
+
+## Trial Request Flow
+
+Marketing customers submit trial requests from `POS-MARKETING-WEBSITE`.
+
+In Platform Admin:
+
+1. Open `Requests`.
+2. Review the pending trial request.
+3. Click `Approve & create tenant`.
+4. The platform creates a trial tenant and store owner account.
+5. Send the generated account details shown in the approved request back to the customer.

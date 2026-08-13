@@ -37,6 +37,18 @@ export async function inviteAccount(tenantId, email, role) {
   }));
 }
 
+export async function approveTrialRequest(id) {
+  return readJson(await apiFetch(`/platform/trial-requests/${id}/approve`, {
+    method: 'POST',
+  }));
+}
+
+export async function rejectTrialRequest(id) {
+  return readJson(await apiFetch(`/platform/trial-requests/${id}/reject`, {
+    method: 'POST',
+  }));
+}
+
 export async function togglePermission(role, permission) {
   return readJson(await apiFetch(`/platform/permissions/${role}`, {
     method: 'PATCH',

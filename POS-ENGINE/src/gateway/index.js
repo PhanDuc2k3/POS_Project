@@ -248,6 +248,14 @@ app.use('/api/kitchen', (req, res) => {
   return forwardJson(req, res, config.KITCHEN_SERVICE_URL, `/kitchen${req.url}`);
 });
 
+app.get('/api/platform/trial-requests/me', verifyJwt, (req, res) => {
+  return forwardJson(req, res, config.PLATFORM_SERVICE_URL, '/platform/trial-requests/me', { includeAuthContext: true });
+});
+
+app.post('/api/platform/trial-requests', verifyJwt, (req, res) => {
+  return forwardJson(req, res, config.PLATFORM_SERVICE_URL, '/platform/trial-requests', { includeAuthContext: true });
+});
+
 app.use('/api/platform', verifyJwt, (req, res) => {
   if (req.headers['x-user-role'] !== 'platform_admin') {
     return res.status(403).json({ error: 'Platform admin required' });

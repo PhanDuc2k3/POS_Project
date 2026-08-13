@@ -78,6 +78,38 @@ async function initDatabase() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_trial_requests (
+      id TEXT PRIMARY KEY,
+      restaurant_name TEXT NOT NULL,
+      contact_name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT,
+      package_tier TEXT NOT NULL,
+      operating_mode TEXT NOT NULL,
+      message TEXT,
+      submitted_by_user_id INTEGER,
+      submitted_by_username TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      tenant_id INTEGER,
+      account_id INTEGER,
+      portal_username TEXT,
+      portal_password TEXT,
+      reviewed_by TEXT,
+      reviewed_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  try {
+    db.run(`ALTER TABLE platform_trial_requests ADD COLUMN submitted_by_user_id INTEGER`);
+  } catch (e) {}
+
+  try {
+    db.run(`ALTER TABLE platform_trial_requests ADD COLUMN submitted_by_username TEXT`);
+  } catch (e) {}
+
   seedIfEmpty();
   saveDatabase();
   startAutoSave(db, DB_PATH);

@@ -6,6 +6,7 @@ export function renderSidebar(activeView) {
         <span>Owner Console</span>
       </div>
       ${navButton('overview', 'Overview', activeView)}
+      ${navButton('requests', 'Requests', activeView)}
       ${navButton('tenants', 'Tenants', activeView)}
       ${navButton('packages', 'Packages', activeView)}
       ${navButton('accounts', 'Accounts', activeView)}

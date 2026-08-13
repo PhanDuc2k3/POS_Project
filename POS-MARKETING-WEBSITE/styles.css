@@ -213,6 +213,12 @@ textarea {
   transform: translateY(-1px);
 }
 
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
 .button.primary {
   color: #fff;
   background: var(--primary);
@@ -637,6 +643,19 @@ textarea:focus {
   margin: 0;
   color: var(--success);
   font-weight: 700;
+}
+
+.account-block {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
+}
+
+.account-block span {
+  color: var(--muted);
 }
 
 .contact-signin {

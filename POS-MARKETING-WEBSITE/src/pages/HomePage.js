@@ -7,7 +7,7 @@ import { renderPricingSection } from '../sections/PricingSection.js';
 import { renderSolutionsSection } from '../sections/SolutionsSection.js';
 import { renderWorkflowSection } from '../sections/WorkflowSection.js';
 
-export function renderHomePage() {
+export function renderHomePage(state) {
   return `
     <main>
       ${renderHeroSection()}
@@ -17,7 +17,7 @@ export function renderHomePage() {
       ${renderWorkflowSection()}
       ${renderDemoSection()}
       ${renderPricingSection()}
-      ${renderFormsSection()}
+      ${renderFormsSection(state)}
     </main>
   `;
 }

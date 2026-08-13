@@ -25,6 +25,14 @@ function getTenants(req, res) {
   return send(res, service.listTenants(getUser(req)));
 }
 
+function getTrialRequests(req, res) {
+  return send(res, service.listTrialRequests(getUser(req)));
+}
+
+function getMyTrialRequest(req, res) {
+  return send(res, service.getMyTrialRequest(getUser(req)));
+}
+
 function updateTenantPackage(req, res) {
   return send(res, service.updateTenantPackage(getUser(req), parseInt(req.params.id, 10), req.body));
 }
@@ -43,6 +51,18 @@ function getAccounts(req, res) {
 
 function inviteAccount(req, res) {
   return send(res, service.inviteAccount(getUser(req), req.body), true);
+}
+
+function submitTrialRequest(req, res) {
+  return send(res, service.submitTrialRequest({ ...req.body, submittedByUserId: getUser(req).id, submittedByUsername: getUser(req).username }), true);
+}
+
+function approveTrialRequest(req, res) {
+  return send(res, service.approveTrialRequest(getUser(req), req.params.id), true);
+}
+
+function rejectTrialRequest(req, res) {
+  return send(res, service.rejectTrialRequest(getUser(req), req.params.id), true);
 }
 
 function getOrders(req, res) {
@@ -65,11 +85,16 @@ module.exports = {
   getBootstrap,
   getSummary,
   getTenants,
+  getTrialRequests,
+  getMyTrialRequest,
   updateTenantPackage,
   toggleTenantStatus,
   getPackages,
   getAccounts,
   inviteAccount,
+  submitTrialRequest,
+  approveTrialRequest,
+  rejectTrialRequest,
   getOrders,
   createOrder,
   getPermission,

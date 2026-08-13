@@ -3,6 +3,9 @@ import { roleLabels } from '../data/platform.js';
 
 export function renderAccountsPage(state, helpers) {
   const tenant = helpers.selectedTenant();
+  if (!tenant) {
+    return '<section class="panel"><div class="empty">No tenant selected</div></section>';
+  }
   const accounts = state.accounts.filter((account) => account.tenantId === tenant.id);
   return `
     <div class="two-column">

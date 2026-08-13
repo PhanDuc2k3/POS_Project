@@ -12,7 +12,41 @@ Marketing website built from the supplied Stitch `restaurant_os_marketing_websit
 - Pricing cards
 - Trial request form
 - Contact sales form
-- Sign-in preview form
+- Sign-in form
+
+## Trial Flow
+
+```text
+Marketing Website
+    -> Customer signs in
+    -> Customer submits trial form
+    -> Gateway creates Trial Request
+    -> Platform Admin reviews request
+    -> Admin approves manually
+    -> Platform creates Tenant
+    -> Platform creates owner Account
+    -> Admin sends generated account details to customer
+```
+
+Marketing submits to:
+
+```text
+POST http://localhost:4000/api/platform/trial-requests
+```
+
+Requires `Authorization: Bearer <accessToken>`.
+
+To check current account status:
+
+```text
+GET http://localhost:4000/api/platform/trial-requests/me
+```
+
+Platform Admin reviews requests in:
+
+```text
+POS-ADMIN-APP -> Requests
+```
 
 ## Structure
 

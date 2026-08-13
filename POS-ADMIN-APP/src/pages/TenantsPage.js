@@ -12,7 +12,7 @@ export function renderTenantsPage(state, helpers) {
         ${state.tenants.map((tenant) => `
           <div class="table-row">
             <strong>${esc(tenant.name)}</strong>
-            <span>${esc(tenant.owner)}</span>
+            <span>${esc(tenant.ownerName || tenant.owner)}</span>
             <span>${esc(tenant.packageTier)}</span>
             <span>${esc(tenant.operatingMode)}</span>
             <span><span class="badge ${tenant.status}">${esc(tenant.status)}</span></span>

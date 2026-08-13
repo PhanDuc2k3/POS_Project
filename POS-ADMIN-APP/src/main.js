@@ -4,6 +4,7 @@ import { initialState, packageCatalog } from './data/platform.js';
 import { renderLoginPage } from './pages/LoginPage.js';
 import { renderOverviewPage } from './pages/OverviewPage.js';
 import { renderTenantsPage } from './pages/TenantsPage.js';
+import { renderTrialRequestsPage } from './pages/TrialRequestsPage.js';
 import { renderPackagesPage } from './pages/PackagesPage.js';
 import { renderAccountsPage } from './pages/AccountsPage.js';
 import { renderOrdersPage } from './pages/OrdersPage.js';
@@ -12,7 +13,9 @@ import { login, logout, getProfile } from './services/auth.js';
 import {
   bootstrap,
   createOrder,
+  approveTrialRequest,
   inviteAccount,
+  rejectTrialRequest,
   togglePermission,
   toggleTenantStatus,
   updateTenantPackage,
@@ -44,6 +47,7 @@ function setView(view) {
 function applyBackendData(data) {
   state.summary = data.summary || state.summary;
   state.tenants = data.tenants || [];
+  state.trialRequests = data.trialRequests || [];
   state.packages = data.packages || [];
   state.orders = data.orders || [];
   state.accounts = data.accounts || [];
@@ -174,6 +178,8 @@ function bindEvents() {
       }
       if (action === 'apply-package') await handleApplyPackage();
       if (action === 'toggle-status') await handleToggleStatus(Number(target.dataset.id));
+      if (action === 'approve-trial') await handleApproveTrial(target.dataset.id);
+      if (action === 'reject-trial') await handleRejectTrial(target.dataset.id);
       if (action === 'create-order') await handleCreateOrder();
       if (action === 'invite-account') await handleInviteAccount();
       if (action === 'toggle-permission') await handleTogglePermission(target.dataset.permission);
@@ -218,6 +224,24 @@ async function handleCreateOrder() {
   await loadPlatformData();
 }
 
+async function handleApproveTrial(id) {
+  if (!id) return;
+  await approveTrialRequest(id);
+  await loadPlatformData();
+  state.activeView = 'requests';
+  saveState(state);
+  render();
+}
+
+async function handleRejectTrial(id) {
+  if (!id) return;
+  await rejectTrialRequest(id);
+  await loadPlatformData();
+  state.activeView = 'requests';
+  saveState(state);
+  render();
+}
+
 async function handleInviteAccount() {
   const tenant = selectedTenant();
   if (!tenant || !String(state.inviteEmail || '').trim()) return;
@@ -235,6 +259,7 @@ async function handleTogglePermission(permission) {
 function viewTitle() {
   const titles = {
     overview: 'Platform overview',
+    requests: 'Trial requests',
     tenants: 'Tenant management',
     packages: 'Package setup',
     accounts: 'Account control',
@@ -267,10 +292,11 @@ function renderAppShell() {
           ${renderMetricCard('Tenants', summary.tenants || 0)}
           ${renderMetricCard('Active MRR', money(summary.activeMrr || 0))}
           ${renderMetricCard('Paid Orders', summary.paidOrders || 0)}
-          ${renderMetricCard('Admin Roles', summary.roles || 0)}
+          ${renderMetricCard('Pending Trials', summary.pendingTrials || 0)}
         </section>
 
         ${state.activeView === 'overview' ? renderOverviewPage(state, { selectedTenant, tenantName }) : ''}
+        ${state.activeView === 'requests' ? renderTrialRequestsPage(state) : ''}
         ${state.activeView === 'tenants' ? renderTenantsPage(state, { selectedTenant }) : ''}
         ${state.activeView === 'packages' ? renderPackagesPage(state, { selectedTenant }) : ''}
         ${state.activeView === 'accounts' ? renderAccountsPage(state, { selectedTenant }) : ''}
