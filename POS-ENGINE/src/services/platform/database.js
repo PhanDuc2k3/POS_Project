@@ -1,0 +1,178 @@
+const initSqlJs = require('sql.js');
+const fs = require('fs');
+const path = require('path');
+const { startAutoSave } = require('../../shared/db');
+
+const DB_PATH = path.join(__dirname, '..', '..', '..', 'data', 'platform.db');
+
+let db = null;
+
+async function initDatabase() {
+  const SQL = await initSqlJs();
+  if (fs.existsSync(DB_PATH)) {
+    db = new SQL.Database(fs.readFileSync(DB_PATH));
+  } else {
+    db = new SQL.Database();
+  }
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_packages (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      level TEXT NOT NULL,
+      price REAL NOT NULL,
+      modules TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_tenants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      owner_name TEXT NOT NULL,
+      owner_email TEXT NOT NULL,
+      package_tier TEXT NOT NULL,
+      operating_mode TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      branches INTEGER DEFAULT 1,
+      users INTEGER DEFAULT 1,
+      monthly_revenue REAL DEFAULT 0,
+      renewal_date TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      role TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_subscription_orders (
+      id TEXT PRIMARY KEY,
+      tenant_id INTEGER NOT NULL,
+      package_tier TEXT NOT NULL,
+      amount REAL NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_permissions (
+      role TEXT PRIMARY KEY,
+      permissions TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  seedIfEmpty();
+  saveDatabase();
+  startAutoSave(db, DB_PATH);
+  return db;
+}
+
+function seedIfEmpty() {
+  const packageCount = db.exec('SELECT COUNT(*) FROM platform_packages')[0]?.values[0]?.[0] || 0;
+  if (packageCount === 0) {
+    const packages = [
+      ['starter', 'Starter', '2 cap', 290000, '["POS direct sale","Basic portal","Receipt"]', 1],
+      ['pro', 'Pro', '2 cap', 790000, '["Dashboard","Products","Transactions","Printer"]', 2],
+      ['restaurant', 'Restaurant', '4 cap', 1900000, '["Customer order","Kitchen display","Table session","Staff billing"]', 3],
+      ['chain', 'Chain', '4 cap+', 5900000, '["Multi-branch","Chain dashboard","Central menu","Advanced roles"]', 4],
+    ];
+    packages.forEach((row) => {
+      db.run(
+        `INSERT INTO platform_packages (id, name, level, price, modules, sort_order) VALUES (?, ?, ?, ?, ?, ?)`,
+        row
+      );
+    });
+  }
+
+  const tenantCount = db.exec('SELECT COUNT(*) FROM platform_tenants')[0]?.values[0]?.[0] || 0;
+  if (tenantCount === 0) {
+    const tenants = [
+      ['Demo Coffee', 'Nguyen Van A', 'owner@demo-coffee.local', 'restaurant', 'restaurant', 'active', 2, 8, 12400000, '2026-09-12'],
+      ['Mini Mart 24h', 'Tran Thi B', 'ops@minimart.local', 'pro', 'simple', 'trial', 1, 3, 4200000, '2026-08-28'],
+      ['City BBQ Chain', 'Le Minh C', 'admin@citybbq.local', 'chain', 'restaurant', 'active', 6, 42, 76400000, '2026-09-30'],
+    ];
+    tenants.forEach((row) => {
+      db.run(
+        `INSERT INTO platform_tenants (name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        row
+      );
+    });
+  }
+
+  const accountCount = db.exec('SELECT COUNT(*) FROM platform_accounts')[0]?.values[0]?.[0] || 0;
+  if (accountCount === 0) {
+    const accounts = [
+      [1, 'Nguyen Van A', 'owner@demo-coffee.local', 'store_owner', 'active'],
+      [1, 'Manager Demo', 'manager@demo-coffee.local', 'manager', 'active'],
+      [3, 'Chain Admin', 'admin@citybbq.local', 'chain_admin', 'active'],
+    ];
+    accounts.forEach((row) => {
+      db.run(
+        `INSERT INTO platform_accounts (tenant_id, name, email, role, status) VALUES (?, ?, ?, ?, ?)`,
+        row
+      );
+    });
+  }
+
+  const orderCount = db.exec('SELECT COUNT(*) FROM platform_subscription_orders')[0]?.values[0]?.[0] || 0;
+  if (orderCount === 0) {
+    const orders = [
+      ['SUB-1008', 3, 'chain', 5900000, 'paid'],
+      ['SUB-1007', 1, 'restaurant', 1900000, 'paid'],
+      ['SUB-1006', 2, 'pro', 790000, 'pending'],
+    ];
+    orders.forEach((row) => {
+      db.run(
+        `INSERT INTO platform_subscription_orders (id, tenant_id, package_tier, amount, status) VALUES (?, ?, ?, ?, ?)`,
+        row
+      );
+    });
+  }
+
+  const permCount = db.exec('SELECT COUNT(*) FROM platform_permissions')[0]?.values[0]?.[0] || 0;
+  if (permCount === 0) {
+    const permissions = {
+      platform_admin: ['tenant.manage', 'package.assign', 'order.manage', 'account.manage', 'permission.manage', 'audit.view'],
+      store_owner: ['store.manage', 'menu.manage', 'transaction.view', 'staff.manage', 'billing.view'],
+      chain_admin: ['branch.manage', 'store.manage', 'menu.manage', 'transaction.view', 'staff.manage', 'billing.view'],
+      manager: ['menu.manage', 'transaction.view', 'staff.view'],
+      cashier: ['pos.sell', 'payment.collect'],
+      kitchen: ['kitchen.view', 'kitchen.update'],
+    };
+    Object.entries(permissions).forEach(([role, perms]) => {
+      db.run(
+        `INSERT INTO platform_permissions (role, permissions) VALUES (?, ?)`,
+        [role, JSON.stringify(perms)]
+      );
+    });
+  }
+}
+
+function saveDatabase() {
+  const { flushNow } = require('../../shared/db');
+  flushNow(db, DB_PATH);
+}
+
+function getDatabase() {
+  return db;
+}
+
+module.exports = { initDatabase, getDatabase, saveDatabase };

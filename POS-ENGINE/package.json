@@ -9,7 +9,10 @@
     "start": "node src/index.js",
     "dev:gateway": "nodemon src/gateway/index.js",
     "dev:auth": "nodemon src/services/auth/index.js",
-    "dev:store": "nodemon src/services/store/index.js"
+    "dev:store": "nodemon src/services/store/index.js",
+    "dev:platform": "nodemon src/services/platform/index.js",
+    "dev:customer": "nodemon src/services/customer/index.js",
+    "dev:kitchen": "nodemon src/services/kitchen/index.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

@@ -137,6 +137,18 @@ async function initDatabase() {
     console.log('[Auth] Security question: "Món ăn yêu thích của bạn là gì?" → answer: "bunbo"');
   }
 
+  const platformUser = db.exec('SELECT id FROM users WHERE username = ?', ['platform']);
+  if (!platformUser.length || !platformUser[0].values.length) {
+    const hash = bcrypt.hashSync('platform123', config.BCRYPT_ROUNDS);
+    const securityAnswer = bcrypt.hashSync('platform', config.BCRYPT_ROUNDS);
+    db.run(
+      `INSERT INTO users (username, password_hash, display_name, email, role, security_question, security_answer_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ['platform', hash, 'Platform Owner', 'platform@pos.local', 'platform_admin', 'Project owner code?', securityAnswer]
+    );
+    console.log('[Auth] Platform admin created: platform / platform123');
+  }
+
   saveDatabase();
   startAutoSave(db, DB_PATH);
   return db;

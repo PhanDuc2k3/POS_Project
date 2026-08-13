@@ -11,6 +11,13 @@ function getMenu(req, res) {
   res.json(result.data);
 }
 
+function getPublicMenu(req, res) {
+  const storeId = parseInt(req.query.storeId || req.headers['x-store-id']) || 1;
+  const result = menuService.getFullMenu(storeId);
+  res.json(result.data);
+}
+
 module.exports = {
   getMenu,
+  getPublicMenu,
 };

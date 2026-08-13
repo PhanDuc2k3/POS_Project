@@ -48,10 +48,14 @@ let deviceInfo = null;
 let socket = null;
 let storeConfig = null;   // Cached store + receipt config for printing
 let receiptConfig = null;
+let bankConfig = null;
 let heartbeatTimer = null;
 let authToken = null;     // JWT token set after login
 let isRegistered = false;
 let currentStoreId = null;
+const activePrintJobs = new Set();
+const recentlyFinishedPrintJobs = new Map();
+const FINISHED_PRINT_JOB_TTL_MS = 5 * 60 * 1000;
 
 // ─── Device Info ─────────────────────────────────────────────────────
 
@@ -177,6 +181,11 @@ function connectSocket(token) {
   // Print job received from backend
   socket.on('print:job', async (data) => {
     const { jobId, storeId, type, payload } = data || {};
+    if (!claimPrintJob(jobId)) {
+      console.warn('[Device Agent] Duplicate print job ignored:', jobId);
+      return;
+    }
+
     const resolved = resolvePrintContext(payload);
     console.log(`[Device Agent] Print job received: #${jobId}`);
     console.log('[Device Agent] Print job payload summary:', JSON.stringify({
@@ -226,6 +235,8 @@ function connectSocket(token) {
         failedAt: new Date().toISOString(),
       });
       console.error(`[Device Agent] Print job #${jobId} failed:`, err.message);
+    } finally {
+      releasePrintJob(jobId);
     }
   });
 
@@ -254,9 +265,34 @@ function connectSocket(token) {
   });
 }
 
+function claimPrintJob(jobId) {
+  if (jobId === undefined || jobId === null || jobId === '') return true;
+  const key = String(jobId);
+  pruneFinishedPrintJobs();
+  if (activePrintJobs.has(key) || recentlyFinishedPrintJobs.has(key)) return false;
+  activePrintJobs.add(key);
+  return true;
+}
+
+function releasePrintJob(jobId) {
+  if (jobId === undefined || jobId === null || jobId === '') return;
+  const key = String(jobId);
+  activePrintJobs.delete(key);
+  recentlyFinishedPrintJobs.set(key, Date.now());
+  pruneFinishedPrintJobs();
+}
+
+function pruneFinishedPrintJobs() {
+  const cutoff = Date.now() - FINISHED_PRINT_JOB_TTL_MS;
+  for (const [key, finishedAt] of recentlyFinishedPrintJobs.entries()) {
+    if (finishedAt < cutoff) recentlyFinishedPrintJobs.delete(key);
+  }
+}
+
 function resolvePrintContext(payload = {}) {
   const order = payload?.order || payload;
   const payloadStore = payload?.store || null;
+  const payloadBank = payload?.bank || null;
   const payloadReceipt = payload?.receipt || null;
   const cachedReceipt = receiptConfig || null;
 
@@ -267,7 +303,7 @@ function resolvePrintContext(payload = {}) {
 
   return {
     order,
-    store: { ...(storeConfig || {}), ...(payloadStore || {}) },
+    store: { ...(storeConfig || {}), ...(payloadStore || {}), bank: payloadBank || bankConfig || storeConfig?.bank || null },
     receipt,
     receiptSource,
   };
@@ -429,7 +465,8 @@ ipcMain.handle('printer:listPrinters', () => {
 
 ipcMain.handle('printer:print', async (event, { order, store, receipt }) => {
   try {
-    const buffer = printer.formatReceipt(order, store || storeConfig, receipt || receiptConfig);
+    const printStore = { ...(storeConfig || {}), ...(store || {}), bank: store?.bank || bankConfig || storeConfig?.bank || null };
+    const buffer = printer.formatReceipt(order, printStore, receipt || receiptConfig);
     const result = await printer.print(buffer);
     console.log('[Device Agent] Manual print success:', result.method);
     return { success: true, ...result };
@@ -440,8 +477,9 @@ ipcMain.handle('printer:print', async (event, { order, store, receipt }) => {
 });
 
 // Cache store/receipt config for printing
-ipcMain.handle('printer:setStoreConfig', (event, { store, receipt }) => {
-  storeConfig = store;
+ipcMain.handle('printer:setStoreConfig', (event, { store, bank, receipt }) => {
+  bankConfig = bank || null;
+  storeConfig = store ? { ...store, bank: bankConfig } : null;
   receiptConfig = receipt;
   currentStoreId = store?.id || null;
   console.log('[Device Agent] Store/receipt config cached:', JSON.stringify({

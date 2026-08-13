@@ -26,6 +26,8 @@ async function initDatabase() {
       phone TEXT,
       address TEXT,
       logo TEXT,
+      package_tier TEXT NOT NULL DEFAULT 'starter',
+      operating_mode TEXT NOT NULL DEFAULT 'simple',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -86,6 +88,19 @@ async function initDatabase() {
   // Migration: Add bank BIN for real VietQR generation.
   try {
     db.run('ALTER TABLE bank_configs ADD COLUMN bank_bin TEXT');
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
+  // Migration: add packaging fields for tiered product strategy.
+  try {
+    db.run("ALTER TABLE stores ADD COLUMN package_tier TEXT NOT NULL DEFAULT 'starter'");
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
+  try {
+    db.run("ALTER TABLE stores ADD COLUMN operating_mode TEXT NOT NULL DEFAULT 'simple'");
   } catch (e) {
     // Column already exists, ignore
   }

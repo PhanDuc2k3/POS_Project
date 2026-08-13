@@ -61,7 +61,7 @@ function create({ storeId, name, type, interfacePath, vendorId, productId, paper
        (store_id, name, type, interface_path, vendor_id, product_id, paper_width, charset, is_default)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [storeId, name, type || 'usb', interfacePath ?? null, vendorId ?? null, productId ?? null,
-     paperWidth ?? 80, charset || 'CP437', isDefault ? 1 : 0],
+     paperWidth ?? 80, charset || 'ASCII', isDefault ? 1 : 0],
   );
   const res = db.exec(`SELECT last_insert_rowid() as id`);
   return findById(res[0].values[0][0]);

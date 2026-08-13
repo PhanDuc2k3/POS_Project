@@ -10,14 +10,32 @@ function create(order) {
   db.run(
     `INSERT INTO orders (
        store_id, order_number, total, discount, final_total, payment_method, status, note,
+       source_app, service_mode, dining_session_id, table_code,
        device_id, device_name, cashier_id, cashier_name, payment_code, payment_provider, payment_account_number, created_at
      )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [order.storeId, order.orderNumber, order.total, order.discount || 0, order.finalTotal,
-     order.paymentMethod || 'cash', order.status || 'completed', order.note || null,
-     order.deviceId || null, order.deviceName || null, order.cashierId || null, order.cashierName || null,
-     order.paymentCode || null, order.paymentProvider || null, order.paymentAccountNumber || null,
-     order.createdAt || nowVietnamSql()]
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      order.storeId,
+      order.orderNumber,
+      order.total,
+      order.discount || 0,
+      order.finalTotal,
+      order.paymentMethod || 'cash',
+      order.status || 'completed',
+      order.note || null,
+      order.sourceApp || 'pos',
+      order.serviceMode || 'simple',
+      order.diningSessionId || null,
+      order.tableCode || null,
+      order.deviceId || null,
+      order.deviceName || null,
+      order.cashierId || null,
+      order.cashierName || null,
+      order.paymentCode || null,
+      order.paymentProvider || null,
+      order.paymentAccountNumber || null,
+      order.createdAt || nowVietnamSql(),
+    ]
   );
   saveDatabase();
 
@@ -36,29 +54,53 @@ function createItems(orderId, items) {
   saveDatabase();
 }
 
+function mapOrderRow(r) {
+  return {
+    id: r[0],
+    storeId: r[1],
+    orderNumber: r[2],
+    total: r[3],
+    discount: r[4],
+    finalTotal: r[5],
+    paymentMethod: r[6],
+    status: r[7],
+    note: r[8],
+    sourceApp: r[9],
+    serviceMode: r[10],
+    diningSessionId: r[11],
+    tableCode: r[12],
+    deviceId: r[13],
+    deviceName: r[14],
+    cashierId: r[15],
+    cashierName: r[16],
+    createdAt: r[17],
+    paymentCode: r[18],
+    paymentProvider: r[19],
+    paymentAccountNumber: r[20],
+    paidAt: r[21],
+    paymentReference: r[22],
+  };
+}
+
 function findById(id, storeId) {
   const db = getDatabase();
   const result = db.exec(
     `SELECT id, store_id, order_number, total, discount, final_total, payment_method, status, note,
+            source_app, service_mode, dining_session_id, table_code,
             device_id, device_name, cashier_id, cashier_name, created_at, payment_code,
             payment_provider, payment_account_number, paid_at, payment_reference
      FROM orders WHERE id = ? AND store_id = ?`,
     [id, storeId]
   );
   if (!result.length || !result[0].values.length) return null;
-  const r = result[0].values[0];
-  return {
-    id: r[0], storeId: r[1], orderNumber: r[2], total: r[3], discount: r[4], finalTotal: r[5],
-    paymentMethod: r[6], status: r[7], note: r[8], deviceId: r[9], deviceName: r[10],
-    cashierId: r[11], cashierName: r[12], createdAt: r[13], paymentCode: r[14],
-    paymentProvider: r[15], paymentAccountNumber: r[16], paidAt: r[17], paymentReference: r[18],
-  };
+  return mapOrderRow(result[0].values[0]);
 }
 
 function findByPaymentCode(paymentCode) {
   const db = getDatabase();
   const result = db.exec(
     `SELECT id, store_id, order_number, total, discount, final_total, payment_method, status, note,
+            source_app, service_mode, dining_session_id, table_code,
             device_id, device_name, cashier_id, cashier_name, created_at, payment_code,
             payment_provider, payment_account_number, paid_at, payment_reference
      FROM orders
@@ -68,13 +110,7 @@ function findByPaymentCode(paymentCode) {
     [paymentCode]
   );
   if (!result.length || !result[0].values.length) return null;
-  const r = result[0].values[0];
-  return {
-    id: r[0], storeId: r[1], orderNumber: r[2], total: r[3], discount: r[4], finalTotal: r[5],
-    paymentMethod: r[6], status: r[7], note: r[8], deviceId: r[9], deviceName: r[10],
-    cashierId: r[11], cashierName: r[12], createdAt: r[13], paymentCode: r[14],
-    paymentProvider: r[15], paymentAccountNumber: r[16], paidAt: r[17], paymentReference: r[18],
-  };
+  return mapOrderRow(result[0].values[0]);
 }
 
 function findItems(orderId) {
@@ -99,7 +135,6 @@ function findAll(storeId, { status, date, paymentMethod, search, page = 1, limit
   if (paymentMethod) { sql += ' AND payment_method = ?'; params.push(paymentMethod); }
   if (search) { sql += ' AND (order_number LIKE ? OR CAST(final_total AS TEXT) LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
 
-  // Count total
   const countSql = sql.replace(/SELECT .+ FROM/, 'SELECT COUNT(*) FROM');
   const countResult = db.exec(countSql, params);
   const total = countResult[0]?.values[0]?.[0] || 0;
@@ -218,7 +253,6 @@ function findRecentWithItems(storeId, limit = 20) {
     paymentMethod: r[5], status: r[6], deviceName: r[7], cashierName: r[8], createdAt: r[9],
   }));
 
-  // Attach items to each order
   for (const order of orders) {
     const itemsResult = db.exec(
       'SELECT product_name, quantity, unit_price, total FROM order_items WHERE order_id = ?',
@@ -234,6 +268,37 @@ function findRecentWithItems(storeId, limit = 20) {
   return orders;
 }
 
+function findByDiningSessionId(storeId, diningSessionId) {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, order_number, total, discount, final_total, payment_method, status, note,
+            source_app, service_mode, dining_session_id, table_code,
+            device_name, cashier_name, created_at
+     FROM orders
+     WHERE store_id = ? AND dining_session_id = ?
+     ORDER BY created_at ASC`,
+    [storeId, diningSessionId]
+  );
+  if (!result.length) return [];
+  return result[0].values.map(r => ({
+    id: r[0],
+    orderNumber: r[1],
+    total: r[2],
+    discount: r[3],
+    finalTotal: r[4],
+    paymentMethod: r[5],
+    status: r[6],
+    note: r[7],
+    sourceApp: r[8],
+    serviceMode: r[9],
+    diningSessionId: r[10],
+    tableCode: r[11],
+    deviceName: r[12],
+    cashierName: r[13],
+    createdAt: r[14],
+  }));
+}
+
 module.exports = {
   create,
   createItems,
@@ -247,4 +312,5 @@ module.exports = {
   updatePaymentWebhookStatus,
   countTodayOrders,
   findRecentWithItems,
+  findByDiningSessionId,
 };

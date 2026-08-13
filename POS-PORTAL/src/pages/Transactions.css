@@ -105,6 +105,105 @@
   font-weight: 500;
 }
 
+.restaurant-panel {
+  border-top: 1px solid #dfe7f3;
+  background: #f8fbff;
+  padding: 14px 20px 16px;
+}
+
+.restaurant-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.restaurant-panel-header strong {
+  display: block;
+  color: #061938;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.restaurant-panel-header span {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.restaurant-create-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.restaurant-create-form input {
+  height: 34px;
+  border: 1px solid #cad6ea;
+  border-radius: 4px;
+  background: white;
+  padding: 0 10px;
+  color: #061938;
+  font-size: 12px;
+}
+
+.restaurant-create-form input[type="number"] {
+  width: 84px;
+}
+
+.restaurant-create-form button {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 4px;
+  background: #2f66e8;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.restaurant-session-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.restaurant-session-item {
+  border: 1px solid #cad6ea;
+  border-radius: 6px;
+  background: white;
+  padding: 12px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.restaurant-session-item:hover {
+  background: #f7faff;
+}
+
+.restaurant-session-item strong {
+  color: #061938;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.restaurant-session-item span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.restaurant-empty {
+  color: #6b7280;
+  font-size: 12px;
+}
+
 .transactions-table {
   border-top: 1px solid #dfe7f3;
 }
@@ -220,6 +319,11 @@
 .status-badge.success {
   background: #dcfce7;
   color: #047857;
+}
+
+.status-badge.open {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .status-badge.pending {
@@ -421,5 +525,9 @@
 
   .transactions-table table {
     min-width: 900px;
+  }
+
+  .restaurant-panel-header {
+    flex-direction: column;
   }
 }

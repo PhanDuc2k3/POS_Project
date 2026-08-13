@@ -38,7 +38,7 @@ async function initDatabase() {
       vendor_id INTEGER,
       product_id INTEGER,
       paper_width INTEGER DEFAULT 80,
-      charset TEXT DEFAULT 'CP437',
+      charset TEXT DEFAULT 'ASCII',
       is_default INTEGER DEFAULT 0,
       is_active INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -85,6 +85,7 @@ async function initDatabase() {
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_print_jobs_status ON print_jobs(status, next_retry_at)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_print_jobs_store ON print_jobs(store_id)`);
+  db.run(`UPDATE printers SET charset = 'ASCII' WHERE charset IS NULL OR charset IN ('CP437', 'UTF-8')`);
 
   // ─── Seed default template (global, store_id=0) ──────────────────────
   const result = db.exec(`SELECT COUNT(*) as c FROM print_templates WHERE store_id = 0`);

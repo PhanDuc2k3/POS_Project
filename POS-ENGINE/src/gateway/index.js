@@ -45,8 +45,17 @@ const server = http.createServer(app);
 
 // ─── CORS ────────────────────────────────────────────────────────────
 
+const corsOrigins = [
+  ...new Set([
+    config.PORTAL_ORIGIN,
+    config.ADMIN_APP_ORIGIN,
+    ...config.ADMIN_APP_ORIGINS,
+    ...config.PUBLIC_APP_ORIGINS,
+  ]),
+];
+
 app.use(cors({
-  origin: config.PORTAL_ORIGIN,
+  origin: corsOrigins,
   credentials: true,
 }));
 
@@ -220,6 +229,32 @@ app.post('/api/payment-webhooks/sepay', async (req, res) => {
 
 // ─── Protected routes (require JWT) ──────────────────────────────────
 
+app.use('/api/public', (req, res) => {
+  const path = req.path || '/';
+  if (path.startsWith('/menu')) {
+    return forwardJson(req, res, config.PRODUCT_SERVICE_URL, `/product/public/menu${req.url.replace('/menu', '')}`);
+  }
+  if (path.startsWith('/dining-sessions')) {
+    return forwardJson(req, res, config.TRANSACTION_SERVICE_URL, `/txn/public${req.url}`);
+  }
+  return res.status(404).json({ error: 'Route not found' });
+});
+
+app.use('/api/customer', (req, res) => {
+  return forwardJson(req, res, config.CUSTOMER_SERVICE_URL, `/customer${req.url}`);
+});
+
+app.use('/api/kitchen', (req, res) => {
+  return forwardJson(req, res, config.KITCHEN_SERVICE_URL, `/kitchen${req.url}`);
+});
+
+app.use('/api/platform', verifyJwt, (req, res) => {
+  if (req.headers['x-user-role'] !== 'platform_admin') {
+    return res.status(403).json({ error: 'Platform admin required' });
+  }
+  return forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/platform${req.url}`, { includeAuthContext: true });
+});
+
 app.use('/api/auth', verifyJwt, (req, res, next) => {
   forwardJson(req, res, config.AUTH_SERVICE_URL, '/auth' + req.url, { includeAuthContext: true });
 });
@@ -288,9 +323,8 @@ app.post('/internal/print-job', (req, res) => {
     // No device registered for this store — try any online device (for dev)
     const allDevices = deviceRegistry.getAll();
     for (const device of allDevices) {
-      if (device.status === 'ONLINE' || device.status === 'PRINTING') {
-        const room = `device:${device.serial}`;
-        io.to(room).emit('print:job', { jobId, storeId, type, payload });
+      if (device.socketId && (device.status === 'ONLINE' || device.status === 'PRINTING')) {
+        io.to(device.socketId).emit('print:job', { jobId, storeId, type, payload });
         delivered = true;
         logger.info('Print job dispatched to device (fallback)', { jobId, serial: device.serial, storeId });
         break;
@@ -298,9 +332,8 @@ app.post('/internal/print-job', (req, res) => {
     }
   } else {
     for (const device of devices) {
-      if (device.status === 'ONLINE') {
-        const room = `device:${device.serial}`;
-        io.to(room).emit('print:job', { jobId, storeId, type, payload });
+      if (device.socketId && device.status === 'ONLINE') {
+        io.to(device.socketId).emit('print:job', { jobId, storeId, type, payload });
         deviceRegistry.update(device.serial, { status: 'PRINTING' });
         delivered = true;
         logger.info('Print job dispatched to device', { jobId, serial: device.serial, storeId });
@@ -335,7 +368,7 @@ server.listen(config.GATEWAY_PORT, () => {
     transactionService: config.TRANSACTION_SERVICE_URL,
     productService: config.PRODUCT_SERVICE_URL,
     printService: config.PRINT_SERVICE_URL,
-    corsOrigin: config.PORTAL_ORIGIN,
+    corsOrigin: corsOrigins,
   });
 });
 

@@ -40,5 +40,6 @@ router.delete('/product/toppings/:id', toppingController.deleteTopping);
 
 // ─── POS Menu (aggregate) ───────────────────────────────────────────
 router.get('/product/menu', menuController.getMenu);
+router.get('/product/public/menu', menuController.getPublicMenu);
 
 module.exports = router;

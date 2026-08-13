@@ -41,8 +41,18 @@ const DEFAULT_PAPER_WIDTH = 32; // characters per line (58mm = 32, 80mm = 48)
 function getBufferEncoding(charset) {
   // Map our high-level charset names to Node-supported Buffer encodings.
   if (charset && charset.toUpperCase() === 'UTF-8') return 'utf8';
-  // CP437, CP850, CP1252 → latin1 is the closest safe approximation.
-  return 'binary';
+  return 'ascii';
+}
+
+function toPrinterText(value, charset) {
+  const text = String(value ?? '');
+  if (charset && charset.toUpperCase() === 'UTF-8') return text;
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\u0111/g, 'd')
+    .replace(/\u0110/g, 'D')
+    .replace(/[^\x20-\x7E]/g, '?');
 }
 
 /**
@@ -195,15 +205,17 @@ function encode(template, options = {}) {
     for (const rawLine of lines) {
       const wrapped = wrap(rawLine, paperWidth);
       if (align === 'right') {
-        for (const l of wrapped) chunks.push(Buffer.from(pad(l, paperWidth, 'right') + '\n', bufEnc));
+        for (const l of wrapped) {
+          chunks.push(Buffer.from(toPrinterText(pad(l, paperWidth, 'right') + '\n', options.charset), bufEnc));
+        }
       } else if (align === 'center') {
         for (const l of wrapped) {
           const w = displayWidth(l);
           const padding = w < paperWidth ? ' '.repeat(Math.floor((paperWidth - w) / 2)) : '';
-          chunks.push(Buffer.from(padding + l + '\n', bufEnc));
+          chunks.push(Buffer.from(toPrinterText(padding + l + '\n', options.charset), bufEnc));
         }
       } else {
-        for (const l of wrapped) chunks.push(Buffer.from(l + '\n', bufEnc));
+        for (const l of wrapped) chunks.push(Buffer.from(toPrinterText(l + '\n', options.charset), bufEnc));
       }
     }
   };

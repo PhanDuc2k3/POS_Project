@@ -10,6 +10,7 @@ const { subscribe } = require('../../../shared/event-bus');
 const { nowVietnamSql } = require('../../../shared/time');
 const printService = require('../services/print.service');
 const receiptRepo = require('../../store/repositories/receipt.repo');
+const bankRepo = require('../../store/repositories/bank.repo');
 
 const DEFAULT_BLOCKS = ['header','storeInfo','divider','orderInfo','divider','items','total','qr','footer'];
 
@@ -43,19 +44,22 @@ function buildStoreContext(storeId) {
 
   let store = fallbackStore;
   let receipt = null;
+  let bank = null;
 
   try {
     store = findStoreById(storeId) || fallbackStore;
     receipt = receiptRepo.findByStoreId(storeId);
+    bank = bankRepo.findActiveByStoreId(storeId);
   } catch (err) {
     logger.warn('Failed to load store receipt context for print job', { storeId, error: err.message });
   }
 
   return {
     store,
+    bank,
     receipt: receipt || {
       header: store.name,
-      footer: 'Xin cam on quy khach!',
+      footer: 'Xin c\u1ea3m \u01a1n qu\u00fd kh\u00e1ch!',
       showQR: true,
       showLogo: false,
       showTime: true,

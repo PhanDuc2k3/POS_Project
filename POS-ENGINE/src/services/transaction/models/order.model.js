@@ -11,6 +11,10 @@
  * @property {'cash'|'transfer'|'mixed'} paymentMethod
  * @property {'completed'|'pending'|'cancelled'|'refunded'} status
  * @property {string|null} note
+ * @property {'pos'|'customer'|'staff'|'kitchen'} sourceApp
+ * @property {'simple'|'restaurant'} serviceMode
+ * @property {string|null} diningSessionId
+ * @property {string|null} tableCode
  * @property {string|null} deviceId
  * @property {string|null} deviceName
  * @property {number|null} cashierId

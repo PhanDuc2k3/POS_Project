@@ -7,7 +7,21 @@ const { nowVietnamSql } = require('../../../shared/time');
 const { generateOrderNumber } = require('../models/order.model');
 const orderRepo = require('../repositories/order.repo');
 
-function createOrder(storeId, { items, paymentMethod, discount, note, deviceId, deviceName, cashierId, cashierName, paymentAccountNumber }) {
+function createOrder(storeId, {
+  items,
+  paymentMethod,
+  discount,
+  note,
+  deviceId,
+  deviceName,
+  cashierId,
+  cashierName,
+  paymentAccountNumber,
+  sourceApp,
+  serviceMode,
+  diningSessionId,
+  tableCode,
+}) {
   if (!items || !items.length) {
     return { error: 'Đơn hàng phải có ít nhất 1 sản phẩm', status: 400 };
   }
@@ -35,6 +49,8 @@ function createOrder(storeId, { items, paymentMethod, discount, note, deviceId, 
   const orderNumber = generateOrderNumber(todayCount + 1);
   const normalizedPaymentMethod = paymentMethod || 'cash';
   const isTransfer = normalizedPaymentMethod === 'transfer';
+  const isRestaurantMode = serviceMode === 'restaurant';
+  const isPendingOrder = isTransfer || isRestaurantMode;
   const paymentCode = isTransfer ? generatePaymentCode(orderNumber) : null;
   const createdAt = nowVietnamSql();
 
@@ -46,8 +62,12 @@ function createOrder(storeId, { items, paymentMethod, discount, note, deviceId, 
     discount: discountAmount,
     finalTotal,
     paymentMethod: normalizedPaymentMethod,
-    status: isTransfer ? 'pending' : 'completed',
+    status: isPendingOrder ? 'pending' : 'completed',
     note: note || null,
+    sourceApp: sourceApp || 'pos',
+    serviceMode: serviceMode || 'simple',
+    diningSessionId: diningSessionId || null,
+    tableCode: tableCode || null,
     deviceId,
     deviceName,
     cashierId,
@@ -70,11 +90,11 @@ function createOrder(storeId, { items, paymentMethod, discount, note, deviceId, 
     paymentCode,
     finalTotal,
     paymentMethod: normalizedPaymentMethod,
-    status: isTransfer ? 'pending' : 'completed',
+    status: isPendingOrder ? 'pending' : 'completed',
     itemCount: orderItems.length,
   });
 
-  if (!isTransfer) {
+  if (!isPendingOrder) {
     const payload = {
       id: orderId,
       orderNumber,
@@ -89,6 +109,10 @@ function createOrder(storeId, { items, paymentMethod, discount, note, deviceId, 
       deviceName,
       cashierId,
       cashierName,
+      sourceApp: sourceApp || 'pos',
+      serviceMode: serviceMode || 'simple',
+      diningSessionId: diningSessionId || null,
+      tableCode: tableCode || null,
     };
 
     publish('transaction.paid', {
@@ -115,7 +139,7 @@ function createOrder(storeId, { items, paymentMethod, discount, note, deviceId, 
       paymentCode,
       paymentProvider: isTransfer ? 'sepay' : null,
       paymentAccountNumber: paymentAccountNumber || null,
-      status: isTransfer ? 'pending' : 'completed',
+      status: isPendingOrder ? 'pending' : 'completed',
       items: orderItems,
       createdAt,
     },

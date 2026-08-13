@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, Download, Search } from 'lucide-react';
+import { ChevronRight, Download, Plus, Search } from 'lucide-react';
 import { ORDER_STATUS_LABELS } from '../constants/orderStatus';
 import { REALTIME_EVENTS } from '../constants/realtimeEvents';
+import { storeAPI } from '../services/store.api';
 import { transactionAPI } from '../services/transaction.api';
 import { useRealtime } from '../hooks/useRealtime';
 import { formatVietnamDateTime } from '../utils/time';
@@ -21,24 +22,47 @@ function paymentLabel(method) {
 
 function Transactions() {
   const [orders, setOrders] = useState([]);
+  const [store, setStore] = useState(null);
+  const [sessions, setSessions] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
   const [selected, setSelected] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [sessionDraft, setSessionDraft] = useState({ tableCode: '', guestCount: 2, note: '' });
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
+
+  const restaurantEnabled = Boolean(store && (store.operatingMode === 'restaurant' || ['restaurant', 'chain'].includes(store.packageTier)));
+
+  useEffect(() => {
+    loadMeta();
+  }, []);
 
   useEffect(() => { loadOrders(); }, [page, statusFilter, paymentFilter]);
 
   const handleTxnChange = useCallback(() => {
     loadOrders();
-  }, [page, statusFilter, paymentFilter]);
+    if (restaurantEnabled) loadSessions();
+  }, [page, statusFilter, paymentFilter, restaurantEnabled]);
 
   useRealtime(REALTIME_EVENTS.TRANSACTION_CREATED, handleTxnChange);
   useRealtime(REALTIME_EVENTS.TRANSACTION_CANCELLED, handleTxnChange);
   useRealtime(REALTIME_EVENTS.TRANSACTION_REFUNDED, handleTxnChange);
+
+  async function loadMeta() {
+    try {
+      const data = await storeAPI.getStore();
+      setStore(data);
+      if (data && (data.operatingMode === 'restaurant' || ['restaurant', 'chain'].includes(data.packageTier))) {
+        loadSessions();
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   async function loadOrders() {
     setLoading(true);
@@ -54,10 +78,39 @@ function Transactions() {
     finally { setLoading(false); }
   }
 
+  async function loadSessions() {
+    try {
+      const data = await transactionAPI.getDiningSessions({ status: 'open', limit: 12 });
+      setSessions(data.items || []);
+    } catch {
+      setSessions([]);
+    }
+  }
+
   async function handleSearch(e) {
     e.preventDefault();
     setPage(1);
     loadOrders();
+  }
+
+  async function handleCreateSession(e) {
+    e.preventDefault();
+    try {
+      if (!sessionDraft.tableCode.trim()) {
+        showToast('Nhập số bàn trước khi mở phiên');
+        return;
+      }
+      await transactionAPI.createDiningSession({
+        tableCode: sessionDraft.tableCode.trim(),
+        guestCount: sessionDraft.guestCount,
+        note: sessionDraft.note,
+      });
+      setSessionDraft({ tableCode: '', guestCount: 2, note: '' });
+      loadSessions();
+      showToast('Đã mở phiên bàn');
+    } catch (err) {
+      showToast(err.message);
+    }
   }
 
   async function handleSelectOrder(order) {
@@ -65,6 +118,15 @@ function Transactions() {
       const detail = await transactionAPI.getOrder(order.id);
       setSelected(detail);
     } catch { setSelected(order); }
+  }
+
+  async function handleSelectSession(session) {
+    try {
+      const detail = await transactionAPI.getDiningSession(session.id);
+      setSelectedSession(detail);
+    } catch {
+      setSelectedSession(session);
+    }
   }
 
   async function handleCancel(id) {
@@ -75,6 +137,18 @@ function Transactions() {
       loadOrders();
       showToast('Đã hủy giao dịch');
     } catch (err) { showToast(err.message); }
+  }
+
+  async function handleCloseSession(id) {
+    if (!confirm('Đóng phiên bàn này?')) return;
+    try {
+      await transactionAPI.closeDiningSession(id);
+      setSelectedSession(null);
+      loadSessions();
+      showToast('Đã đóng phiên bàn');
+    } catch (err) {
+      showToast(err.message);
+    }
   }
 
   function exportCsv() {
@@ -141,6 +215,45 @@ function Transactions() {
           </select>
           <span className="transactions-count">Hiển thị {PAGE_SIZE} giao dịch gần nhất</span>
         </form>
+
+        {restaurantEnabled && (
+          <div className="restaurant-panel">
+            <div className="restaurant-panel-header">
+              <div>
+                <strong>Phiên bàn đang mở</strong>
+                <span>Quản lý nhanh cho chế độ nhà hàng</span>
+              </div>
+              <form className="restaurant-create-form" onSubmit={handleCreateSession}>
+                <input
+                  value={sessionDraft.tableCode}
+                  onChange={(e) => setSessionDraft({ ...sessionDraft, tableCode: e.target.value })}
+                  placeholder="Bàn 12"
+                />
+                <input
+                  type="number"
+                  min="1"
+                  value={sessionDraft.guestCount}
+                  onChange={(e) => setSessionDraft({ ...sessionDraft, guestCount: e.target.value })}
+                  placeholder="2"
+                />
+                <button type="submit">
+                  <Plus size={14} />
+                  Mở phiên
+                </button>
+              </form>
+            </div>
+            <div className="restaurant-session-list">
+              {sessions.length === 0 && <span className="restaurant-empty">Chưa có phiên bàn nào đang mở</span>}
+              {sessions.map((session) => (
+                <button type="button" className="restaurant-session-item" key={session.id} onClick={() => handleSelectSession(session)}>
+                  <strong>{session.tableCode || session.sessionCode}</strong>
+                  <span>{session.sessionCode}</span>
+                  <span>{session.orderCount || 0} món, {formatCurrency(session.pendingAmount || 0)} chờ</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="transactions-table">
           <table>
@@ -219,6 +332,36 @@ function Transactions() {
                 <button className="btn btn-danger" onClick={() => handleCancel(selected.id)}>Hủy giao dịch</button>
               )}
               <button className="btn btn-ghost" onClick={() => setSelected(null)}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedSession && (
+        <div className="modal-overlay" onClick={() => setSelectedSession(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Phiên bàn {selectedSession.tableCode || selectedSession.sessionCode}</h3>
+            <div className="modal-meta">
+              <span>{selectedSession.sessionCode}</span>
+              <span className={`status-badge ${selectedSession.status}`}>{selectedSession.status}</span>
+            </div>
+            <div className="modal-items">
+              {(selectedSession.orders || []).map((order) => (
+                <div className="modal-item" key={order.id}>
+                  <span>{order.orderNumber} - {order.status}</span>
+                  <span>{formatCurrency(order.finalTotal)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="modal-total">
+              <span>Tổng cộng</span>
+              <span>{formatCurrency(selectedSession.totalAmount || 0)}</span>
+            </div>
+            <div className="modal-actions">
+              {selectedSession.status === 'open' && (
+                <button className="btn btn-danger" onClick={() => handleCloseSession(selectedSession.id)}>Đóng phiên</button>
+              )}
+              <button className="btn btn-ghost" onClick={() => setSelectedSession(null)}>Đóng</button>
             </div>
           </div>
         </div>

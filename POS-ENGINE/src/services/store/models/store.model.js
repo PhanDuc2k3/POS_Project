@@ -10,6 +10,8 @@
  * @property {string|null} phone
  * @property {string|null} address
  * @property {string|null} logo
+ * @property {'starter'|'pro'|'restaurant'|'chain'} packageTier
+ * @property {'simple'|'restaurant'} operatingMode
  * @property {string} createdAt
  * @property {string} updatedAt
  */
@@ -38,6 +40,8 @@
  * @property {boolean} showTxnId
  * @property {boolean} showStoreInfo
  * @property {string} paperWidth
+ * @property {'starter'|'pro'|'restaurant'|'chain'} packageTier
+ * @property {'simple'|'restaurant'} operatingMode
  */
 
 /**

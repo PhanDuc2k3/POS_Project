@@ -29,6 +29,10 @@ async function initDatabase() {
       payment_method TEXT DEFAULT 'cash',
       status TEXT NOT NULL DEFAULT 'completed',
       note TEXT,
+      source_app TEXT NOT NULL DEFAULT 'pos',
+      service_mode TEXT NOT NULL DEFAULT 'simple',
+      dining_session_id TEXT,
+      table_code TEXT,
       device_id TEXT,
       device_name TEXT,
       cashier_id INTEGER,
@@ -76,6 +80,25 @@ async function initDatabase() {
   `);
 
   db.run(`
+    CREATE TABLE IF NOT EXISTS dining_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      store_id INTEGER NOT NULL,
+      session_code TEXT NOT NULL,
+      table_code TEXT,
+      guest_count INTEGER DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'open',
+      note TEXT,
+      opened_by_id INTEGER,
+      opened_by_name TEXT,
+      opened_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      closed_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(store_id, session_code)
+    )
+  `);
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS payment_webhook_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       provider TEXT NOT NULL,
@@ -100,6 +123,19 @@ async function initDatabase() {
   addColumnIfMissing('orders', 'paid_at DATETIME');
   addColumnIfMissing('orders', 'payment_reference TEXT');
   addColumnIfMissing('orders', 'payment_raw TEXT');
+  addColumnIfMissing('orders', "source_app TEXT NOT NULL DEFAULT 'pos'");
+  addColumnIfMissing('orders', "service_mode TEXT NOT NULL DEFAULT 'simple'");
+  addColumnIfMissing('orders', 'dining_session_id TEXT');
+  addColumnIfMissing('orders', 'table_code TEXT');
+
+  addColumnIfMissing('dining_sessions', 'table_code TEXT');
+  addColumnIfMissing('dining_sessions', 'guest_count INTEGER DEFAULT 1');
+  addColumnIfMissing('dining_sessions', "status TEXT NOT NULL DEFAULT 'open'");
+  addColumnIfMissing('dining_sessions', 'note TEXT');
+  addColumnIfMissing('dining_sessions', 'opened_by_id INTEGER');
+  addColumnIfMissing('dining_sessions', 'opened_by_name TEXT');
+  addColumnIfMissing('dining_sessions', 'opened_at DATETIME');
+  addColumnIfMissing('dining_sessions', 'closed_at DATETIME');
 
   saveDatabase();
   startAutoSave(db, DB_PATH);

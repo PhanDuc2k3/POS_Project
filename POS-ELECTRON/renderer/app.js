@@ -148,6 +148,7 @@ async function loadData() {
     if (window.posAPI?.setStoreConfig) {
       window.posAPI.setStoreConfig({
         store: storeInfo,
+        bank: bankConfig,
         receipt: storeConfig?.receipt || null,
       });
     }
@@ -589,7 +590,6 @@ async function finishPaidOrder(order) {
   $('success-amount').textContent = fmt(order.finalTotal);
   $('success-order-number').textContent = order.paymentCode || order.orderNumber || '';
   $('success-overlay').classList.remove('hidden');
-  printReceipt(order);
   clearCart();
 }
 

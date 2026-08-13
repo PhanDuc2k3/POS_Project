@@ -5,6 +5,13 @@ function devSecret(name) {
   return crypto.createHash('sha256').update(`${DEV_SEED}-${name}`).digest('hex');
 }
 
+function parseOrigins(value) {
+  return value
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
 module.exports = {
   // JWT
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || devSecret('access'),
@@ -40,6 +47,9 @@ module.exports = {
   TRANSACTION_SERVICE_PORT: parseInt(process.env.TRANSACTION_SERVICE_PORT) || 4003,
   PRODUCT_SERVICE_PORT: parseInt(process.env.PRODUCT_SERVICE_PORT) || 4004,
   PRINT_SERVICE_PORT: parseInt(process.env.PRINT_SERVICE_PORT) || 4005,
+  PLATFORM_SERVICE_PORT: parseInt(process.env.PLATFORM_SERVICE_PORT) || 4006,
+  CUSTOMER_SERVICE_PORT: parseInt(process.env.CUSTOMER_SERVICE_PORT) || 4007,
+  KITCHEN_SERVICE_PORT: parseInt(process.env.KITCHEN_SERVICE_PORT) || 4008,
 
   // Service URLs
   AUTH_SERVICE_URL: process.env.AUTH_SERVICE_URL || 'http://localhost:4001',
@@ -47,9 +57,29 @@ module.exports = {
   TRANSACTION_SERVICE_URL: process.env.TRANSACTION_SERVICE_URL || 'http://localhost:4003',
   PRODUCT_SERVICE_URL: process.env.PRODUCT_SERVICE_URL || 'http://localhost:4004',
   PRINT_SERVICE_URL: process.env.PRINT_SERVICE_URL || 'http://localhost:4005',
+  PLATFORM_SERVICE_URL: process.env.PLATFORM_SERVICE_URL || 'http://localhost:4006',
+  CUSTOMER_SERVICE_URL: process.env.CUSTOMER_SERVICE_URL || 'http://localhost:4007',
+  KITCHEN_SERVICE_URL: process.env.KITCHEN_SERVICE_URL || 'http://localhost:4008',
 
   // CORS
   PORTAL_ORIGIN: process.env.PORTAL_ORIGIN || 'http://localhost:3000',
+  ADMIN_APP_ORIGIN: process.env.ADMIN_APP_ORIGIN || 'http://localhost:3003',
+  ADMIN_APP_ORIGINS: parseOrigins(
+    process.env.ADMIN_APP_ORIGINS
+    || [
+      process.env.ADMIN_APP_ORIGIN || 'http://localhost:3003',
+      'http://localhost:3004',
+    ].join(',')
+  ),
+  CUSTOMER_APP_ORIGIN: process.env.CUSTOMER_APP_ORIGIN || 'http://localhost:3001',
+  KITCHEN_APP_ORIGIN: process.env.KITCHEN_APP_ORIGIN || 'http://localhost:3002',
+  PUBLIC_APP_ORIGINS: parseOrigins(
+    process.env.PUBLIC_APP_ORIGINS
+    || [
+      process.env.CUSTOMER_APP_ORIGIN || 'http://localhost:3001',
+      process.env.KITCHEN_APP_ORIGIN || 'http://localhost:3002',
+    ].join(',')
+  ),
 
   // Kafka
   KAFKA_BROKER: process.env.KAFKA_BROKER || null,

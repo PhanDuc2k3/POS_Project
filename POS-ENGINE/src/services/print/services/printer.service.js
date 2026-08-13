@@ -9,7 +9,7 @@ function normalizePrinter(printer = {}) {
     ...printer,
     type: String(printer.type || 'mock').toLowerCase(),
     paperWidth: Number(printer.paperWidth || 80),
-    charset: printer.charset || 'CP437',
+    charset: printer.charset || 'ASCII',
   };
 }
 

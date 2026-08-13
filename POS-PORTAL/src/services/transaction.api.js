@@ -43,4 +43,46 @@ export const transactionAPI = {
     if (!response.ok) throw new Error('Failed to fetch recent orders');
     return response.json();
   },
+
+  async getDiningSessions(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const response = await apiFetch(`/txn/dining-sessions${query ? '?' + query : ''}`);
+    if (!response.ok) throw new Error('Failed to fetch dining sessions');
+    return response.json();
+  },
+
+  async createDiningSession(data) {
+    const response = await apiFetch('/txn/dining-sessions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error);
+    return result;
+  },
+
+  async getDiningSession(id) {
+    const response = await apiFetch(`/txn/dining-sessions/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch dining session');
+    return response.json();
+  },
+
+  async createSessionOrder(id, data) {
+    const response = await apiFetch(`/txn/dining-sessions/${id}/orders`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error);
+    return result;
+  },
+
+  async closeDiningSession(id) {
+    const response = await apiFetch(`/txn/dining-sessions/${id}/close`, {
+      method: 'POST',
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error);
+    return result;
+  },
 };

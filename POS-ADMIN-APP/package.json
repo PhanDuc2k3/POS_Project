@@ -1,0 +1,10 @@
+{
+  "name": "pos-admin-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Platform admin app for tenant, package, order, and permission management",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}

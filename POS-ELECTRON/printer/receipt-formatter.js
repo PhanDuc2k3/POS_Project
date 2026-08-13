@@ -6,6 +6,18 @@
 const { ReceiptBuilder } = require('./escpos');
 
 const DEFAULT_BLOCKS = ['header','storeInfo','divider','orderInfo','divider','items','total','qr','footer'];
+const LABELS = {
+  phone: '\u0110T: ',
+  cashier: 'Thu ng\u00e2n: ',
+  subtotal: 'T\u1ea1m t\u00ednh:',
+  discount: 'Gi\u1ea3m gi\u00e1:',
+  total: 'T\u1ed5ng c\u1ed9ng:',
+  payment: 'Thanh to\u00e1n:',
+  transfer: 'Chuy\u1ec3n kho\u1ea3n',
+  cash: 'Ti\u1ec1n m\u1eb7t',
+  transferContent: 'N\u1ed9i dung CK: ',
+  currency: '\u0111',
+};
 
 function formatReceipt(order, storeConfig = {}, receiptConfig = {}) {
   const config = normalizeReceiptConfig(receiptConfig, storeConfig);
@@ -28,7 +40,7 @@ function normalizeReceiptConfig(receiptConfig = {}, storeConfig = {}) {
   return {
     ...receiptConfig,
     header: receiptConfig.header || storeConfig.name || 'POS',
-    footer: receiptConfig.footer || 'Xin cam on quy khach!',
+    footer: receiptConfig.footer || 'Xin c\u1ea3m \u01a1n qu\u00fd kh\u00e1ch!',
     paperWidth: receiptConfig.paperWidth || '58mm',
     showQR: receiptConfig.showQR !== false,
     showLogo: receiptConfig.showLogo === true,
@@ -41,7 +53,7 @@ function normalizeReceiptConfig(receiptConfig = {}, storeConfig = {}) {
 function renderBlock(receipt, block, order, store, config) {
   switch (block) {
     case 'logo':
-      renderLogo(receipt, config);
+      renderLogo(receipt, store, config);
       break;
     case 'header':
       renderHeader(receipt, config);
@@ -66,7 +78,7 @@ function renderBlock(receipt, block, order, store, config) {
       renderPayment(receipt, order);
       break;
     case 'qr':
-      renderQrText(receipt, order, config);
+      renderQrText(receipt, order, store, config);
       break;
     case 'footer':
       renderFooter(receipt, config);
@@ -76,10 +88,15 @@ function renderBlock(receipt, block, order, store, config) {
   }
 }
 
-function renderLogo(receipt, config) {
+function renderLogo(receipt, store, config) {
   if (!config.showLogo) return;
   receipt.alignCenter();
-  receipt.line(config.logoText || '[LOGO]');
+  if (store.logo) {
+    const maxWidthDots = config.paperWidth === '80mm' ? 320 : 220;
+    receipt.imageDataUrl(store.logo, { maxWidthDots });
+  } else {
+    receipt.line(config.logoText || '[LOGO]');
+  }
   receipt.emptyLine();
 }
 
@@ -95,7 +112,7 @@ function renderStoreInfo(receipt, store, config) {
   receipt.alignCenter();
   if (store.name) receipt.bold(true).line(store.name).bold(false);
   if (store.address) receipt.line(store.address);
-  if (store.phone) receipt.line('DT: ' + store.phone);
+  if (store.phone) receipt.line(LABELS.phone + store.phone);
 }
 
 function renderOrderInfo(receipt, order, config) {
@@ -107,7 +124,7 @@ function renderOrderInfo(receipt, order, config) {
     receipt.line(formatVietnamDateTime(order.paidAt || order.createdAt));
   }
   if (order.cashierName) {
-    receipt.line('Thu ngan: ' + order.cashierName);
+    receipt.line(LABELS.cashier + order.cashierName);
   }
 }
 
@@ -133,28 +150,30 @@ function renderTotal(receipt, order) {
   receipt.alignLeft();
   const discount = Number(order.discount || 0);
   if (discount > 0) {
-    receipt.leftRight('Tam tinh:', formatMoney(order.total));
-    receipt.leftRight('Giam gia:', '-' + formatMoney(discount));
+    receipt.leftRight(LABELS.subtotal, formatMoney(order.total));
+    receipt.leftRight(LABELS.discount, '-' + formatMoney(discount));
   }
 
   receipt.bold(true);
-  receipt.leftRight('Tong cong:', formatMoney(order.finalTotal || order.total));
+  receipt.leftRight(LABELS.total, formatMoney(order.finalTotal || order.total));
   receipt.bold(false);
 }
 
 function renderPayment(receipt, order) {
   receipt.alignLeft();
-  const methodLabel = order.paymentMethod === 'transfer' ? 'Chuyen khoan' : 'Tien mat';
-  receipt.leftRight('Thanh toan:', methodLabel);
-  if (order.paymentCode) receipt.line('Noi dung CK: ' + order.paymentCode);
+  const methodLabel = order.paymentMethod === 'transfer' ? LABELS.transfer : LABELS.cash;
+  receipt.leftRight(LABELS.payment, methodLabel);
+  if (order.paymentCode) receipt.line(LABELS.transferContent + order.paymentCode);
 }
 
-function renderQrText(receipt, order, config) {
+function renderQrText(receipt, order, store, config) {
   if (config.showQR === false) return;
+  const qrValue = buildReceiptQrValue(order, store);
+  if (!qrValue) return;
   receipt.alignCenter();
   receipt.emptyLine();
-  receipt.line('[QR]');
-  if (order.paymentCode) receipt.line(order.paymentCode);
+  receipt.qr(qrValue, { size: config.paperWidth === '80mm' ? 7 : 5 });
+  receipt.line(order.paymentCode || order.orderNumber || order.id || '');
 }
 
 function renderFooter(receipt, config) {
@@ -164,7 +183,7 @@ function renderFooter(receipt, config) {
 }
 
 function formatMoney(amount) {
-  return new Intl.NumberFormat('vi-VN').format(amount || 0) + 'd';
+  return new Intl.NumberFormat('vi-VN').format(amount || 0) + LABELS.currency;
 }
 
 function formatVietnamDateTime(value) {
@@ -190,6 +209,55 @@ function formatVietnamDateTime(value) {
     second: '2-digit',
     hour12: false,
   }).format(date) + ' GMT+7';
+}
+
+function buildReceiptQrValue(order, store) {
+  const bank = store?.bank || null;
+  if (bank?.bankBin && bank?.accountNumber && Number(order.finalTotal || order.total) > 0) {
+    return buildVietQrPayload({
+      bankBin: bank.bankBin,
+      accountNumber: bank.accountNumber,
+      amount: order.finalTotal || order.total,
+      paymentCode: order.paymentCode || order.orderNumber || order.id || '',
+    });
+  }
+  return order.paymentCode || order.orderNumber || order.id || '';
+}
+
+function buildVietQrPayload({ bankBin, accountNumber, amount, paymentCode }) {
+  const consumerAccount = emv('00', bankBin) + emv('01', accountNumber);
+  const merchantAccount =
+    emv('00', 'A000000727') +
+    emv('01', consumerAccount) +
+    emv('02', 'QRIBFTTA');
+  const additionalData = paymentCode ? emv('08', paymentCode) : '';
+  const payload =
+    emv('00', '01') +
+    emv('01', '12') +
+    emv('38', merchantAccount) +
+    emv('53', '704') +
+    emv('54', String(Math.round(Number(amount || 0)))) +
+    emv('58', 'VN') +
+    (additionalData ? emv('62', additionalData) : '') +
+    '6304';
+  return payload + crc16Ccitt(payload);
+}
+
+function emv(id, value) {
+  const text = String(value ?? '');
+  return id + String(text.length).padStart(2, '0') + text;
+}
+
+function crc16Ccitt(text) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < text.length; i++) {
+    crc ^= text.charCodeAt(i) << 8;
+    for (let bit = 0; bit < 8; bit++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
 }
 
 module.exports = { formatReceipt };

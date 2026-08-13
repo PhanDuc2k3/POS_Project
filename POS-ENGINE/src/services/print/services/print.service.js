@@ -142,7 +142,7 @@ async function execute(job) {
       name: 'Auto-Mock',
       type: 'mock',
       paperWidth: 80,
-      charset: 'CP437',
+      charset: 'ASCII',
     };
   }
 

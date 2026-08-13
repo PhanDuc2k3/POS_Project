@@ -64,6 +64,42 @@
   padding: 24px;
 }
 
+.tier-settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  padding: 24px;
+}
+
+.tier-summary {
+  border: 1px solid #cad6ea;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 18px 18px 16px;
+}
+
+.tier-summary strong {
+  display: block;
+  color: #061938;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.tier-summary p {
+  margin: 8px 0 14px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.tier-summary ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #0f172a;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
 .settings-form {
   display: flex;
   flex-direction: column;
@@ -340,7 +376,8 @@
 
 @media (max-width: 1120px) {
   .bank-settings-grid,
-  .printer-settings-grid {
+  .printer-settings-grid,
+  .tier-settings-grid {
     grid-template-columns: 1fr;
   }
 
