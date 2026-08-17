@@ -5,6 +5,9 @@
   "description": "Marketing website for the POS restaurant platform",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "nodemon --watch server.js --watch index.html --watch styles.css --watch src --watch assets --ext js,html,css,json,svg,png,jpg,jpeg,ico --exec \"node server.js\""
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }

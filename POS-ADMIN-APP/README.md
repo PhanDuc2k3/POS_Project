@@ -10,18 +10,20 @@ npm.cmd install
 npm.cmd run dev
 ```
 
+Lenh dev dung `nodemon`, server tu restart khi sua `server.js`, `index.html` hoac `src/`.
+
 Mo:
 
 ```text
-http://localhost:3003
+http://localhost:8000
 ```
 
-Neu port `3003` dang ban va khong set `PORT`, server tu thu port tiep theo, thuong la `3004`.
+Neu port `8000` dang ban va khong set `PORT`, server tu thu port tiep theo, thuong la `8002` de tranh port Marketing.
 
 Ep port:
 
 ```powershell
-$env:PORT=3004
+$env:PORT=8002
 npm.cmd run dev
 ```
 
@@ -96,4 +98,4 @@ POS-ADMIN-APP/
 
 - Day la static SPA duoc serve bang `server.js`, khong dung Vite.
 - Neu login that bai, kiem tra Engine/Gateway co dang chay khong.
-- Gateway da cho phep origin `3003` va `3004` mac dinh.
+- Gateway da cho phep origin `8000` mac dinh.

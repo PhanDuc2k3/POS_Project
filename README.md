@@ -9,10 +9,10 @@ Monorepo POS local cho mo hinh ban le, cafe, nha hang va restaurant mode. Repo g
 | `POS-ENGINE` | Backend, API Gateway, WebSocket va cac service noi bo | Gateway `http://localhost:4000` |
 | `POS-PORTAL` | Portal cho chu cua hang quan ly san pham, don hang, doanh thu, store config | `http://localhost:3000` |
 | `POS-ELECTRON` | Ung dung POS tai quay va device agent de in hoa don | Electron desktop |
-| `POS-ADMIN-APP` | Platform admin quan ly tenant, package, account, permission, trial request | `http://localhost:3003` |
+| `POS-ADMIN-APP` | Platform admin quan ly tenant, package, account, permission, trial request | `http://localhost:8000` |
 | `POS-CUSTOMER-APP` | Man hinh khach tu goi mon theo ban/phien an | `http://localhost:3001` |
 | `POS-KITCHEN-APP` | Man hinh bep/bar theo doi dining session va order | `http://localhost:3002` |
-| `POS-MARKETING-WEBSITE` | Website marketing va form dang ky trial | `http://localhost:2001` |
+| `POS-MARKETING-WEBSITE` | Website marketing va form dang ky trial | `http://localhost:8001` |
 
 ## Cach chay nhanh
 
@@ -68,11 +68,11 @@ npm.cmd --prefix POS-MARKETING-WEBSITE install
 
 | Thanh phan | Port |
 | --- | ---: |
-| Marketing Website | `2001` |
+| Marketing Website | `8001` |
 | Portal | `3000` |
 | Customer App | `3001` |
 | Kitchen App | `3002` |
-| Admin App | `3003`, tu nhay sang `3004` neu port ban |
+| Admin App | `8000`, tu nhay sang `8002` neu port ban |
 | Gateway | `4000` |
 | Auth Service | `4001` |
 | Store Service | `4002` |

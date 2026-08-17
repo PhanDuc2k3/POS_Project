@@ -97,8 +97,8 @@ Mac dinh nam trong `src/shared/config.js`.
 | `CUSTOMER_SERVICE_PORT` | `4007` |
 | `KITCHEN_SERVICE_PORT` | `4008` |
 | `PORTAL_ORIGIN` | `http://localhost:3000` |
-| `ADMIN_APP_ORIGINS` | `http://localhost:3003,http://localhost:3004` |
-| `MARKETING_APP_ORIGIN` | `http://localhost:2001` |
+| `ADMIN_APP_ORIGINS` | `http://localhost:8000` |
+| `MARKETING_APP_ORIGIN` | `http://localhost:8001` |
 | `CUSTOMER_APP_ORIGIN` | `http://localhost:3001` |
 | `KITCHEN_APP_ORIGIN` | `http://localhost:3002` |
 | `JWT_ACCESS_SECRET` | dev secret |

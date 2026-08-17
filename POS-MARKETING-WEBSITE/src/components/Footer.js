@@ -3,7 +3,6 @@ import { navLinks } from '../shared/data.js';
 
 export function renderFooter() {
   const links = navLinks
-    .filter((item) => ['#features', '#solutions', '#pricing', '#contact'].includes(item.href))
     .map((item) => `<a href="${item.href}">${item.label}</a>`)
     .join('');
 

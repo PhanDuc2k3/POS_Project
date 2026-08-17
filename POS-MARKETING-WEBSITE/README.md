@@ -10,16 +10,18 @@ npm.cmd install
 npm.cmd run dev
 ```
 
+Lenh dev dung `nodemon`, server tu restart khi sua `server.js`, `index.html`, `styles.css`, `src/` hoac `assets/`.
+
 Mo:
 
 ```text
-http://localhost:2001
+http://localhost:8001
 ```
 
 Ep port:
 
 ```powershell
-$env:PORT=2002
+$env:PORT=8002
 npm.cmd run dev
 ```
 

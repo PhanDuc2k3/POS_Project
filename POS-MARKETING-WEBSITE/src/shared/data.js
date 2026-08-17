@@ -1,10 +1,65 @@
 export const navLinks = [
-  { href: '#features', label: 'Features' },
-  { href: '#solutions', label: 'Solutions' },
-  { href: '#workflow', label: 'How it works' },
-  { href: '#demo', label: 'Demo' },
-  { href: '#pricing', label: 'Pricing' },
-  { href: '#contact', label: 'Contact' },
+  { href: '#home', label: 'Trang chủ' },
+  { href: '#products', label: 'Sản phẩm' },
+  { href: '#news', label: 'Tin tức' },
+  { href: '#warranty', label: 'Bảo hành' },
+  { href: '#locations', label: 'Địa điểm công ty' },
+];
+
+export const products = [
+  {
+    title: 'POS bán hàng',
+    text: 'Giao diện thu ngân nhanh, quản lý ca làm, thanh toán tiền mặt/chuyển khoản và in hóa đơn.',
+    image: 'assets/home.png',
+  },
+  {
+    title: 'Portal quản lý',
+    text: 'Theo dõi doanh thu, đơn hàng, sản phẩm, cấu hình cửa hàng và báo cáo vận hành.',
+    image: 'assets/features.png',
+  },
+  {
+    title: 'QR order và bếp',
+    text: 'Khách gọi món tại bàn, bếp nhận ticket realtime và nhân viên theo dõi trạng thái phục vụ.',
+    image: 'assets/demo.png',
+  },
+];
+
+export const news = [
+  {
+    date: '17/08/2026',
+    title: 'Ra mắt bộ giải pháp POS cho nhà hàng',
+    text: 'Precision POS kết nối thu ngân, QR order, bếp, thanh toán và báo cáo trên một nền tảng.',
+  },
+  {
+    date: '10/08/2026',
+    title: 'Tối ưu vận hành đa chi nhánh',
+    text: 'Bộ công cụ platform admin giúp quản lý tenant, gói dịch vụ, tài khoản và quyền truy cập.',
+  },
+  {
+    date: '01/08/2026',
+    title: 'Cải thiện trải nghiệm gọi món tại bàn',
+    text: 'Dining session và kitchen display giúp đơn hàng đi từ khách đến bếp rõ ràng hơn.',
+  },
+];
+
+export const warrantyPolicies = [
+  'Hỗ trợ kỹ thuật từ xa trong giờ làm việc cho khách hàng đang sử dụng dịch vụ.',
+  'Bảo trì phần mềm định kỳ, cập nhật lỗi và cải thiện tính ổn định hệ thống.',
+  'Hỗ trợ cấu hình máy in, tài khoản, cửa hàng, menu và quy trình vận hành ban đầu.',
+  'Tiếp nhận sự cố qua email, hotline hoặc form liên hệ trên website.',
+];
+
+export const companyLocations = [
+  {
+    city: 'TP. Hồ Chí Minh',
+    address: 'Tầng 5, Tòa nhà Innovation Hub, Quận 1',
+    phone: '0900 000 800',
+  },
+  {
+    city: 'Hà Nội',
+    address: 'Tầng 3, Tòa nhà Business Center, Cầu Giấy',
+    phone: '0900 000 801',
+  },
 ];
 
 export const metrics = [

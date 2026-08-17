@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = __dirname;
-const PORT = parseInt(process.env.PORT, 10) || 2001;
+const PORT = parseInt(process.env.PORT, 10) || 8001;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -47,7 +47,7 @@ const server = http.createServer((req, res) => {
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Set another port with $env:PORT=2002`);
+    console.error(`Port ${PORT} is already in use. Set another port with $env:PORT=8002`);
     process.exit(1);
   }
 

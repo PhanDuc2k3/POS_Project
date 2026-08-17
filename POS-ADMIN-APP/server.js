@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = __dirname;
-const REQUESTED_PORT = parseInt(process.env.PORT, 10) || 3003;
+const REQUESTED_PORT = parseInt(process.env.PORT, 10) || 8000;
 const HAS_EXPLICIT_PORT = Boolean(process.env.PORT);
 let currentPort = REQUESTED_PORT;
 
@@ -51,8 +51,12 @@ const server = http.createServer((req, res) => {
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE' && !HAS_EXPLICIT_PORT) {
+    const busyPort = currentPort;
     currentPort += 1;
-    console.warn(`Port ${currentPort - 1} is busy, trying http://localhost:${currentPort}`);
+    if (currentPort === 8001) {
+      currentPort += 1;
+    }
+    console.warn(`Port ${busyPort} is busy, trying http://localhost:${currentPort}`);
     server.listen(currentPort);
     return;
   }

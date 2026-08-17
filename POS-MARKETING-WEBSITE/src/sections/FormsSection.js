@@ -43,7 +43,7 @@ export function renderFormsSection(state = {}) {
         </form>
       </div>
     </section>
-    <section class="section contact-signin" id="contact">
+    <section class="section contact-signin contact-only" id="contact">
       <form class="contact-card" data-form="contact">
         <p class="eyebrow">Contact sales</p>
         <h2>Talk to a POS specialist.</h2>
@@ -55,25 +55,6 @@ export function renderFormsSection(state = {}) {
         <button class="button primary" type="submit">Send request</button>
         <p class="form-message" role="status"></p>
       </form>
-      <div class="signin-card" id="signin">
-        <p class="eyebrow">Account access</p>
-          <h2>${signedIn ? 'Signed in' : 'Sign in to continue'}</h2>
-        ${signedIn ? `
-          <div class="account-block">
-            <strong>${state.user.displayName || state.user.username}</strong>
-            <span>${state.user.email || state.user.username}</span>
-            <span>${locked ? `Trial request ${request.status}` : 'Ready for a new request'}</span>
-          </div>
-          <button class="button secondary" type="button" data-action="logout">Sign out</button>
-        ` : `
-          <form data-form="signin">
-            <label>Username<input name="username" placeholder="platform" required /></label>
-            <label>Password<input name="password" type="password" placeholder="Password" required /></label>
-            <button class="button secondary" type="submit">Sign in</button>
-            <p class="form-message" role="status"></p>
-          </form>
-        `}
-      </div>
     </section>
   `;
 }

@@ -63,15 +63,14 @@ module.exports = {
 
   // CORS
   PORTAL_ORIGIN: process.env.PORTAL_ORIGIN || 'http://localhost:3000',
-  ADMIN_APP_ORIGIN: process.env.ADMIN_APP_ORIGIN || 'http://localhost:3003',
+  ADMIN_APP_ORIGIN: process.env.ADMIN_APP_ORIGIN || 'http://localhost:8000',
   ADMIN_APP_ORIGINS: parseOrigins(
     process.env.ADMIN_APP_ORIGINS
     || [
-      process.env.ADMIN_APP_ORIGIN || 'http://localhost:3003',
-      'http://localhost:3004',
+      process.env.ADMIN_APP_ORIGIN || 'http://localhost:8000',
     ].join(',')
   ),
-  MARKETING_APP_ORIGIN: process.env.MARKETING_APP_ORIGIN || 'http://localhost:2001',
+  MARKETING_APP_ORIGIN: process.env.MARKETING_APP_ORIGIN || 'http://localhost:8001',
   CUSTOMER_APP_ORIGIN: process.env.CUSTOMER_APP_ORIGIN || 'http://localhost:3001',
   KITCHEN_APP_ORIGIN: process.env.KITCHEN_APP_ORIGIN || 'http://localhost:3002',
   PUBLIC_APP_ORIGINS: parseOrigins(
@@ -79,7 +78,7 @@ module.exports = {
     || [
       process.env.CUSTOMER_APP_ORIGIN || 'http://localhost:3001',
       process.env.KITCHEN_APP_ORIGIN || 'http://localhost:3002',
-      process.env.MARKETING_APP_ORIGIN || 'http://localhost:2001',
+      process.env.MARKETING_APP_ORIGIN || 'http://localhost:8001',
     ].join(',')
   ),
 
