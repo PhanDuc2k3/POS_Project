@@ -1,84 +1,89 @@
 # POS Marketing Website
 
-Marketing website built from the supplied Stitch `restaurant_os_marketing_website` zip.
+Website marketing cho san pham POS restaurant platform. Site gioi thieu tinh nang, giai phap, pricing, demo va form dang ky trial.
 
-## Included Sections
-
-- Hero landing section
-- Feature overview
-- Solutions for cafe, restaurant, and chains
-- How-it-works workflow
-- Product demo gallery
-- Pricing cards
-- Trial request form
-- Contact sales form
-- Sign-in form
-
-## Trial Flow
-
-```text
-Marketing Website
-    -> Customer signs in
-    -> Customer submits trial form
-    -> Gateway creates Trial Request
-    -> Platform Admin reviews request
-    -> Admin approves manually
-    -> Platform creates Tenant
-    -> Platform creates owner Account
-    -> Admin sends generated account details to customer
-```
-
-Marketing submits to:
-
-```text
-POST http://localhost:4000/api/platform/trial-requests
-```
-
-Requires `Authorization: Bearer <accessToken>`.
-
-To check current account status:
-
-```text
-GET http://localhost:4000/api/platform/trial-requests/me
-```
-
-Platform Admin reviews requests in:
-
-```text
-POS-ADMIN-APP -> Requests
-```
-
-## Structure
-
-```text
-POS-MARKETING-WEBSITE/
-├── assets/              Local preview images from the Stitch zip
-├── src/
-│   ├── components/      Header, footer, brand
-│   ├── pages/           Page composition
-│   ├── sections/        Landing page sections
-│   └── shared/          Shared data/config
-├── index.html           App shell
-├── styles.css           Global styling
-└── server.js            Static local server
-```
-
-## Run
+## Chay site
 
 ```powershell
 cd D:\POS\Project1\POS-MARKETING-WEBSITE
-npm start
+npm.cmd install
+npm.cmd run dev
 ```
 
-Open:
+Mo:
 
 ```text
 http://localhost:2001
 ```
 
-To use another port:
+Ep port:
 
 ```powershell
 $env:PORT=2002
-npm start
+npm.cmd run dev
 ```
+
+## Phu thuoc backend
+
+Can `POS-ENGINE` dang chay tai:
+
+```text
+http://localhost:4000/api
+```
+
+Site goi:
+
+```text
+POST /api/auth/login
+GET  /api/auth/me
+GET  /api/platform/trial-requests/me
+POST /api/platform/trial-requests
+```
+
+Trial request yeu cau user da dang nhap va co access token.
+
+## Section chinh
+
+- Hero.
+- Features.
+- Solutions.
+- Workflow.
+- Metrics.
+- Demo gallery.
+- Pricing.
+- Trial request form.
+- Contact/sign-in.
+
+## Trial flow
+
+```text
+Marketing Website
+  -> khach dang nhap
+  -> khach gui trial request
+  -> Platform Service luu request
+  -> POS Admin App duyet request
+  -> Platform Service tao tenant va account
+  -> admin gui account cho khach
+```
+
+## Cau truc
+
+```text
+POS-MARKETING-WEBSITE/
+  assets/
+  index.html
+  server.js
+  styles.css
+  src/
+    components/
+    pages/
+    sections/
+    shared/
+    main.js
+```
+
+## Ghi chu
+
+- Day la static website duoc serve bang `server.js`.
+- API base hien hard-code trong `src/shared/api.js`: `http://localhost:4000/api`.
+- Anh demo nam trong `assets/`.

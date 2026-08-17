@@ -1,53 +1,37 @@
 # Store Service
 
-Service quản lý thông tin cửa hàng, tài khoản ngân hàng nhận chuyển khoản và mẫu hóa đơn mà Portal/POS Electron sử dụng.
+Service quan ly thong tin cua hang, cau hinh ngan hang/VietQR va mau hoa don cho Portal, POS Electron va Print Service.
 
-## Port
-
-```text
-4002
-```
-
-Khi chạy qua Gateway, public route là:
+## Port va route
 
 ```text
-/api/store/*
+Service port: 4002
+Internal base: /store
+Gateway base:  /api/store
 ```
 
-Route nội bộ của service:
-
-```text
-/store/*
-```
-
-## Chạy riêng service
+Chay rieng:
 
 ```powershell
 cd D:\POS\Project1\POS-ENGINE
-npm run dev:store
+npm.cmd run dev:store
 ```
 
-Hoặc:
+## Endpoint
 
-```powershell
-npx nodemon src/services/store/index.js
-```
+| Method | Internal route | Gateway route | Mo ta |
+| --- | --- | --- | --- |
+| `GET` | `/store/me` | `/api/store/me` | Lay thong tin cua hang cua user |
+| `PUT` | `/store/me` | `/api/store/me` | Cap nhat store profile |
+| `GET` | `/store/bank` | `/api/store/bank` | Lay cau hinh ngan hang |
+| `PUT` | `/store/bank` | `/api/store/bank` | Cap nhat ngan hang/VietQR |
+| `GET` | `/store/receipt` | `/api/store/receipt` | Lay mau hoa don |
+| `PUT` | `/store/receipt` | `/api/store/receipt` | Luu mau hoa don |
+| `GET` | `/store/pos-config` | `/api/store/pos-config` | Gom store + bank + receipt cho POS |
 
-## Endpoint chính
+## Receipt config
 
-| Method | Route | Mô tả |
-| --- | --- | --- |
-| `GET` | `/store/me` | Lấy thông tin cửa hàng của user hiện tại |
-| `PUT` | `/store/me` | Cập nhật tên, số điện thoại, địa chỉ, logo |
-| `GET` | `/store/bank` | Lấy cấu hình ngân hàng/VietQR |
-| `PUT` | `/store/bank` | Cập nhật cấu hình ngân hàng |
-| `GET` | `/store/receipt` | Lấy mẫu hóa đơn |
-| `PUT` | `/store/receipt` | Lưu mẫu hóa đơn |
-| `GET` | `/store/pos-config` | Gói cấu hình cho POS Electron: store + bank + receipt |
-
-## Mẫu hóa đơn
-
-Receipt config lưu các trường chính:
+Receipt config thuong gom:
 
 ```text
 header
@@ -61,28 +45,15 @@ paperWidth
 blocks
 ```
 
-`blocks` là thứ tự các khối hóa đơn mà Portal setup, ví dụ:
+`blocks` quyet dinh thu tu hien thi tren hoa don, vi du:
 
 ```json
-["header","storeInfo","divider","orderInfo","divider","items","total","qr","footer"]
-```
-
-POS Electron cache dữ liệu từ `/store/pos-config` để in hóa đơn theo mẫu đang lưu trong Portal.
-
-## Thành phần chính
-
-```text
-controllers/     # store, bank, receipt handlers
-services/        # business logic
-repositories/    # query stores, bank_configs, receipt_configs
-routes/          # khai báo endpoint
-middlewares/     # validate, store context
-database.js      # schema và kết nối DB store
+["header","storeInfo","divider","orderInfo","items","total","qr","footer"]
 ```
 
 ## Event
 
-Service publish realtime event khi cấu hình thay đổi:
+Service publish:
 
 ```text
 store.updated
@@ -90,7 +61,7 @@ store.bankUpdated
 store.receiptUpdated
 ```
 
-Gateway chuyển các event này thành:
+Gateway broadcast thanh:
 
 ```text
 store:updated
@@ -98,4 +69,8 @@ store:bankUpdated
 store:receiptUpdated
 ```
 
-POS Electron nghe các event này để reload cấu hình cửa hàng, ngân hàng và mẫu hóa đơn.
+## Ghi chu
+
+- Khi user login, Store Service co logic dam bao store mac dinh ton tai.
+- POS Electron cache `/store/pos-config` de in hoa don.
+- Print Service doc store/receipt config khi tao auto-print job.

@@ -1,45 +1,99 @@
 # POS Admin App
 
-Platform owner console for package, tenant, order, account, and permission management.
+Ung dung web tinh cho chu nen tang quan ly goi dich vu, tenant, order, account, permission va trial request.
 
-## Run
+## Chay app
 
 ```powershell
 cd D:\POS\Project1\POS-ADMIN-APP
-node server.js
+npm.cmd install
+npm.cmd run dev
 ```
 
-Open `http://localhost:3003/`.
+Mo:
 
-If port `3003` is already in use, the app automatically tries the next port
-and prints the exact URL, usually `http://localhost:3004/`. The Gateway allows
-both local admin origins by default.
+```text
+http://localhost:3003
+```
 
-To force a specific port:
+Neu port `3003` dang ban va khong set `PORT`, server tu thu port tiep theo, thuong la `3004`.
+
+Ep port:
 
 ```powershell
 $env:PORT=3004
-node server.js
+npm.cmd run dev
 ```
 
-## Demo Platform Account
+## Phu thuoc backend
 
-The backend seeds a project-owner account:
+Can `POS-ENGINE` dang chay:
 
-- Username: `platform`
-- Password: `platform123`
-- Role: `platform_admin`
+```text
+http://localhost:4000/api
+```
 
-This first app version uses local demo data so the management model can be refined before wiring full admin APIs.
+Admin app goi cac nhom API:
 
-## Trial Request Flow
+```text
+/api/auth/login
+/api/platform/bootstrap
+/api/platform/summary
+/api/platform/tenants
+/api/platform/packages
+/api/platform/accounts
+/api/platform/orders
+/api/platform/permissions/:role
+/api/platform/trial-requests
+```
 
-Marketing customers submit trial requests from `POS-MARKETING-WEBSITE`.
+Cac route `/api/platform/*` yeu cau user co role `platform_admin`.
 
-In Platform Admin:
+## Tai khoan demo
 
-1. Open `Requests`.
-2. Review the pending trial request.
-3. Click `Approve & create tenant`.
-4. The platform creates a trial tenant and store owner account.
-5. Send the generated account details shown in the approved request back to the customer.
+```text
+username: platform
+password: platform123
+role: platform_admin
+```
+
+## Tinh nang chinh
+
+- Dashboard tong quan nen tang.
+- Quan ly tenant va trang thai tenant.
+- Quan ly package/goi dich vu.
+- Quan ly account va invite account demo.
+- Quan ly order cua nen tang.
+- Quan ly permission theo role.
+- Duyet trial request tu Marketing Website.
+
+## Trial request flow
+
+1. Khach dang nhap tren `POS-MARKETING-WEBSITE`.
+2. Khach gui form trial request.
+3. Platform Service luu request o trang thai pending.
+4. Admin vao `Requests`.
+5. Admin approve hoac reject.
+6. Khi approve, Platform Service tao tenant va account owner cho Portal.
+7. Admin gui username/password duoc tao cho khach.
+
+## Cau truc
+
+```text
+POS-ADMIN-APP/
+  index.html
+  server.js
+  src/
+    components/
+    pages/
+    services/
+    utils/
+    main.js
+    styles.css
+```
+
+## Ghi chu
+
+- Day la static SPA duoc serve bang `server.js`, khong dung Vite.
+- Neu login that bai, kiem tra Engine/Gateway co dang chay khong.
+- Gateway da cho phep origin `3003` va `3004` mac dinh.

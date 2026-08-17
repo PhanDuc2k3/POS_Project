@@ -1,0 +1,18 @@
+{
+  "name": "pos-project",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:engine": "npm --prefix POS-ENGINE run dev",
+    "dev:portal": "npm --prefix POS-PORTAL run dev",
+    "dev:electron": "npm --prefix POS-ELECTRON run dev",
+    "dev:admin": "npm --prefix POS-ADMIN-APP run dev",
+    "dev:customer": "npm --prefix POS-CUSTOMER-APP run dev",
+    "dev:kitchen": "npm --prefix POS-KITCHEN-APP run dev",
+    "dev:marketing": "npm --prefix POS-MARKETING-WEBSITE run dev",
+    "dev": "concurrently -n engine,portal,electron,admin,customer,kitchen,marketing -c cyan,green,blue,magenta,yellow,red,white \"npm run dev:engine\" \"npm run dev:portal\" \"npm run dev:electron\" \"npm run dev:admin\" \"npm run dev:customer\" \"npm run dev:kitchen\" \"npm run dev:marketing\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}

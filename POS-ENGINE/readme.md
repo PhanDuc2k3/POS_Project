@@ -1,90 +1,113 @@
 # POS Engine
 
-Backend Node.js cho hệ thống POS. Project chạy theo kiểu nhiều service nhỏ trong cùng một repo, có Gateway đứng trước để Portal/POS Electron gọi qua một địa chỉ chung.
+Backend Node.js cua POS Project. Engine chay theo kieu nhieu service nho trong cung repo, co API Gateway dung truoc de frontend va Electron chi can goi mot base URL.
 
-## Chạy dự án
+## Chay engine
 
 ```powershell
 cd D:\POS\Project1\POS-ENGINE
-npm install
-npm run dev
+npm.cmd install
+npm.cmd run dev
 ```
 
-`npm run dev` sẽ khởi động toàn bộ service và Gateway:
+`npm.cmd run dev` chay `nodemon src/index.js`, khoi dong tat ca service va Gateway.
 
-| Thành phần | Port mặc định | Vai trò |
+## Port
+
+| Thanh phan | Port | Vai tro |
 | --- | ---: | --- |
-| Gateway | `4000` | API public, JWT middleware, WebSocket, route proxy |
-| Auth Service | `4001` | Đăng nhập, refresh token, profile, session, activity log |
-| Store Service | `4002` | Thông tin cửa hàng, ngân hàng, mẫu hóa đơn |
-| Transaction Service | `4003` | Đơn hàng, thanh toán, dashboard, webhook SePay |
-| Product Service | `4004` | Danh mục, sản phẩm, topping, menu POS |
-| Print Service | `4005` | Máy in, template, print job, auto-print hóa đơn |
+| Gateway | `4000` | API public, CORS, JWT, WebSocket, route forward |
+| Auth Service | `4001` | Dang nhap, token, profile, session, activity |
+| Store Service | `4002` | Store profile, bank config, receipt config |
+| Transaction Service | `4003` | Order, payment, dashboard, dining session, SePay webhook |
+| Product Service | `4004` | Category, product, topping, menu |
+| Print Service | `4005` | Printer config, template, print job, auto-print |
+| Platform Service | `4006` | Tenant, package, account, permission, trial request |
+| Customer Service | `4007` | API facade cho Customer App |
+| Kitchen Service | `4008` | API facade cho Kitchen App |
 
-Gateway public base URL:
+Gateway public:
 
 ```text
 http://localhost:4000/api
 ```
 
+Kiem tra nhanh:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing http://localhost:4000/api/health
+```
+
 ## Script
 
-```powershell
-npm run dev          # Chạy toàn bộ engine
-npm start            # Chạy toàn bộ engine bằng node
-npm run dev:gateway  # Chạy riêng gateway
-npm run dev:auth     # Chạy riêng auth service
-npm run dev:store    # Chạy riêng store service
-```
-
-Các service còn lại có thể chạy trực tiếp bằng `nodemon` hoặc `node`, ví dụ:
-
-```powershell
-npx nodemon src/services/transaction/index.js
-```
-
-## Cấu hình môi trường
-
-Các giá trị mặc định nằm ở `src/shared/config.js`.
-
-| Biến môi trường | Mặc định | Ghi chú |
-| --- | --- | --- |
-| `GATEWAY_PORT` | `4000` | Port Gateway |
-| `AUTH_SERVICE_PORT` | `4001` | Port Auth |
-| `STORE_SERVICE_PORT` | `4002` | Port Store |
-| `TRANSACTION_SERVICE_PORT` | `4003` | Port Transaction |
-| `PRODUCT_SERVICE_PORT` | `4004` | Port Product |
-| `PRINT_SERVICE_PORT` | `4005` | Port Print |
-| `PORTAL_ORIGIN` | `http://localhost:3000` | CORS cho Portal |
-| `JWT_ACCESS_SECRET` | dev secret | Nên đặt khi deploy thật |
-| `JWT_REFRESH_SECRET` | dev secret | Nên đặt khi deploy thật |
-| `KAFKA_BROKER` | rỗng | Nếu rỗng thì Event Bus dùng in-memory |
-| `INTERNAL_SERVICE_TOKEN` | `pos-internal-token` | Token nội bộ Gateway/Print callback |
-
-## Luồng request
-
-Portal và POS Electron nên gọi Gateway:
-
-```text
-Portal/POS -> http://localhost:4000/api -> Gateway -> service nội bộ
-```
-
-Gateway forward các nhóm route:
-
-| Public route | Service đích |
+| Lenh | Tac dung |
 | --- | --- |
-| `/api/auth/*` | Auth Service |
-| `/api/store/*` | Store Service |
-| `/api/product/*` | Product Service |
-| `/api/txn/*` | Transaction Service |
-| `/api/print/*` | Print Service |
-| `/api/payment-webhooks/sepay` | Transaction Service, không bắt buộc JWT |
+| `npm.cmd run dev` | Chay toan bo engine bang nodemon |
+| `npm.cmd start` | Chay toan bo engine bang node |
+| `npm.cmd run dev:gateway` | Chay rieng Gateway |
+| `npm.cmd run dev:auth` | Chay rieng Auth Service |
+| `npm.cmd run dev:store` | Chay rieng Store Service |
+| `npm.cmd run dev:platform` | Chay rieng Platform Service |
+| `npm.cmd run dev:customer` | Chay rieng Customer Service |
+| `npm.cmd run dev:kitchen` | Chay rieng Kitchen Service |
 
-## Realtime và in hóa đơn
+Rieng Transaction/Product/Print co the chay truc tiep:
 
-Gateway chạy Socket.IO cùng port `4000`.
+```powershell
+npx.cmd nodemon src/services/transaction/index.js
+npx.cmd nodemon src/services/product/index.js
+npx.cmd nodemon src/services/print/index.js
+```
 
-POS Electron đăng ký thiết bị qua:
+## Gateway routes
+
+| Public route | Service dich | Auth |
+| --- | --- | --- |
+| `/api/auth/login` | Auth | Khong |
+| `/api/auth/refresh` | Auth | Khong |
+| `/api/auth/forgot-password/*` | Auth | Khong |
+| `/api/auth/*` | Auth | JWT |
+| `/api/store/*` | Store | JWT |
+| `/api/txn/*` | Transaction | JWT |
+| `/api/product/*` | Product | JWT |
+| `/api/print/*` | Print | JWT |
+| `/api/platform/trial-requests` | Platform | JWT |
+| `/api/platform/trial-requests/me` | Platform | JWT |
+| `/api/platform/*` | Platform | `platform_admin` |
+| `/api/customer/*` | Customer | Khong |
+| `/api/kitchen/*` | Kitchen | Khong |
+| `/api/public/menu` | Product public menu | Khong |
+| `/api/public/dining-sessions/*` | Transaction public dining session | Khong |
+| `/api/payment-webhooks/sepay` | Transaction webhook | Khong/JWT/API key tuy cau hinh |
+| `/api/realtime/status` | Gateway | Khong |
+
+## Cau hinh moi truong
+
+Mac dinh nam trong `src/shared/config.js`.
+
+| Bien | Mac dinh |
+| --- | --- |
+| `GATEWAY_PORT` | `4000` |
+| `AUTH_SERVICE_PORT` | `4001` |
+| `STORE_SERVICE_PORT` | `4002` |
+| `TRANSACTION_SERVICE_PORT` | `4003` |
+| `PRODUCT_SERVICE_PORT` | `4004` |
+| `PRINT_SERVICE_PORT` | `4005` |
+| `PLATFORM_SERVICE_PORT` | `4006` |
+| `CUSTOMER_SERVICE_PORT` | `4007` |
+| `KITCHEN_SERVICE_PORT` | `4008` |
+| `PORTAL_ORIGIN` | `http://localhost:3000` |
+| `ADMIN_APP_ORIGINS` | `http://localhost:3003,http://localhost:3004` |
+| `MARKETING_APP_ORIGIN` | `http://localhost:2001` |
+| `CUSTOMER_APP_ORIGIN` | `http://localhost:3001` |
+| `KITCHEN_APP_ORIGIN` | `http://localhost:3002` |
+| `JWT_ACCESS_SECRET` | dev secret |
+| `JWT_REFRESH_SECRET` | dev secret |
+| `KAFKA_BROKER` | rong, dung in-memory event bus |
+
+## Realtime va in hoa don
+
+Gateway chay Socket.IO tren port `4000`. Electron dang ky device bang:
 
 ```text
 device:register
@@ -92,59 +115,34 @@ device:heartbeat
 device:printResult
 ```
 
-Khi thanh toán thành công:
+Luong auto-print:
 
 1. Transaction Service publish `transaction.paid`.
-2. Print Service nhận event và tạo print job.
-3. Gateway gửi `print:job` đến POS Electron.
-4. POS Electron in hóa đơn và trả kết quả bằng `device:printResult`.
-5. Print Service cập nhật trạng thái job.
+2. Print Service tao print job voi payload order/store/receipt.
+3. Print Service goi Gateway `/internal/print-job`.
+4. Gateway emit `print:job` den Electron da dang ky.
+5. Electron in va tra ket qua qua `device:printResult`.
+6. Gateway cap nhat Print Service bang `/jobs/:id/result`.
 
-Các event realtime quan trọng:
+## Database va runtime
 
-```text
-transaction:created
-transaction:paid
-transaction:cancelled
-transaction:refunded
-dashboard:refresh
-store:updated
-store:bankUpdated
-store:receiptUpdated
-product:created
-product:updated
-product:toppingUpdated
-```
-
-## Database và file runtime
-
-Project dùng `sql.js` và lưu database local trong `POS-ENGINE/data`. Log nằm trong `POS-ENGINE/logs`.
-
-Các file runtime này không nên commit:
+Engine dung `sql.js`. File runtime nam trong:
 
 ```text
-data/*.db
-data/*.sqlite
-logs/
-node_modules/
+POS-ENGINE/data
+POS-ENGINE/logs
 ```
 
-## Cấu trúc chính
+Khong nen commit `data/*.db`, `data/*.sqlite`, `logs/`, `node_modules/`.
 
-```text
-src/
-  gateway/              # API gateway + WebSocket
-  shared/               # config, logger, event-bus, websocket, time
-  services/
-    auth/               # user, token, session, activity
-    store/              # store profile, bank, receipt config
-    product/            # category, product, topping, POS menu
-    transaction/        # order, payment, dashboard, SePay webhook
-    print/              # printer, template, print job, auto-print
-```
+## Tai lieu service
 
-## Ghi chú phát triển
-
-- Dữ liệu thời gian trong các luồng POS đang ưu tiên GMT+7/Asia Bangkok.
-- Khi chỉnh API, nên chỉnh qua service route rồi test qua Gateway để giống cách Portal/POS Electron sử dụng thật.
-- Khi chỉnh auto-print, kiểm tra đồng thời Transaction Service, Print Service, Gateway WebSocket và POS Electron Device Agent.
+- [Auth Service](src/services/auth/readme.md)
+- [API Gateway](src/gateway/readme.md)
+- [Store Service](src/services/store/readme.md)
+- [Transaction Service](src/services/transaction/readme.md)
+- [Product Service](src/services/product/readme.md)
+- [Print Service](src/services/print/readme.md)
+- [Platform Service](src/services/platform/readme.md)
+- [Customer Service](src/services/customer/readme.md)
+- [Kitchen Service](src/services/kitchen/readme.md)

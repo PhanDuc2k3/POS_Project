@@ -1,94 +1,78 @@
 # Transaction Service
 
-Service quản lý đơn hàng, thanh toán, dashboard doanh thu và webhook SePay.
+Service quan ly order, thanh toan, dashboard doanh thu, dining session va webhook SePay.
 
-## Port
-
-```text
-4003
-```
-
-Khi chạy qua Gateway, public route là:
+## Port va route
 
 ```text
-/api/txn/*
+Service port: 4003
+Internal base: /txn
+Gateway base:  /api/txn
+Webhook:       /api/payment-webhooks/sepay
+Public dining: /api/public/dining-sessions
 ```
 
-Webhook SePay public qua Gateway:
-
-```text
-/api/payment-webhooks/sepay
-```
-
-Route nội bộ của service:
-
-```text
-/txn/*
-```
-
-## Chạy riêng service
+Chay rieng:
 
 ```powershell
 cd D:\POS\Project1\POS-ENGINE
-npx nodemon src/services/transaction/index.js
+npx.cmd nodemon src/services/transaction/index.js
 ```
 
-## Endpoint chính
+## Endpoint order
 
-### Orders
+| Method | Internal route | Gateway route | Mo ta |
+| --- | --- | --- | --- |
+| `GET` | `/txn/orders` | `/api/txn/orders` | Danh sach order |
+| `POST` | `/txn/orders` | `/api/txn/orders` | Tao order |
+| `GET` | `/txn/orders/:id` | `/api/txn/orders/:id` | Chi tiet order |
+| `GET` | `/txn/orders/recent/list` | `/api/txn/orders/recent/list` | Order gan day |
+| `POST` | `/txn/orders/:id/cancel` | `/api/txn/orders/:id/cancel` | Huy order |
+| `POST` | `/txn/orders/:id/mark-paid` | `/api/txn/orders/:id/mark-paid` | Xac nhan da thanh toan |
+| `POST` | `/txn/orders/:id/refund` | `/api/txn/orders/:id/refund` | Hoan tien |
 
-| Method | Route | Mô tả |
-| --- | --- | --- |
-| `GET` | `/txn/orders` | Danh sách đơn hàng, hỗ trợ filter |
-| `POST` | `/txn/orders` | Tạo đơn hàng tiền mặt/chuyển khoản |
-| `GET` | `/txn/orders/:id` | Chi tiết đơn hàng |
-| `GET` | `/txn/orders/recent/list` | Đơn gần đây |
-| `POST` | `/txn/orders/:id/cancel` | Hủy đơn |
-| `POST` | `/txn/orders/:id/mark-paid` | Xác nhận đã thanh toán thủ công |
-| `POST` | `/txn/orders/:id/refund` | Hoàn tiền |
+## Endpoint dining session
 
-### Payment webhook
+| Method | Internal route | Gateway route | Mo ta |
+| --- | --- | --- | --- |
+| `GET` | `/txn/dining-sessions` | `/api/txn/dining-sessions` | Danh sach phien an |
+| `POST` | `/txn/dining-sessions` | `/api/txn/dining-sessions` | Tao phien an |
+| `GET` | `/txn/dining-sessions/:id` | `/api/txn/dining-sessions/:id` | Chi tiet phien an |
+| `POST` | `/txn/dining-sessions/:id/orders` | `/api/txn/dining-sessions/:id/orders` | Tao order trong phien |
+| `POST` | `/txn/dining-sessions/:id/close` | `/api/txn/dining-sessions/:id/close` | Dong phien an |
+| `GET` | `/txn/public/dining-sessions` | `/api/public/dining-sessions` | Public list cho Customer/Kitchen |
+| `POST` | `/txn/public/dining-sessions` | `/api/public/dining-sessions` | Public create session |
+| `GET` | `/txn/public/dining-sessions/:id` | `/api/public/dining-sessions/:id` | Public session detail |
+| `POST` | `/txn/public/dining-sessions/:id/orders` | `/api/public/dining-sessions/:id/orders` | Public create order |
+| `POST` | `/txn/public/dining-sessions/:id/close` | `/api/public/dining-sessions/:id/close` | Public close session |
 
-| Method | Route | Mô tả |
-| --- | --- | --- |
-| `POST` | `/txn/payment-webhooks/sepay` | Nhận webhook SePay, match payment code và mark paid |
+## Endpoint dashboard va webhook
 
-### Dashboard
+| Method | Internal route | Gateway route | Mo ta |
+| --- | --- | --- | --- |
+| `POST` | `/txn/payment-webhooks/sepay` | `/api/payment-webhooks/sepay` | Nhan webhook SePay |
+| `GET` | `/txn/dashboard/stats` | `/api/txn/dashboard/stats` | So lieu tong quan |
+| `GET` | `/txn/dashboard/hourly` | `/api/txn/dashboard/hourly` | Doanh thu theo gio |
+| `GET` | `/txn/dashboard/revenue` | `/api/txn/dashboard/revenue` | Bao cao doanh thu |
+| `GET` | `/txn/dashboard/top-products` | `/api/txn/dashboard/top-products` | San pham ban chay |
+| `GET` | `/txn/dashboard/payments` | `/api/txn/dashboard/payments` | Ti le phuong thuc thanh toan |
 
-| Method | Route | Mô tả |
-| --- | --- | --- |
-| `GET` | `/txn/dashboard/stats` | Tổng quan hôm nay |
-| `GET` | `/txn/dashboard/hourly` | Doanh thu theo giờ |
-| `GET` | `/txn/dashboard/revenue` | Báo cáo doanh thu theo kỳ |
-| `GET` | `/txn/dashboard/top-products` | Sản phẩm bán chạy |
-| `GET` | `/txn/dashboard/payments` | Cơ cấu phương thức thanh toán |
+## Luong thanh toan
 
-## Luồng thanh toán
+Tien mat:
 
-### Tiền mặt
-
-1. POS Electron gọi `POST /api/txn/orders` với `paymentMethod: "cash"`.
-2. Service tạo đơn trạng thái `completed`.
+1. POS tao order voi `paymentMethod: "cash"`.
+2. Service tao order completed.
 3. Publish `transaction.created`, `transaction.paid`, `dashboard.refresh`.
-4. Print Service nhận `transaction.paid` để tạo print job.
+4. Print Service tao job in.
 
-### Chuyển khoản
+Chuyen khoan:
 
-1. POS Electron gọi `POST /api/txn/orders` với `paymentMethod: "transfer"`.
-2. Service tạo đơn chờ thanh toán và sinh `paymentCode`.
-3. SePay webhook gửi giao dịch về `/api/payment-webhooks/sepay`.
-4. Service match `paymentCode`, mark đơn `completed`.
-5. Publish `transaction.paid`, `dashboard.refresh`.
-
-## Thành phần chính
-
-```text
-controllers/     # order, dashboard, webhook handlers
-services/        # business logic
-repositories/    # query orders/dashboard
-routes/          # khai báo endpoint
-database.js      # schema và kết nối DB transaction
-```
+1. POS tao order voi `paymentMethod: "transfer"`.
+2. Service tao order pending va sinh payment code.
+3. SePay goi webhook.
+4. Service match payment code va mark paid.
+5. Publish event va kich hoat auto-print.
 
 ## Event
 
@@ -98,12 +82,4 @@ transaction.paid
 transaction.cancelled
 transaction.refunded
 dashboard.refresh
-```
-
-Gateway broadcast các event này cho Portal/POS Electron dưới dạng:
-
-```text
-transaction:created
-transaction:paid
-dashboard:refresh
 ```

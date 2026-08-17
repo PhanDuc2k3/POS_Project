@@ -1,93 +1,55 @@
 # Product Service
 
-Service quản lý danh mục, sản phẩm, nhóm topping, topping và menu bán hàng cho POS Electron.
+Service quan ly danh muc, san pham, nhom topping, topping va menu ban hang.
 
-## Port
-
-```text
-4004
-```
-
-Khi chạy qua Gateway, public route là:
+## Port va route
 
 ```text
-/api/product/*
+Service port: 4004
+Internal base: /product
+Gateway base:  /api/product
+Public menu:   /api/public/menu
 ```
 
-Route nội bộ của service:
-
-```text
-/product/*
-```
-
-## Chạy riêng service
+Chay rieng:
 
 ```powershell
 cd D:\POS\Project1\POS-ENGINE
-npx nodemon src/services/product/index.js
+npx.cmd nodemon src/services/product/index.js
 ```
 
-Seed menu demo nếu cần:
+Seed menu demo:
 
 ```powershell
 node src/services/product/seed-demo-menu.js
 ```
 
-## Endpoint chính
+## Endpoint
 
-### Category
-
-| Method | Route | Mô tả |
-| --- | --- | --- |
-| `GET` | `/product/categories` | Danh sách danh mục |
-| `POST` | `/product/categories` | Tạo danh mục |
-| `PUT` | `/product/categories/:id` | Cập nhật danh mục |
-| `DELETE` | `/product/categories/:id` | Xóa danh mục |
-
-### Product
-
-| Method | Route | Mô tả |
-| --- | --- | --- |
-| `GET` | `/product/products` | Danh sách sản phẩm |
-| `POST` | `/product/products` | Tạo sản phẩm |
-| `PUT` | `/product/products/:id` | Cập nhật sản phẩm |
-| `DELETE` | `/product/products/:id` | Xóa sản phẩm |
-| `PATCH` | `/product/products/:id/toggle` | Bật/tắt sản phẩm |
-| `POST` | `/product/products/:id/topping-groups` | Gắn nhóm topping vào sản phẩm |
-| `DELETE` | `/product/products/:id/topping-groups/:groupId` | Gỡ nhóm topping khỏi sản phẩm |
-
-### Topping
-
-| Method | Route | Mô tả |
-| --- | --- | --- |
-| `GET` | `/product/topping-groups` | Danh sách nhóm topping |
-| `POST` | `/product/topping-groups` | Tạo nhóm topping |
-| `PUT` | `/product/topping-groups/:id` | Cập nhật nhóm topping |
-| `DELETE` | `/product/topping-groups/:id` | Xóa nhóm topping |
-| `POST` | `/product/toppings` | Tạo topping |
-| `PUT` | `/product/toppings/:id` | Cập nhật topping |
-| `DELETE` | `/product/toppings/:id` | Xóa topping |
-
-### Menu POS
-
-| Method | Route | Mô tả |
-| --- | --- | --- |
-| `GET` | `/product/menu` | Trả về categories + products + topping groups cho POS Electron |
-
-## Thành phần chính
-
-```text
-controllers/     # HTTP handlers
-services/        # business logic
-repositories/    # query category/product/topping
-routes/          # khai báo endpoint
-database.js      # schema và kết nối DB product
-seed-demo-menu.js
-```
+| Method | Internal route | Gateway route | Mo ta |
+| --- | --- | --- | --- |
+| `GET` | `/product/categories` | `/api/product/categories` | Danh sach danh muc |
+| `POST` | `/product/categories` | `/api/product/categories` | Tao danh muc |
+| `PUT` | `/product/categories/:id` | `/api/product/categories/:id` | Cap nhat danh muc |
+| `DELETE` | `/product/categories/:id` | `/api/product/categories/:id` | Xoa danh muc |
+| `GET` | `/product/products` | `/api/product/products` | Danh sach san pham |
+| `POST` | `/product/products` | `/api/product/products` | Tao san pham |
+| `PUT` | `/product/products/:id` | `/api/product/products/:id` | Cap nhat san pham |
+| `DELETE` | `/product/products/:id` | `/api/product/products/:id` | Xoa san pham |
+| `PATCH` | `/product/products/:id/toggle` | `/api/product/products/:id/toggle` | Bat/tat san pham |
+| `POST` | `/product/products/:id/topping-groups` | `/api/product/products/:id/topping-groups` | Gan nhom topping |
+| `DELETE` | `/product/products/:id/topping-groups/:groupId` | `/api/product/products/:id/topping-groups/:groupId` | Go nhom topping |
+| `GET` | `/product/topping-groups` | `/api/product/topping-groups` | Danh sach nhom topping |
+| `POST` | `/product/topping-groups` | `/api/product/topping-groups` | Tao nhom topping |
+| `PUT` | `/product/topping-groups/:id` | `/api/product/topping-groups/:id` | Cap nhat nhom topping |
+| `DELETE` | `/product/topping-groups/:id` | `/api/product/topping-groups/:id` | Xoa nhom topping |
+| `POST` | `/product/toppings` | `/api/product/toppings` | Tao topping |
+| `PUT` | `/product/toppings/:id` | `/api/product/toppings/:id` | Cap nhat topping |
+| `DELETE` | `/product/toppings/:id` | `/api/product/toppings/:id` | Xoa topping |
+| `GET` | `/product/menu` | `/api/product/menu` | Menu cho POS/Portal |
+| `GET` | `/product/public/menu` | `/api/public/menu` | Menu public cho Customer App |
 
 ## Event
-
-Product Service publish event để Portal/POS reload dữ liệu:
 
 ```text
 product.categoryCreated
@@ -96,4 +58,17 @@ product.updated
 product.toppingUpdated
 ```
 
-Gateway broadcast ra Socket.IO theo dạng dấu hai chấm, ví dụ `product:updated`.
+Gateway broadcast dang:
+
+```text
+product:created
+product:updated
+product:toppingUpdated
+product:categoryCreated
+```
+
+## Ghi chu
+
+- Database seed san menu demo khi can.
+- POS Electron goi `/api/product/menu`.
+- Customer App nen goi qua Customer Service hoac `/api/public/menu`.
