@@ -235,7 +235,7 @@ app.post('/api/payment-webhooks/sepay', async (req, res) => {
 
 app.use('/api/public', (req, res) => {
   const path = req.path || '/';
-  if (path === '/orders' || path.startsWith('/orders/')) {
+  if (path === '/orders' || path.startsWith('/orders/') || path === '/sales-leads') {
     return forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`);
   }
   if (path.startsWith('/menu')) {

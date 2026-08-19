@@ -154,6 +154,19 @@ async function initDatabase() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_sales_leads (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      email TEXT,
+      message TEXT,
+      status TEXT NOT NULL DEFAULT 'NEW',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   try {
     db.run(`ALTER TABLE platform_trial_requests ADD COLUMN submitted_by_user_id INTEGER`);
   } catch (e) {}
@@ -204,6 +217,7 @@ function seedIfEmpty() {
   const packageCount = db.exec('SELECT COUNT(*) FROM platform_packages')[0]?.values[0]?.[0] || 0;
   if (packageCount === 0) {
     const packages = [
+      ['trial', 'Trial Plus', '2 cap', 0, '["Portal","Staff POS","Demo Menu","Sales Report"]', 0],
       ['plus', 'PLUS', '2 cap', 290000, '["POS Electron","Portal","Products","Transactions","Receipt"]', 1],
       ['pro', 'PRO', '4 cap', 1900000, '["Customer Order App","Kitchen App","Staff POS","Portal","Dining session"]', 2],
       ['starter', 'Starter', '2 cap', 290000, '["POS direct sale","Basic portal","Receipt"]', 3],
@@ -223,6 +237,14 @@ function seedIfEmpty() {
     db.run(
       `INSERT INTO platform_packages (id, name, level, price, modules, sort_order) VALUES (?, ?, ?, ?, ?, ?)`,
       ['plus', 'PLUS', '2 cap', 290000, '["POS Electron","Portal","Products","Transactions","Receipt"]', 1]
+    );
+  }
+
+  const trialExists = db.exec('SELECT id FROM platform_packages WHERE id = ?', ['trial']);
+  if (!trialExists.length || !trialExists[0].values.length) {
+    db.run(
+      `INSERT INTO platform_packages (id, name, level, price, modules, sort_order) VALUES (?, ?, ?, ?, ?, ?)`,
+      ['trial', 'Trial Plus', '2 cap', 0, '["Portal","Staff POS","Demo Menu","Sales Report"]', 0]
     );
   }
 

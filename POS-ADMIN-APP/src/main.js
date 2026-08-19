@@ -56,6 +56,7 @@ function applyBackendData(data) {
   state.summary = data.summary || state.summary;
   state.tenants = data.tenants || [];
   state.trialRequests = data.trialRequests || [];
+  state.salesLeads = data.salesLeads || [];
   state.packages = data.packages || [];
   state.orders = data.orders || [];
   state.accounts = data.accounts || [];

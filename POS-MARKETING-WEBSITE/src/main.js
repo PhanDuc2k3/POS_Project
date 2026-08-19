@@ -9,10 +9,14 @@ import { renderWarrantyPage } from './pages/WarrantyPage.js';
 import {
   clearStoredAuth,
   getMe,
-  getMyTrialRequest,
+  getPublicOrderStatus,
   getStoredAuth,
+  getStoredOrder,
+  login as loginApi,
   setStoredAuth,
+  setStoredOrder,
   submitPublicOrder,
+  submitSalesLead,
 } from './shared/api.js';
 
 const app = document.getElementById('app');
@@ -30,6 +34,7 @@ const state = {
   user: null,
   myTrialRequest: null,
   purchaseOrder: null,
+  packageDraft: 'pro',
   accessToken: '',
   refreshToken: '',
   authModalOpen: false,
@@ -57,7 +62,7 @@ function render() {
   const route = getRoute();
   const page = getPage();
   app.innerHTML = `
-    ${renderHeader(route)}
+    ${renderHeader(route, state)}
     ${page(state)}
     ${renderFooter()}
     ${renderAuthModal(state)}
@@ -102,6 +107,32 @@ function setSession(auth, user) {
 }
 
 async function loadSession() {
+  const storedOrder = getStoredOrder();
+  if (storedOrder?.orderCode) {
+    try {
+      const orderStatus = await getPublicOrderStatus(storedOrder.orderCode);
+      state.purchaseOrder = { ...storedOrder, ...orderStatus };
+      state.myTrialRequest = {
+        id: orderStatus.orderCode,
+        businessName: storedOrder.businessName,
+        packageTier: orderStatus.packageTier || storedOrder.packageTier,
+        requestedStores: orderStatus.requestedStoreCount || storedOrder.requestedStores,
+        status: orderStatus.status,
+        createdAt: orderStatus.createdAt || storedOrder.createdAt,
+      };
+    } catch {
+      state.purchaseOrder = storedOrder;
+      state.myTrialRequest = {
+        id: storedOrder.orderCode,
+        businessName: storedOrder.businessName,
+        packageTier: storedOrder.packageTier,
+        requestedStores: storedOrder.requestedStores,
+        status: storedOrder.status,
+        createdAt: storedOrder.createdAt,
+      };
+    }
+  }
+
   const auth = getStoredAuth();
   if (!auth.accessToken) {
     state.ready = true;
@@ -114,7 +145,6 @@ async function loadSession() {
     state.accessToken = auth.accessToken;
     state.refreshToken = auth.refreshToken;
     state.user = me;
-    state.myTrialRequest = await getMyTrialRequest(auth.accessToken);
   } catch (err) {
     clearStoredAuth();
     state.user = null;
@@ -125,8 +155,17 @@ async function loadSession() {
   }
 }
 
-function handleLogin(form) {
+async function handleLogin(form) {
+  const formData = new FormData(form);
+  const auth = await loginApi({
+    username: formData.get('username'),
+    password: formData.get('password'),
+    rememberMe: true,
+  });
+  setSession(auth, auth.user);
   form.reset();
+  state.authModalOpen = false;
+  return auth.user;
 }
 
 async function handleTrialSubmit(form) {
@@ -143,6 +182,14 @@ async function handleTrialSubmit(form) {
     note: formData.get('note'),
   });
   state.purchaseOrder = order;
+  setStoredOrder({
+    orderCode: order.orderCode,
+    status: order.status,
+    packageTier: formData.get('packageTier'),
+    requestedStores: Number(formData.get('requestedStores') || 1),
+    businessName: formData.get('businessName'),
+    createdAt: order.createdAt,
+  });
   state.myTrialRequest = {
     id: order.orderCode,
     businessName: formData.get('businessName'),
@@ -157,6 +204,18 @@ async function handleTrialSubmit(form) {
 
 function handleSignupSubmit(form) {
   form.reset();
+}
+
+async function handleContactSubmit(form) {
+  const formData = new FormData(form);
+  const lead = await submitSalesLead({
+    name: formData.get('name'),
+    phone: formData.get('phone'),
+    email: formData.get('email'),
+    message: formData.get('message'),
+  });
+  form.reset();
+  return lead;
 }
 
 function setModalMessage(target, text) {
@@ -178,6 +237,13 @@ function closeAuthModal() {
 
 function bindEvents() {
   app.addEventListener('click', (event) => {
+    if (event.target.closest('[data-action="demo-forgot"]')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      window.location.href = 'http://localhost:3000/forgot-password';
+      return;
+    }
+
     const menuButton = event.target.closest('.menu-button');
     if (menuButton) {
       const isOpen = document.body.classList.toggle('nav-open');
@@ -195,6 +261,15 @@ function bindEvents() {
     if (switchAuthButton) {
       state.authMode = switchAuthButton.dataset.authMode === 'signup' ? 'signup' : 'signin';
       render();
+      return;
+    }
+
+    const packageButton = event.target.closest('[data-action="select-package"]');
+    if (packageButton) {
+      event.preventDefault();
+      state.packageDraft = packageButton.dataset.package || 'pro';
+      render();
+      requestAnimationFrame(() => document.querySelector('#trial')?.scrollIntoView({ block: 'start' }));
       return;
     }
 
@@ -228,6 +303,38 @@ function bindEvents() {
       state.refreshToken = '';
       state.authModalOpen = false;
       render();
+    }
+  });
+
+  app.addEventListener('submit', async (event) => {
+    const form = event.target.closest('form[data-form]');
+    if (!form || !['signin', 'signup', 'contact'].includes(form.dataset.form)) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const message = form.querySelector('.form-message');
+
+    try {
+      if (form.dataset.form === 'signin') {
+        if (message) message.textContent = 'Dang dang nhap...';
+        await handleLogin(form);
+        render();
+        return;
+      }
+
+      if (form.dataset.form === 'signup') {
+        handleSignupSubmit(form);
+        if (message) message.textContent = 'Khach hang moi chi can gui form ben duoi. Admin se tao tai khoan sau khi duyet.';
+        return;
+      }
+
+      if (form.dataset.form === 'contact') {
+        if (message) message.textContent = 'Dang gui thong tin...';
+        const lead = await handleContactSubmit(form);
+        if (message) message.textContent = `Da gui thong tin tu van. Ma lien he: ${lead.leadCode}.`;
+      }
+    } catch (err) {
+      if (message) message.textContent = err.message;
     }
   });
 

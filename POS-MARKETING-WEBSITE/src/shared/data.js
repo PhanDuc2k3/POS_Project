@@ -338,7 +338,19 @@ export const workflowSteps = [
 
 export const plans = [
   {
+    name: 'Trial Plus',
+    packageCode: 'trial',
+    description: 'DÃ¹ng thá»­ 7 ngÃ y luá»“ng Portal vÃ  Staff POS trÆ°á»›c khi mua gÃ³i thÃ¡ng.',
+    price: '0Ä‘',
+    suffix: ' / 7 ngÃ y',
+    cta: 'ÄÄƒng kÃ½ Trial',
+    href: '#trial',
+    includedStores: 1,
+    features: ['Portal quáº£n lÃ½', 'Staff POS', 'Menu demo', 'BÃ¡o cÃ¡o cÆ¡ báº£n'],
+  },
+  {
     name: 'PLUS',
+    packageCode: 'plus',
     description: 'Dành cho cửa hàng, cafe và mô hình bán tại quầy.',
     price: '290k',
     suffix: ' VND/mo',
@@ -349,6 +361,7 @@ export const plans = [
   },
   {
     name: 'PRO',
+    packageCode: 'pro',
     description: 'Dành cho nhà hàng cần QR order, bếp và table workflow.',
     price: '1.9m',
     suffix: ' VND/mo',

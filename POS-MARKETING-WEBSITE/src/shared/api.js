@@ -21,6 +21,18 @@ export function clearStoredAuth() {
   localStorage.removeItem('pos_marketing_refresh_token');
 }
 
+export function getStoredOrder() {
+  try {
+    return JSON.parse(localStorage.getItem('pos_marketing_order') || 'null');
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredOrder(order) {
+  localStorage.setItem('pos_marketing_order', JSON.stringify(order || null));
+}
+
 export async function login(payload) {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
@@ -72,5 +84,23 @@ export async function submitPublicOrder(payload) {
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Could not submit order');
+  return data;
+}
+
+export async function getPublicOrderStatus(orderCode) {
+  const response = await fetch(`${API_URL}/public/orders/${encodeURIComponent(orderCode)}/status`);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Could not load order status');
+  return data;
+}
+
+export async function submitSalesLead(payload) {
+  const response = await fetch(`${API_URL}/public/sales-leads`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Could not submit contact request');
   return data;
 }

@@ -10,17 +10,7 @@ export function renderAuthModal(state = {}) {
         <button class="modal-close" type="button" aria-label="Đóng" data-action="close-auth">×</button>
         <form class="auth-panel" data-form="${isSignup ? 'signup' : 'signin'}">
           <h2 id="auth-modal-title">${isSignup ? 'ĐĂNG KÝ' : 'ĐĂNG NHẬP'}</h2>
-          <div class="social-auth">
-            <button class="social-button google" type="button" data-action="demo-social">
-              <span>G</span>
-              ${isSignup ? 'Đăng ký google' : 'Đăng nhập google'}
-            </button>
-            <button class="social-button facebook" type="button" data-action="demo-social">
-              <span>f</span>
-              ${isSignup ? 'Đăng ký facebook' : 'Đăng nhập facebook'}
-            </button>
-          </div>
-          <div class="auth-divider"><span>Hoặc tài khoản</span></div>
+          <div class="auth-divider"><span>Tài khoản POS</span></div>
           ${isSignup ? `
             <input name="name" placeholder="Họ tên" autocomplete="name" required />
             <input name="email" type="email" placeholder="Email" autocomplete="email" required />

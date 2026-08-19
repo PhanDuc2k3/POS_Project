@@ -245,6 +245,42 @@ function createPublicOrder(payload) {
   };
 }
 
+function getPublicOrderStatus(orderCode) {
+  const order = repo.findOrderById(String(orderCode || '').trim());
+  if (!order) return { error: 'Order not found', status: 404 };
+  return {
+    data: {
+      orderCode: order.orderCode,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      packageTier: order.packageTier,
+      requestedStoreCount: order.requestedStoreCount,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+    },
+  };
+}
+
+function createPublicSalesLead(payload) {
+  const name = String(payload?.name || '').trim();
+  const phone = String(payload?.phone || '').trim();
+  const email = String(payload?.email || '').trim();
+  const message = String(payload?.message || '').trim();
+
+  if (!name || !phone) {
+    return { error: 'name and phone required', status: 400 };
+  }
+
+  const lead = repo.createSalesLead({ name, phone, email, message });
+  return {
+    data: {
+      leadCode: lead.id,
+      status: lead.status,
+      createdAt: lead.createdAt,
+    },
+  };
+}
+
 function createOrder(user, payload) {
   const access = requirePlatformAdmin(user);
   if (access) return access;
@@ -357,6 +393,8 @@ module.exports = {
   listOrders,
   getOrder,
   createPublicOrder,
+  getPublicOrderStatus,
+  createPublicSalesLead,
   createOrder,
   markOrderContacted,
   quoteOrder,

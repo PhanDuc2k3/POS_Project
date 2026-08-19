@@ -77,6 +77,14 @@ function createPublicOrder(req, res) {
   return send(res, service.createPublicOrder(req.body), true);
 }
 
+function getPublicOrderStatus(req, res) {
+  return send(res, service.getPublicOrderStatus(req.params.orderCode));
+}
+
+function createPublicSalesLead(req, res) {
+  return send(res, service.createPublicSalesLead(req.body), true);
+}
+
 function createOrder(req, res) {
   return send(res, service.createOrder(getUser(req), req.body), true);
 }
@@ -138,6 +146,8 @@ module.exports = {
   getOrders,
   getOrder,
   createPublicOrder,
+  getPublicOrderStatus,
+  createPublicSalesLead,
   createOrder,
   markOrderContacted,
   quoteOrder,

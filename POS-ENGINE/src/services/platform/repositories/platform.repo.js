@@ -105,6 +105,19 @@ function rowToTrialRequest(row) {
   };
 }
 
+function rowToSalesLead(row) {
+  return {
+    id: row[0],
+    name: row[1],
+    phone: row[2],
+    email: row[3],
+    message: row[4],
+    status: row[5],
+    createdAt: row[6],
+    updatedAt: row[7],
+  };
+}
+
 function createId(prefix) {
   const random = Math.floor(Math.random() * 900 + 100);
   return `${prefix}-${Date.now().toString().slice(-6)}-${random}`;
@@ -215,6 +228,28 @@ function listTrialRequests() {
      ORDER BY created_at DESC`
   );
   return result[0]?.values?.map(rowToTrialRequest) || [];
+}
+
+function listSalesLeads() {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, name, phone, email, message, status, created_at, updated_at
+     FROM platform_sales_leads
+     ORDER BY created_at DESC`
+  );
+  return result[0]?.values?.map(rowToSalesLead) || [];
+}
+
+function createSalesLead({ name, phone, email, message }) {
+  const id = createId('LEAD');
+  const db = getDatabase();
+  db.run(
+    `INSERT INTO platform_sales_leads (id, name, phone, email, message, status)
+     VALUES (?, ?, ?, ?, ?, 'NEW')`,
+    [id, name, phone, email || '', message || '']
+  );
+  saveDatabase();
+  return listSalesLeads().find((lead) => lead.id === id) || null;
 }
 
 function listTrialRequestsByUserId(userId) {
@@ -478,6 +513,7 @@ function bootstrap() {
   const orders = listOrders();
   const accounts = listAccounts();
   const trialRequests = listTrialRequests();
+  const salesLeads = listSalesLeads();
   const permissions = ['platform_admin', 'store_owner', 'chain_admin', 'manager', 'cashier', 'kitchen'].map((role) => getPermissionRole(role));
   return {
     summary: getSummary(),
@@ -486,6 +522,7 @@ function bootstrap() {
     orders,
     accounts,
     trialRequests,
+    salesLeads,
     permissions,
   };
 }
@@ -504,6 +541,8 @@ module.exports = {
   createAccount,
   updateAccountActivation,
   listTrialRequests,
+  listSalesLeads,
+  createSalesLead,
   listTrialRequestsByUserId,
   findTrialRequestById,
   findLatestTrialRequestByUserId,

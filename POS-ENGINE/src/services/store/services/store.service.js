@@ -81,7 +81,7 @@ function provisionStore(payload) {
 }
 
 function normalizePackageTier(value) {
-  const allowed = new Set(['plus', 'pro', 'starter', 'restaurant', 'chain']);
+  const allowed = new Set(['trial', 'plus', 'pro', 'starter', 'restaurant', 'chain']);
   return allowed.has(value) ? value : undefined;
 }
 

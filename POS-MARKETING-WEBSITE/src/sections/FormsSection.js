@@ -1,5 +1,6 @@
 export function renderFormsSection(state = {}) {
   const request = state.myTrialRequest || null;
+  const packageDraft = state.packageDraft || 'pro';
   const status = String(request?.status || '').toUpperCase();
   const locked = request && ['PENDING', 'CONTACTED', 'QUOTED', 'WAITING_PAYMENT', 'PAID', 'APPROVED', 'ACTIVE'].includes(status);
   const trialNote = locked
@@ -37,8 +38,9 @@ export function renderFormsSection(state = {}) {
               <label>
                 Gói dịch vụ
                 <select name="packageTier">
-                  <option value="plus">PLUS</option>
-                  <option value="pro" selected>PRO</option>
+                  <option value="trial" ${packageDraft === 'trial' ? 'selected' : ''}>Trial Plus</option>
+                  <option value="plus" ${packageDraft === 'plus' ? 'selected' : ''}>PLUS</option>
+                  <option value="pro" ${packageDraft === 'pro' ? 'selected' : ''}>PRO</option>
                 </select>
               </label>
               <label>Số cửa hàng<input name="requestedStores" type="number" min="1" value="1" required /></label>

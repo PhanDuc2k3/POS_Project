@@ -154,6 +154,6 @@ function formatDate(value) {
 }
 
 function packageLabel(value) {
-  const map = { plus: 'PLUS', pro: 'PRO', starter: 'Starter', restaurant: 'Restaurant', chain: 'Chain' };
+  const map = { trial: 'Trial Plus', plus: 'PLUS', pro: 'PRO', starter: 'Starter', restaurant: 'Restaurant', chain: 'Chain' };
   return map[value] || value || '-';
 }

@@ -2,6 +2,7 @@ import { esc } from '../utils/format.js';
 
 export function renderTrialRequestsPage(state) {
   const requests = state.trialRequests || [];
+  const leads = state.salesLeads || [];
   const pendingCount = requests.filter((request) => request.status === 'pending').length;
 
   return `
@@ -16,6 +17,33 @@ export function renderTrialRequestsPage(state) {
         ${requests.map(renderRequest).join('') || '<div class="empty">No trial requests yet</div>'}
       </div>
     </section>
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Sales leads</h2>
+          <span class="muted">${leads.length} contact requests</span>
+        </div>
+      </div>
+      <div class="request-list">
+        ${leads.map(renderLead).join('') || '<div class="empty">No sales leads yet</div>'}
+      </div>
+    </section>
+  `;
+}
+
+function renderLead(lead) {
+  return `
+    <article class="request-card">
+      <div class="request-main">
+        <div>
+          <strong>${esc(lead.name)}</strong>
+          <span>${esc(lead.phone)} Â· ${esc(lead.email || 'No email')}</span>
+          <span>${esc(lead.createdAt || '')}</span>
+        </div>
+        <span class="badge ${esc(lead.status)}">${esc(lead.status)}</span>
+      </div>
+      ${lead.message ? `<p>${esc(lead.message)}</p>` : ''}
+    </article>
   `;
 }
 

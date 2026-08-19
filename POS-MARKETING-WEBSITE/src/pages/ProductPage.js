@@ -124,6 +124,7 @@ function renderProductList() {
 }
 
 function renderProductDetail(product) {
+  const packageCode = product.slug === 'trial-plus' ? 'trial' : product.slug === 'plus' ? 'plus' : product.slug === 'pro' ? 'pro' : 'pro';
   const otherProducts = products
     .filter((item) => item.slug !== product.slug && item.category === product.category)
     .map((item) => `<a href="#products/${item.slug}">${item.title}</a>`)
@@ -149,7 +150,7 @@ function renderProductDetail(product) {
           <h1>${product.title}</h1>
           <p>${product.summary}</p>
           <div class="product-detail-actions">
-            <a class="button primary" href="#trial">Đăng ký tư vấn</a>
+            <a class="button primary" href="#trial" data-action="select-package" data-package="${packageCode}">Đăng ký tư vấn</a>
             <a class="button secondary" href="#products">So sánh gói</a>
           </div>
         </div>

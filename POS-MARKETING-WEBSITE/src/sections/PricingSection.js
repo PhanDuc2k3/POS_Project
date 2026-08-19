@@ -14,7 +14,7 @@ export function renderPricingSection() {
         <div class="price">${plan.price}${plan.suffix ? `<span>${plan.suffix}</span>` : ''}</div>
         <p class="store-included">Bao gồm ${plan.includedStores} cửa hàng</p>
         <ul>${plan.features.map((feature) => `<li>${feature}</li>`).join('')}</ul>
-        <a class="button ${plan.recommended ? 'primary' : 'secondary'}" href="${plan.href}">${plan.cta}</a>
+        <a class="button ${plan.recommended ? 'primary' : 'secondary'}" href="${plan.href}" data-action="select-package" data-package="${plan.packageCode || plan.name.toLowerCase()}">${plan.cta}</a>
       </article>
     `)
     .join('');
@@ -45,7 +45,7 @@ export function renderPricingSection() {
         <h2>Chọn PLUS hoặc PRO, sau đó mở rộng bằng Store Slot.</h2>
         <p>Không tách Single/Multi thành gói riêng. Package quyết định tính năng, số cửa hàng quyết định maxStores.</p>
       </div>
-      <div class="pricing-grid two-plans">${cards}</div>
+      <div class="pricing-grid">${cards}</div>
       <div class="store-slot-panel">
         <div>
           <p class="eyebrow">Store Slot</p>

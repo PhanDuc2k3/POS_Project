@@ -17,6 +17,8 @@ router.get('/platform/packages', controller.getPackages);
 router.get('/platform/accounts', controller.getAccounts);
 router.post('/platform/accounts/invite', controller.inviteAccount);
 router.post('/public/orders', controller.createPublicOrder);
+router.get('/public/orders/:orderCode/status', controller.getPublicOrderStatus);
+router.post('/public/sales-leads', controller.createPublicSalesLead);
 router.get('/platform/orders', controller.getOrders);
 router.get('/platform/orders/:id', controller.getOrder);
 router.post('/platform/orders', controller.createOrder);
