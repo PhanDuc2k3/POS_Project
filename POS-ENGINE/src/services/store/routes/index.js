@@ -23,5 +23,6 @@ router.put('/store/receipt', receiptController.updateReceiptConfig);
 
 // ─── POS Config (aggregate endpoint) ────────────────────────────────
 router.get('/store/pos-config', storeController.getPosConfig);
+router.post('/internal/stores/provision', storeController.provisionStore);
 
 module.exports = router;

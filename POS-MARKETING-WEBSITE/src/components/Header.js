@@ -8,16 +8,18 @@ export function renderHeader(activeRoute = '#home') {
 
   return `
     <header class="site-header" id="top">
-      ${renderBrand()}
-      <button class="menu-button" type="button" aria-label="Open menu" aria-expanded="false">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-      <nav class="site-nav" aria-label="Main navigation">${links}</nav>
-      <div class="header-actions">
-        <button class="text-link auth-trigger" type="button" data-action="open-auth" data-auth-mode="signin">Đăng nhập</button>
-        <button class="button primary small" type="button" data-action="open-auth" data-auth-mode="signup">Đăng ký</button>
+      <div class="header-shell">
+        ${renderBrand()}
+        <nav class="site-nav" aria-label="Main navigation">${links}</nav>
+        <div class="header-actions">
+          <button class="text-link auth-trigger" type="button" data-action="open-auth" data-auth-mode="signin">Đăng nhập</button>
+          <button class="button primary small" type="button" data-action="open-auth" data-auth-mode="signup">Đăng ký</button>
+        </div>
+        <button class="menu-button" type="button" aria-label="Open menu" aria-expanded="false">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
       </div>
     </header>
   `;

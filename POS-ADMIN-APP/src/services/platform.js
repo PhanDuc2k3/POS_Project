@@ -30,6 +30,45 @@ export async function createOrder(tenantId, packageTier) {
   }));
 }
 
+export async function getOrder(id) {
+  return readJson(await apiFetch(`/platform/orders/${id}`));
+}
+
+export async function markOrderContacted(id) {
+  return readJson(await apiFetch(`/platform/orders/${id}/contact`, { method: 'POST' }));
+}
+
+export async function quoteOrder(id) {
+  return readJson(await apiFetch(`/platform/orders/${id}/quote`, { method: 'POST' }));
+}
+
+export async function waitOrderPayment(id) {
+  return readJson(await apiFetch(`/platform/orders/${id}/wait-payment`, { method: 'POST' }));
+}
+
+export async function confirmOrderPayment(id) {
+  return readJson(await apiFetch(`/platform/orders/${id}/confirm-payment`, { method: 'POST' }));
+}
+
+export async function approveOrder(id) {
+  return readJson(await apiFetch(`/platform/orders/${id}/approve`, { method: 'POST' }));
+}
+
+export async function rejectOrder(id, reason = '') {
+  return readJson(await apiFetch(`/platform/orders/${id}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  }));
+}
+
+export async function cancelOrder(id) {
+  return readJson(await apiFetch(`/platform/orders/${id}/cancel`, { method: 'POST' }));
+}
+
+export async function provisionOrder(id) {
+  return readJson(await apiFetch(`/platform/orders/${id}/provision`, { method: 'POST' }));
+}
+
 export async function inviteAccount(tenantId, email, role) {
   return readJson(await apiFetch('/platform/accounts/invite', {
     method: 'POST',

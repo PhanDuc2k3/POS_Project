@@ -360,6 +360,116 @@ h2 {
   color: var(--red);
 }
 
+.badge.PENDING,
+.badge.CONTACTED,
+.badge.QUOTED,
+.badge.WAITING_PAYMENT,
+.badge.UNPAID {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.badge.PAID,
+.badge.APPROVED,
+.badge.ACTIVE {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.badge.REJECTED,
+.badge.CANCELLED,
+.badge.PROVISIONING_FAILED,
+.badge.FAILED {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.orders-layout,
+.order-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.orders-table .table-row {
+  grid-template-columns: 1.15fr 1fr 1fr 0.7fr 0.55fr 0.55fr 0.8fr 0.9fr 0.9fr;
+  min-width: 1180px;
+}
+
+.order-row {
+  width: 100%;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.order-row:hover,
+.order-row.active {
+  background: #eef4ff;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.detail-block {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.detail-block > strong {
+  font-size: 14px;
+}
+
+.detail-block div {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 10px;
+}
+
+.detail-block span,
+.timeline-item span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.detail-block b {
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.timeline {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.timeline-item {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.timeline-item.done {
+  border-color: var(--blue);
+}
+
 .package-grid {
   padding: 16px;
   display: grid;

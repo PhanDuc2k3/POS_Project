@@ -191,6 +191,10 @@ app.post('/api/auth/refresh', (req, res) => {
   forwardAuthPost(req, res, '/auth/refresh');
 });
 
+app.post('/api/auth/activate', (req, res) => {
+  forwardAuthPost(req, res, '/auth/activate');
+});
+
 app.post('/api/auth/forgot-password/question', forgotLimiter, (req, res) => {
   forwardAuthPost(req, res, '/auth/forgot-password/question');
 });
@@ -231,6 +235,9 @@ app.post('/api/payment-webhooks/sepay', async (req, res) => {
 
 app.use('/api/public', (req, res) => {
   const path = req.path || '/';
+  if (path === '/orders' || path.startsWith('/orders/')) {
+    return forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`);
+  }
   if (path.startsWith('/menu')) {
     return forwardJson(req, res, config.PRODUCT_SERVICE_URL, `/product/public/menu${req.url.replace('/menu', '')}`);
   }

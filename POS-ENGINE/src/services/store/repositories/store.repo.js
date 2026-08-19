@@ -7,7 +7,7 @@ const { getDatabase, saveDatabase } = require('../database');
 function findByOwnerId(ownerId) {
   const db = getDatabase();
   const result = db.exec(
-    'SELECT id, owner_id, name, phone, address, logo, package_tier, operating_mode, created_at, updated_at FROM stores WHERE owner_id = ?',
+    'SELECT id, owner_id, name, phone, address, logo, package_tier, operating_mode, created_at, updated_at, tenant_id, platform_store_id, max_store FROM stores WHERE owner_id = ?',
     [ownerId]
   );
   if (!result.length || !result[0].values.length) return null;
@@ -23,6 +23,9 @@ function findByOwnerId(ownerId) {
     operatingMode: r[7] || 'simple',
     createdAt: r[8],
     updatedAt: r[9],
+    tenantId: r[10],
+    platformStoreId: r[11],
+    maxStore: r[12] || 1,
   };
 }
 
@@ -34,6 +37,27 @@ function create(ownerId, name) {
     [ownerId, storeName, 'starter', 'simple']
   );
   saveDatabase();
+}
+
+function createProvisioned({ ownerId, tenantId, platformStoreId, name, packageTier, operatingMode, maxStore }) {
+  const db = getDatabase();
+  db.run(
+    `INSERT INTO stores (owner_id, tenant_id, platform_store_id, name, package_tier, operating_mode, max_store)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [ownerId, tenantId, platformStoreId, name, packageTier, operatingMode, maxStore]
+  );
+  saveDatabase();
+  return findByOwnerId(ownerId);
+}
+
+function findByPlatformStoreId(platformStoreId) {
+  const db = getDatabase();
+  const result = db.exec(
+    'SELECT owner_id FROM stores WHERE platform_store_id = ?',
+    [platformStoreId]
+  );
+  if (!result.length || !result[0].values.length) return null;
+  return findByOwnerId(result[0].values[0][0]);
 }
 
 function update(storeId, fields) {
@@ -82,7 +106,9 @@ function getOrCreate(userId) {
 
 module.exports = {
   findByOwnerId,
+  findByPlatformStoreId,
   create,
+  createProvisioned,
   update,
   getOrCreate,
 };

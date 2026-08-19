@@ -69,8 +69,48 @@ function getOrders(req, res) {
   return send(res, service.listOrders(getUser(req)));
 }
 
+function getOrder(req, res) {
+  return send(res, service.getOrder(getUser(req), req.params.id));
+}
+
+function createPublicOrder(req, res) {
+  return send(res, service.createPublicOrder(req.body), true);
+}
+
 function createOrder(req, res) {
   return send(res, service.createOrder(getUser(req), req.body), true);
+}
+
+function markOrderContacted(req, res) {
+  return send(res, service.markOrderContacted(getUser(req), req.params.id));
+}
+
+function quoteOrder(req, res) {
+  return send(res, service.quoteOrder(getUser(req), req.params.id));
+}
+
+function waitOrderPayment(req, res) {
+  return send(res, service.waitOrderPayment(getUser(req), req.params.id));
+}
+
+function confirmOrderPayment(req, res) {
+  return send(res, service.confirmOrderPayment(getUser(req), req.params.id));
+}
+
+function approveOrder(req, res) {
+  return send(res, service.approveOrder(getUser(req), req.params.id));
+}
+
+function rejectOrder(req, res) {
+  return send(res, service.rejectOrder(getUser(req), req.params.id, req.body));
+}
+
+function cancelOrder(req, res) {
+  return send(res, service.cancelOrder(getUser(req), req.params.id));
+}
+
+async function provisionOrder(req, res) {
+  return send(res, await service.provisionOrder(getUser(req), req.params.id), true);
 }
 
 function getPermission(req, res) {
@@ -96,7 +136,17 @@ module.exports = {
   approveTrialRequest,
   rejectTrialRequest,
   getOrders,
+  getOrder,
+  createPublicOrder,
   createOrder,
+  markOrderContacted,
+  quoteOrder,
+  waitOrderPayment,
+  confirmOrderPayment,
+  approveOrder,
+  rejectOrder,
+  cancelOrder,
+  provisionOrder,
   getPermission,
   togglePermission,
 };

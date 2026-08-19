@@ -7,6 +7,7 @@ const authController = require('../controllers/auth.controller');
 const profileController = require('../controllers/profile.controller');
 const passwordController = require('../controllers/password.controller');
 const sessionController = require('../controllers/session.controller');
+const activationController = require('../controllers/activation.controller');
 
 const router = Router();
 
@@ -15,6 +16,8 @@ router.post('/auth/login', authController.login);
 router.post('/auth/refresh', authController.refresh);
 router.post('/auth/logout', authController.logout);
 router.post('/auth/logout-all', authController.logoutAll);
+router.post('/auth/activate', activationController.activate);
+router.post('/internal/auth/owners', activationController.provisionOwner);
 
 // ─── Profile ─────────────────────────────────────────────────────────
 router.get('/auth/me', profileController.getMe);

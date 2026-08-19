@@ -84,4 +84,7 @@ module.exports = {
 
   // Kafka
   KAFKA_BROKER: process.env.KAFKA_BROKER || null,
+
+  // Internal service-to-service auth
+  INTERNAL_SERVICE_TOKEN: process.env.INTERNAL_SERVICE_TOKEN || 'pos-internal-token',
 };

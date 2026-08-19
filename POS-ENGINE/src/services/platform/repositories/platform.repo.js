@@ -24,6 +24,8 @@ function rowToAccount(row) {
     email: row[3],
     role: row[4],
     status: row[5],
+    activationToken: row[6],
+    activationSentAt: row[7],
   };
 }
 
@@ -35,6 +37,29 @@ function rowToOrder(row) {
     amount: row[3],
     status: row[4],
     createdAt: row[5],
+    orderCode: row[6] || row[0],
+    customerName: row[7],
+    companyName: row[8],
+    email: row[9],
+    phone: row[10],
+    requestedStoreCount: row[11] || 1,
+    requestedDeviceCount: row[12] || 1,
+    businessType: row[13],
+    note: row[14],
+    paymentStatus: row[15] || 'UNPAID',
+    orderType: row[16] || 'MANAGED',
+    approvedBy: row[17],
+    approvedAt: row[18],
+    rejectedBy: row[19],
+    rejectedAt: row[20],
+    rejectionReason: row[21],
+    contactedAt: row[22],
+    quotedAt: row[23],
+    paidAt: row[24],
+    provisionedAt: row[25],
+    provisioningStep: row[26],
+    failureReason: row[27],
+    updatedAt: row[28],
   };
 }
 
@@ -85,6 +110,12 @@ function createId(prefix) {
   return `${prefix}-${Date.now().toString().slice(-6)}-${random}`;
 }
 
+function createOrderCode() {
+  const year = new Date().getFullYear();
+  const count = listOrders().filter((order) => String(order.orderCode || '').includes(`ORD-${year}`)).length + 1;
+  return `ORD-${year}-${String(count).padStart(6, '0')}`;
+}
+
 function createPassword() {
   return `POS-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random().toString(36).slice(2, 6)}`;
 }
@@ -93,6 +124,12 @@ function listPackages() {
   const db = getDatabase();
   const result = db.exec('SELECT id, name, level, price, modules, sort_order FROM platform_packages ORDER BY sort_order ASC, price ASC');
   return result[0]?.values?.map(rowToPackage) || [];
+}
+
+function findPackageById(id) {
+  const db = getDatabase();
+  const result = db.exec('SELECT id, name, level, price, modules, sort_order FROM platform_packages WHERE id = ?', [id]);
+  return result[0]?.values?.[0] ? rowToPackage(result[0].values[0]) : null;
 }
 
 function listTenants() {
@@ -144,7 +181,7 @@ function toggleTenantStatus(id) {
 
 function listAccounts() {
   const db = getDatabase();
-  const result = db.exec('SELECT id, tenant_id, name, email, role, status FROM platform_accounts ORDER BY id DESC');
+  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at FROM platform_accounts ORDER BY id DESC');
   return result[0]?.values?.map(rowToAccount) || [];
 }
 
@@ -155,7 +192,18 @@ function createAccount({ tenantId, name, email, role, status = 'invited' }) {
     [tenantId, name, email, role, status]
   );
   saveDatabase();
-  const result = db.exec('SELECT id, tenant_id, name, email, role, status FROM platform_accounts ORDER BY id DESC LIMIT 1');
+  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at FROM platform_accounts ORDER BY id DESC LIMIT 1');
+  return result[0]?.values?.[0] ? rowToAccount(result[0].values[0]) : null;
+}
+
+function updateAccountActivation(accountId, activationToken) {
+  const db = getDatabase();
+  db.run(
+    'UPDATE platform_accounts SET activation_token = ?, activation_sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [activationToken, accountId]
+  );
+  saveDatabase();
+  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at FROM platform_accounts WHERE id = ?', [accountId]);
   return result[0]?.values?.[0] ? rowToAccount(result[0].values[0]) : null;
 }
 
@@ -234,7 +282,14 @@ function findLatestTrialRequestByUserId(userId) {
 
 function listOrders() {
   const db = getDatabase();
-  const result = db.exec('SELECT id, tenant_id, package_tier, amount, status, created_at FROM platform_subscription_orders ORDER BY created_at DESC');
+  const result = db.exec(
+    `SELECT id, tenant_id, package_tier, amount, status, created_at, order_code, customer_name, company_name, email, phone,
+            requested_store_count, requested_device_count, business_type, note, payment_status, order_type, approved_by,
+            approved_at, rejected_by, rejected_at, rejection_reason, contacted_at, quoted_at, paid_at, provisioned_at,
+            provisioning_step, failure_reason, updated_at
+     FROM platform_subscription_orders
+     ORDER BY created_at DESC`
+  );
   return result[0]?.values?.map(rowToOrder) || [];
 }
 
@@ -247,6 +302,134 @@ function createOrder({ tenantId, packageTier, amount, status = 'pending' }) {
   );
   saveDatabase();
   return { id, tenantId, packageTier, amount, status };
+}
+
+function findOrderById(id) {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, tenant_id, package_tier, amount, status, created_at, order_code, customer_name, company_name, email, phone,
+            requested_store_count, requested_device_count, business_type, note, payment_status, order_type, approved_by,
+            approved_at, rejected_by, rejected_at, rejection_reason, contacted_at, quoted_at, paid_at, provisioned_at,
+            provisioning_step, failure_reason, updated_at
+     FROM platform_subscription_orders
+     WHERE id = ? OR order_code = ?`,
+    [id, id]
+  );
+  return result[0]?.values?.[0] ? rowToOrder(result[0].values[0]) : null;
+}
+
+function createPurchaseOrder(payload) {
+  const pkg = findPackageById(payload.packageTier);
+  const orderCode = createOrderCode();
+  const db = getDatabase();
+  db.run(
+    `INSERT INTO platform_subscription_orders (
+      id, order_code, tenant_id, package_tier, amount, status, customer_name, company_name, email, phone,
+      requested_store_count, requested_device_count, business_type, note, payment_status, order_type
+    ) VALUES (?, ?, 0, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, 'UNPAID', ?)`,
+    [
+      orderCode,
+      orderCode,
+      payload.packageTier,
+      pkg?.price || 0,
+      payload.customerName,
+      payload.companyName,
+      payload.email,
+      payload.phone || '',
+      payload.requestedStoreCount,
+      payload.requestedDeviceCount,
+      payload.businessType || '',
+      payload.note || '',
+      payload.orderType || 'MANAGED',
+    ]
+  );
+  saveDatabase();
+  return findOrderById(orderCode);
+}
+
+function updateOrder(id, updates) {
+  const current = findOrderById(id);
+  if (!current) return null;
+  const next = { ...current, ...updates };
+  const db = getDatabase();
+  db.run(
+    `UPDATE platform_subscription_orders
+     SET tenant_id = ?, status = ?, payment_status = ?, approved_by = ?, approved_at = ?, rejected_by = ?, rejected_at = ?,
+         rejection_reason = ?, contacted_at = ?, quoted_at = ?, paid_at = ?, provisioned_at = ?, provisioning_step = ?,
+         failure_reason = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [
+      next.tenantId || 0,
+      next.status,
+      next.paymentStatus || 'UNPAID',
+      next.approvedBy || null,
+      next.approvedAt || null,
+      next.rejectedBy || null,
+      next.rejectedAt || null,
+      next.rejectionReason || null,
+      next.contactedAt || null,
+      next.quotedAt || null,
+      next.paidAt || null,
+      next.provisionedAt || null,
+      next.provisioningStep || null,
+      next.failureReason || null,
+      current.id,
+    ]
+  );
+  saveDatabase();
+  return findOrderById(current.id);
+}
+
+function createSubscription({ tenantId, packageTier, maxStore }) {
+  const db = getDatabase();
+  db.run(
+    `INSERT INTO platform_subscriptions (tenant_id, package_tier, status, max_store, start_date)
+     VALUES (?, ?, 'ACTIVE', ?, ?)`,
+    [tenantId, packageTier, maxStore, new Date().toISOString().slice(0, 10)]
+  );
+  saveDatabase();
+  const result = db.exec(
+    'SELECT id, tenant_id, package_tier, status, max_store, billing_cycle, start_date, end_date, created_at, updated_at FROM platform_subscriptions WHERE tenant_id = ? ORDER BY id DESC LIMIT 1',
+    [tenantId]
+  );
+  if (!result[0]?.values?.[0]) return null;
+  const row = result[0].values[0];
+  return {
+    id: row[0],
+    tenantId: row[1],
+    packageTier: row[2],
+    status: row[3],
+    maxStore: row[4],
+    billingCycle: row[5],
+    startDate: row[6],
+    endDate: row[7],
+    createdAt: row[8],
+    updatedAt: row[9],
+  };
+}
+
+function createTenantStore({ tenantId, ownerAccountId, name }) {
+  const db = getDatabase();
+  db.run(
+    `INSERT INTO platform_tenant_stores (tenant_id, owner_account_id, name, status) VALUES (?, ?, ?, 'active')`,
+    [tenantId, ownerAccountId || null, name]
+  );
+  saveDatabase();
+  const result = db.exec(
+    'SELECT id, tenant_id, owner_account_id, name, status, created_at, updated_at FROM platform_tenant_stores WHERE tenant_id = ? ORDER BY id DESC LIMIT 1',
+    [tenantId]
+  );
+  if (!result[0]?.values?.[0]) return null;
+  const row = result[0].values[0];
+  return {
+    id: row[0],
+    tenantId: row[1],
+    ownerAccountId: row[2],
+    name: row[3],
+    status: row[4],
+    createdAt: row[5],
+    updatedAt: row[6],
+  };
 }
 
 function getPermissionRole(role) {
@@ -283,7 +466,7 @@ function getSummary() {
   return {
     tenants: tenants.length,
     activeMrr,
-    paidOrders: orders.filter((order) => order.status === 'paid').length,
+    paidOrders: orders.filter((order) => order.paymentStatus === 'PAID' || order.status === 'PAID').length,
     pendingTrials: trialRequests.filter((request) => request.status === 'pending').length,
     roles: 6,
   };
@@ -316,8 +499,10 @@ module.exports = {
   updateTenantPackage,
   toggleTenantStatus,
   listPackages,
+  findPackageById,
   listAccounts,
   createAccount,
+  updateAccountActivation,
   listTrialRequests,
   listTrialRequestsByUserId,
   findTrialRequestById,
@@ -327,6 +512,11 @@ module.exports = {
   createPassword,
   listOrders,
   createOrder,
+  findOrderById,
+  createPurchaseOrder,
+  updateOrder,
+  createSubscription,
+  createTenantStore,
   getPermissionRole,
   togglePermission,
 };

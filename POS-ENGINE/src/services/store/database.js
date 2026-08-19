@@ -22,12 +22,15 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS stores (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       owner_id INTEGER NOT NULL,
+      tenant_id INTEGER,
+      platform_store_id INTEGER,
       name TEXT NOT NULL DEFAULT 'Cửa hàng của tôi',
       phone TEXT,
       address TEXT,
       logo TEXT,
       package_tier TEXT NOT NULL DEFAULT 'starter',
       operating_mode TEXT NOT NULL DEFAULT 'simple',
+      max_store INTEGER NOT NULL DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -106,6 +109,16 @@ async function initDatabase() {
   }
 
   // Save lần đầu + bật auto-save
+  [
+    `ALTER TABLE stores ADD COLUMN tenant_id INTEGER`,
+    `ALTER TABLE stores ADD COLUMN platform_store_id INTEGER`,
+    `ALTER TABLE stores ADD COLUMN max_store INTEGER NOT NULL DEFAULT 1`,
+  ].forEach((sql) => {
+    try {
+      db.run(sql);
+    } catch (e) {}
+  });
+
   fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
   fs.writeFileSync(DB_PATH, Buffer.from(db.export()));
   startAutoSave(db, DB_PATH);

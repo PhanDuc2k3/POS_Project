@@ -21,6 +21,17 @@ export const authAPI = {
     return data;
   },
 
+  async activate(activationToken, newPassword) {
+    const response = await fetch(`${API_URL}/auth/activate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activationToken, newPassword }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
+
   async logout() {
     try {
       await apiFetch('/auth/logout', {

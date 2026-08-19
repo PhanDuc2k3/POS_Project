@@ -162,6 +162,12 @@
   text-align: center;
 }
 
+.login-error.success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #047857;
+}
+
 .login-btn {
   height: 34px;
   margin-top: 6px;

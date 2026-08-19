@@ -12,7 +12,7 @@ import {
   getMyTrialRequest,
   getStoredAuth,
   setStoredAuth,
-  submitTrialRequest,
+  submitPublicOrder,
 } from './shared/api.js';
 
 const app = document.getElementById('app');
@@ -29,6 +29,7 @@ const routes = new Map([
 const state = {
   user: null,
   myTrialRequest: null,
+  purchaseOrder: null,
   accessToken: '',
   refreshToken: '',
   authModalOpen: false,
@@ -37,6 +38,14 @@ const state = {
 };
 
 function getRoute() {
+  if (window.location.hash.startsWith('#products/')) {
+    return '#products';
+  }
+
+  if (window.location.hash.startsWith('#news/')) {
+    return '#news';
+  }
+
   return routes.has(window.location.hash) ? window.location.hash : '#home';
 }
 
@@ -62,7 +71,7 @@ function render() {
 }
 
 function syncLockedForms() {
-  const locked = !state.user || ['pending', 'approved'].includes(state.myTrialRequest?.status);
+  const locked = ['PENDING', 'CONTACTED', 'QUOTED', 'WAITING_PAYMENT', 'PAID', 'APPROVED', 'ACTIVE'].includes(String(state.myTrialRequest?.status || '').toUpperCase());
   app.querySelectorAll('form[data-form="trial"] input, form[data-form="trial"] select, form[data-form="trial"] button')
     .forEach((el) => {
       el.disabled = locked;
@@ -71,7 +80,7 @@ function syncLockedForms() {
 
 function scrollToHash() {
   const hash = window.location.hash;
-  if (!hash || routes.has(hash)) {
+  if (!hash || routes.has(hash) || hash.startsWith('#products/') || hash.startsWith('#news/')) {
     window.scrollTo({ top: 0, behavior: 'auto' });
     return;
   }
@@ -121,18 +130,29 @@ function handleLogin(form) {
 }
 
 async function handleTrialSubmit(form) {
-  if (!state.accessToken) throw new Error('Login required');
   const formData = new FormData(form);
-  const request = await submitTrialRequest(state.accessToken, {
-    restaurantName: formData.get('restaurant'),
-    contactName: formData.get('contactName'),
+  const order = await submitPublicOrder({
+    companyName: formData.get('businessName'),
+    customerName: formData.get('contactName'),
     email: formData.get('email'),
     phone: formData.get('phone'),
-    operatingMode: formData.get('operatingMode'),
-    packageTier: formData.get('packageTier'),
+    package: formData.get('packageTier'),
+    requestedStoreCount: Number(formData.get('requestedStores') || 1),
+    requestedDeviceCount: Number(formData.get('requestedDevices') || 1),
+    businessType: formData.get('businessType'),
+    note: formData.get('note'),
   });
-  state.myTrialRequest = request;
-  render();
+  state.purchaseOrder = order;
+  state.myTrialRequest = {
+    id: order.orderCode,
+    businessName: formData.get('businessName'),
+    packageTier: formData.get('packageTier'),
+    requestedStores: Number(formData.get('requestedStores') || 1),
+    status: order.status,
+    createdAt: order.createdAt,
+  };
+  form.reset();
+  return order;
 }
 
 function handleSignupSubmit(form) {
@@ -232,12 +252,18 @@ function bindEvents() {
       }
 
       if (form.dataset.form === 'trial') {
-        await handleTrialSubmit(form);
-        if (message) message.textContent = 'Trial request sent.';
+        if (message) message.textContent = 'Đang gửi yêu cầu...';
+        const order = await handleTrialSubmit(form);
+        render();
+        const trialMessage = app.querySelector('form[data-form="trial"] .form-message');
+        if (trialMessage) {
+          trialMessage.textContent =
+            `Yêu cầu của bạn đã được tiếp nhận. Mã yêu cầu: ${order.orderCode}. Chúng tôi sẽ liên hệ để hoàn tất quá trình đăng ký.`;
+        }
         return;
       }
 
-      if (message) message.textContent = 'Submitted.';
+      if (message) message.textContent = 'Đã ghi nhận thông tin. Endpoint sales request sẽ nối sau.';
       form.reset();
     } catch (err) {
       if (message) message.textContent = err.message;

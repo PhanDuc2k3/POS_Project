@@ -1,4 +1,6 @@
 const repo = require('../repositories/platform.repo');
+const orderStatus = require('./order-status.service');
+const provisioningService = require('./provisioning.service');
 
 function requirePlatformAdmin(user) {
   if (!user || user.role !== 'platform_admin') {
@@ -181,6 +183,68 @@ function listOrders(user) {
   return { data: repo.listOrders() };
 }
 
+function getOrder(user, orderId) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const order = repo.findOrderById(orderId);
+  if (!order) return { error: 'Order not found', status: 404 };
+  return { data: order };
+}
+
+function normalizePackageTier(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === 'plus') return 'plus';
+  if (raw === 'pro') return 'pro';
+  return raw;
+}
+
+function createPublicOrder(payload) {
+  const customerName = String(payload?.customerName || payload?.contactName || '').trim();
+  const companyName = String(payload?.companyName || payload?.businessName || payload?.restaurantName || '').trim();
+  const email = String(payload?.email || '').trim();
+  const phone = String(payload?.phone || '').trim();
+  const packageTier = normalizePackageTier(payload?.package || payload?.packageTier || payload?.packageCode);
+  const requestedStoreCount = Number(payload?.requestedStoreCount || payload?.requestedStores || 1);
+  const requestedDeviceCount = Number(payload?.requestedDeviceCount || 1);
+  const businessType = String(payload?.businessType || '').trim();
+  const note = String(payload?.note || payload?.message || '').trim();
+
+  if (!customerName || !companyName || !email || !phone || !packageTier) {
+    return { error: 'customerName, companyName, email, phone and package required', status: 400 };
+  }
+  if (!Number.isInteger(requestedStoreCount) || requestedStoreCount < 1) {
+    return { error: 'requestedStoreCount invalid', status: 400 };
+  }
+  if (!Number.isInteger(requestedDeviceCount) || requestedDeviceCount < 0) {
+    return { error: 'requestedDeviceCount invalid', status: 400 };
+  }
+
+  const pkg = repo.findPackageById(packageTier);
+  if (!pkg) return { error: 'Package not found', status: 404 };
+
+  const orderType = packageTier === 'plus' && requestedStoreCount === 1 ? 'STANDARD' : 'MANAGED';
+  const order = repo.createPurchaseOrder({
+    customerName,
+    companyName,
+    email,
+    phone,
+    packageTier,
+    requestedStoreCount,
+    requestedDeviceCount,
+    businessType,
+    note,
+    orderType,
+  });
+
+  return {
+    data: {
+      orderCode: order.orderCode,
+      status: order.status,
+      createdAt: order.createdAt,
+    },
+  };
+}
+
 function createOrder(user, payload) {
   const access = requirePlatformAdmin(user);
   if (access) return access;
@@ -192,6 +256,73 @@ function createOrder(user, payload) {
   const pkg = packages.find((item) => item.id === packageTier);
   if (!pkg) return { error: 'Package not found', status: 404 };
   return { data: repo.createOrder({ tenantId, packageTier, amount: pkg.price }) };
+}
+
+function transitionOrder(user, orderId, nextStatus, extra = {}) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const order = repo.findOrderById(orderId);
+  if (!order) return { error: 'Order not found', status: 404 };
+
+  const status = String(nextStatus || '').trim().toUpperCase();
+  const transition = orderStatus.validateTransition(order.status, status);
+  if (transition) return transition;
+
+  const now = new Date().toISOString();
+  const updates = { status };
+  if (status === 'CONTACTED') updates.contactedAt = now;
+  if (status === 'QUOTED') updates.quotedAt = now;
+  if (status === 'WAITING_PAYMENT') updates.paymentStatus = 'PENDING';
+  if (status === 'PAID') {
+    updates.paymentStatus = 'PAID';
+    updates.paidAt = now;
+  }
+  if (status === 'APPROVED') {
+    if (order.paymentStatus !== 'PAID') return { error: 'Payment required before approval', status: 409 };
+    updates.approvedBy = user.username || 'platform';
+    updates.approvedAt = now;
+  }
+  if (status === 'REJECTED') {
+    updates.rejectedBy = user.username || 'platform';
+    updates.rejectedAt = now;
+    updates.rejectionReason = String(extra.reason || '').trim();
+  }
+
+  return { data: repo.updateOrder(order.id, updates) };
+}
+
+function markOrderContacted(user, orderId) {
+  return transitionOrder(user, orderId, 'CONTACTED');
+}
+
+function quoteOrder(user, orderId) {
+  return transitionOrder(user, orderId, 'QUOTED');
+}
+
+function waitOrderPayment(user, orderId) {
+  return transitionOrder(user, orderId, 'WAITING_PAYMENT');
+}
+
+function confirmOrderPayment(user, orderId) {
+  return transitionOrder(user, orderId, 'PAID');
+}
+
+function approveOrder(user, orderId) {
+  return transitionOrder(user, orderId, 'APPROVED');
+}
+
+function rejectOrder(user, orderId, payload) {
+  return transitionOrder(user, orderId, 'REJECTED', payload);
+}
+
+function cancelOrder(user, orderId) {
+  return transitionOrder(user, orderId, 'CANCELLED');
+}
+
+async function provisionOrder(user, orderId) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  return provisioningService.provisionOrder(orderId, user);
 }
 
 function getPermission(user, role) {
@@ -224,7 +355,17 @@ module.exports = {
   approveTrialRequest,
   rejectTrialRequest,
   listOrders,
+  getOrder,
+  createPublicOrder,
   createOrder,
+  markOrderContacted,
+  quoteOrder,
+  waitOrderPayment,
+  confirmOrderPayment,
+  approveOrder,
+  rejectOrder,
+  cancelOrder,
+  provisionOrder,
   getPermission,
   toggleRolePermission,
 };

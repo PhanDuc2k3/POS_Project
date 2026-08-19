@@ -18,6 +18,27 @@ function findByUsername(username) {
   };
 }
 
+function findByEmail(email) {
+  const db = getDatabase();
+  const result = db.exec(
+    'SELECT id, username, display_name, email, role, is_active, avatar, tenant_id, platform_account_id FROM users WHERE email = ?',
+    [email]
+  );
+  if (!result.length || !result[0].values.length) return null;
+  const row = result[0].values[0];
+  return {
+    id: row[0],
+    username: row[1],
+    displayName: row[2],
+    email: row[3],
+    role: row[4],
+    isActive: row[5],
+    avatar: row[6],
+    tenantId: row[7],
+    platformAccountId: row[8],
+  };
+}
+
 function findById(id) {
   const db = getDatabase();
   const result = db.exec(
@@ -69,6 +90,66 @@ function updatePassword(userId, newHash) {
   saveDatabase();
 }
 
+function createPendingOwner({ username, displayName, email, role, tenantId, platformAccountId, activationTokenHash, activationExpiresAt }) {
+  const db = getDatabase();
+  db.run(
+    `INSERT INTO users (
+      username, password_hash, display_name, email, role, tenant_id, platform_account_id,
+      activation_token_hash, activation_expires_at, is_active
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+    [
+      username,
+      activationTokenHash,
+      displayName,
+      email,
+      role,
+      tenantId,
+      platformAccountId,
+      activationTokenHash,
+      activationExpiresAt,
+    ]
+  );
+  saveDatabase();
+  return findByEmail(email);
+}
+
+function findByActivationTokenHash(tokenHash) {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, username, display_name, email, role, is_active, tenant_id, platform_account_id, activation_expires_at, activation_used_at
+     FROM users
+     WHERE activation_token_hash = ?`,
+    [tokenHash]
+  );
+  if (!result.length || !result[0].values.length) return null;
+  const row = result[0].values[0];
+  return {
+    id: row[0],
+    username: row[1],
+    displayName: row[2],
+    email: row[3],
+    role: row[4],
+    isActive: row[5],
+    tenantId: row[6],
+    platformAccountId: row[7],
+    activationExpiresAt: row[8],
+    activationUsedAt: row[9],
+  };
+}
+
+function activateUser(userId, passwordHash) {
+  const db = getDatabase();
+  db.run(
+    `UPDATE users
+     SET password_hash = ?, is_active = 1, activation_used_at = CURRENT_TIMESTAMP, activation_token_hash = NULL,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [passwordHash, userId]
+  );
+  saveDatabase();
+  return findById(userId);
+}
+
 function updateSecurityQuestion(userId, question, answerHash) {
   const db = getDatabase();
   db.run('UPDATE users SET security_question = ?, security_answer_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -108,12 +189,16 @@ function removeAvatar(userId) {
 
 module.exports = {
   findByUsername,
+  findByEmail,
   findById,
   findFullById,
   getPasswordHash,
   updateLastLogin,
   updateProfile,
   updatePassword,
+  createPendingOwner,
+  findByActivationTokenHash,
+  activateUser,
   updateSecurityQuestion,
   findByUsernameForReset,
   getAvatar,

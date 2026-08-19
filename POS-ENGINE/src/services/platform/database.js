@@ -54,6 +54,8 @@ async function initDatabase() {
       email TEXT NOT NULL,
       role TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'active',
+      activation_token TEXT,
+      activation_sent_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -62,11 +64,61 @@ async function initDatabase() {
   db.run(`
     CREATE TABLE IF NOT EXISTS platform_subscription_orders (
       id TEXT PRIMARY KEY,
-      tenant_id INTEGER NOT NULL,
+      tenant_id INTEGER,
       package_tier TEXT NOT NULL,
       amount REAL NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
+      order_code TEXT,
+      customer_name TEXT,
+      company_name TEXT,
+      email TEXT,
+      phone TEXT,
+      requested_store_count INTEGER DEFAULT 1,
+      requested_device_count INTEGER DEFAULT 1,
+      business_type TEXT,
+      note TEXT,
+      payment_status TEXT NOT NULL DEFAULT 'UNPAID',
+      order_type TEXT NOT NULL DEFAULT 'MANAGED',
+      approved_by TEXT,
+      approved_at DATETIME,
+      rejected_by TEXT,
+      rejected_at DATETIME,
+      rejection_reason TEXT,
+      contacted_at DATETIME,
+      quoted_at DATETIME,
+      paid_at DATETIME,
+      provisioned_at DATETIME,
+      provisioning_step TEXT,
+      failure_reason TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      package_tier TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      max_store INTEGER NOT NULL DEFAULT 1,
+      billing_cycle TEXT NOT NULL DEFAULT 'monthly',
+      start_date TEXT,
+      end_date TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_tenant_stores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id INTEGER NOT NULL,
+      owner_account_id INTEGER,
+      name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -110,6 +162,38 @@ async function initDatabase() {
     db.run(`ALTER TABLE platform_trial_requests ADD COLUMN submitted_by_username TEXT`);
   } catch (e) {}
 
+  [
+    `ALTER TABLE platform_accounts ADD COLUMN activation_token TEXT`,
+    `ALTER TABLE platform_accounts ADD COLUMN activation_sent_at DATETIME`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN order_code TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN customer_name TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN company_name TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN email TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN phone TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN requested_store_count INTEGER DEFAULT 1`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN requested_device_count INTEGER DEFAULT 1`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN business_type TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN note TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'UNPAID'`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN order_type TEXT NOT NULL DEFAULT 'MANAGED'`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN approved_by TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN approved_at DATETIME`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN rejected_by TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN rejected_at DATETIME`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN rejection_reason TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN contacted_at DATETIME`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN quoted_at DATETIME`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN paid_at DATETIME`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN provisioned_at DATETIME`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN provisioning_step TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN failure_reason TEXT`,
+    `ALTER TABLE platform_subscription_orders ADD COLUMN updated_at DATETIME`,
+  ].forEach((sql) => {
+    try {
+      db.run(sql);
+    } catch (e) {}
+  });
+
   seedIfEmpty();
   saveDatabase();
   startAutoSave(db, DB_PATH);
@@ -120,10 +204,11 @@ function seedIfEmpty() {
   const packageCount = db.exec('SELECT COUNT(*) FROM platform_packages')[0]?.values[0]?.[0] || 0;
   if (packageCount === 0) {
     const packages = [
-      ['starter', 'Starter', '2 cap', 290000, '["POS direct sale","Basic portal","Receipt"]', 1],
-      ['pro', 'Pro', '2 cap', 790000, '["Dashboard","Products","Transactions","Printer"]', 2],
-      ['restaurant', 'Restaurant', '4 cap', 1900000, '["Customer order","Kitchen display","Table session","Staff billing"]', 3],
-      ['chain', 'Chain', '4 cap+', 5900000, '["Multi-branch","Chain dashboard","Central menu","Advanced roles"]', 4],
+      ['plus', 'PLUS', '2 cap', 290000, '["POS Electron","Portal","Products","Transactions","Receipt"]', 1],
+      ['pro', 'PRO', '4 cap', 1900000, '["Customer Order App","Kitchen App","Staff POS","Portal","Dining session"]', 2],
+      ['starter', 'Starter', '2 cap', 290000, '["POS direct sale","Basic portal","Receipt"]', 3],
+      ['restaurant', 'Restaurant', '4 cap', 1900000, '["Customer order","Kitchen display","Table session","Staff billing"]', 4],
+      ['chain', 'Chain', '4 cap+', 5900000, '["Multi-branch","Chain dashboard","Central menu","Advanced roles"]', 5],
     ];
     packages.forEach((row) => {
       db.run(
@@ -132,6 +217,19 @@ function seedIfEmpty() {
       );
     });
   }
+
+  const plusExists = db.exec('SELECT id FROM platform_packages WHERE id = ?', ['plus']);
+  if (!plusExists.length || !plusExists[0].values.length) {
+    db.run(
+      `INSERT INTO platform_packages (id, name, level, price, modules, sort_order) VALUES (?, ?, ?, ?, ?, ?)`,
+      ['plus', 'PLUS', '2 cap', 290000, '["POS Electron","Portal","Products","Transactions","Receipt"]', 1]
+    );
+  }
+
+  db.run(
+    `UPDATE platform_packages SET name = ?, level = ?, price = ?, modules = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    ['PRO', '4 cap', 1900000, '["Customer Order App","Kitchen App","Staff POS","Portal","Dining session"]', 2, 'pro']
+  );
 
   const tenantCount = db.exec('SELECT COUNT(*) FROM platform_tenants')[0]?.values[0]?.[0] || 0;
   if (tenantCount === 0) {

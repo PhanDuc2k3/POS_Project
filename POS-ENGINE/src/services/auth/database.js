@@ -28,6 +28,11 @@ async function initDatabase() {
       display_name TEXT NOT NULL,
       email TEXT,
       role TEXT NOT NULL DEFAULT 'admin',
+      tenant_id INTEGER,
+      platform_account_id INTEGER,
+      activation_token_hash TEXT,
+      activation_expires_at DATETIME,
+      activation_used_at DATETIME,
       avatar TEXT,
       security_question TEXT,
       security_answer_hash TEXT,
@@ -85,6 +90,18 @@ async function initDatabase() {
     WHERE device_id IS NOT NULL
       AND device_id NOT LIKE 'DEV-%'
   `);
+
+  [
+    `ALTER TABLE users ADD COLUMN tenant_id INTEGER`,
+    `ALTER TABLE users ADD COLUMN platform_account_id INTEGER`,
+    `ALTER TABLE users ADD COLUMN activation_token_hash TEXT`,
+    `ALTER TABLE users ADD COLUMN activation_expires_at DATETIME`,
+    `ALTER TABLE users ADD COLUMN activation_used_at DATETIME`,
+  ].forEach((sql) => {
+    try {
+      db.run(sql);
+    } catch (e) {}
+  });
 
   // Login attempts (rate limiting)
   db.run(`

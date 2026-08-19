@@ -13,12 +13,20 @@ import { login, logout, getProfile } from './services/auth.js';
 import {
   bootstrap,
   createOrder,
+  approveOrder,
   approveTrialRequest,
+  cancelOrder,
+  confirmOrderPayment,
   inviteAccount,
+  markOrderContacted,
+  provisionOrder,
+  quoteOrder,
+  rejectOrder,
   rejectTrialRequest,
   togglePermission,
   toggleTenantStatus,
   updateTenantPackage,
+  waitOrderPayment,
 } from './services/platform.js';
 import { clearSession, getAccessToken, getRefreshToken, getUser } from './services/session.js';
 import { esc, money } from './utils/format.js';
@@ -181,6 +189,27 @@ function bindEvents() {
       if (action === 'approve-trial') await handleApproveTrial(target.dataset.id);
       if (action === 'reject-trial') await handleRejectTrial(target.dataset.id);
       if (action === 'create-order') await handleCreateOrder();
+      if (action === 'select-order') {
+        state.selectedOrderId = target.dataset.id;
+        saveState(state);
+        render();
+      }
+      if (action === 'order-contact') await handleOrderAction(markOrderContacted, target.dataset.id);
+      if (action === 'order-quote') await handleOrderAction(quoteOrder, target.dataset.id);
+      if (action === 'order-wait-payment') await handleOrderAction(waitOrderPayment, target.dataset.id);
+      if (action === 'order-confirm-payment') await handleOrderAction(confirmOrderPayment, target.dataset.id);
+      if (action === 'order-approve') {
+        if (confirm('Approve this order?')) await handleOrderAction(approveOrder, target.dataset.id);
+      }
+      if (action === 'order-reject') {
+        if (confirm('Reject this order?')) await handleOrderAction((id) => rejectOrder(id, 'Rejected by platform admin'), target.dataset.id);
+      }
+      if (action === 'order-cancel') {
+        if (confirm('Cancel this order?')) await handleOrderAction(cancelOrder, target.dataset.id);
+      }
+      if (action === 'order-provision') {
+        if (confirm('Provision tenant for this order?')) await handleOrderAction(provisionOrder, target.dataset.id);
+      }
       if (action === 'invite-account') await handleInviteAccount();
       if (action === 'toggle-permission') await handleTogglePermission(target.dataset.permission);
     } catch (err) {
@@ -222,6 +251,18 @@ async function handleCreateOrder() {
   if (!tenant) return;
   await createOrder(tenant.id, state.packageDraft);
   await loadPlatformData();
+}
+
+async function handleOrderAction(actionFn, id) {
+  if (!id) return;
+  state.loading = true;
+  render();
+  await actionFn(id);
+  await loadPlatformData();
+  state.selectedOrderId = id;
+  state.activeView = 'orders';
+  saveState(state);
+  render();
 }
 
 async function handleApproveTrial(id) {

@@ -6,6 +6,7 @@ const storeService = require('../services/store.service');
 const bankRepo = require('../repositories/bank.repo');
 const receiptRepo = require('../repositories/receipt.repo');
 const storeRepo = require('../repositories/store.repo');
+const config = require('../../../shared/config');
 
 function getUserFromHeaders(req) {
   return {
@@ -45,8 +46,18 @@ function getPosConfig(req, res) {
   res.json({ store, bank, receipt });
 }
 
+function provisionStore(req, res) {
+  if (req.headers['x-internal-token'] !== config.INTERNAL_SERVICE_TOKEN) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const result = storeService.provisionStore(req.body);
+  if (result.error) return res.status(result.status).json({ error: result.error });
+  return res.status(201).json(result.data);
+}
+
 module.exports = {
   getStore,
   updateStore,
   getPosConfig,
+  provisionStore,
 };

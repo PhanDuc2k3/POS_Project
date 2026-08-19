@@ -63,3 +63,14 @@ export async function submitTrialRequest(accessToken, payload) {
   if (!response.ok) throw new Error(data.error || 'Could not submit trial request');
   return data;
 }
+
+export async function submitPublicOrder(payload) {
+  const response = await fetch(`${API_URL}/public/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Could not submit order');
+  return data;
+}

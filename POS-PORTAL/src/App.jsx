@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
+import Activate from './pages/Activate';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
@@ -15,6 +16,7 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/activate" element={<Activate />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>

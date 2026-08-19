@@ -1,58 +1,78 @@
 export function renderFormsSection(state = {}) {
-  const signedIn = !!state.user;
   const request = state.myTrialRequest || null;
-  const locked = request && (request.status === 'pending' || request.status === 'approved');
-  const trialNote = !signedIn
-    ? 'Sign in first to submit a trial request.'
-    : locked
-      ? `Your request is ${request.status}. You cannot submit another one yet.`
-      : 'One request per account. We will unlock this form again after review.';
+  const status = String(request?.status || '').toUpperCase();
+  const locked = request && ['PENDING', 'CONTACTED', 'QUOTED', 'WAITING_PAYMENT', 'PAID', 'APPROVED', 'ACTIVE'].includes(status);
+  const trialNote = locked
+    ? `Yêu cầu hiện tại đang ở trạng thái ${status}.`
+    : 'Khách không cần tài khoản trước. Admin sẽ duyệt, tạo tenant và gửi tài khoản Portal sau.';
+  const requestStatus = request ? `
+    <div class="request-status">
+      <p class="eyebrow">Yêu cầu của bạn</p>
+      <strong>${request.id || 'REQ-DEMO'}</strong>
+      <span>${request.businessName || 'Doanh nghiệp'} · ${request.packageTier || 'PLUS'} · ${request.requestedStores || 1} cửa hàng</span>
+      <ol>
+        <li class="active">Đã gửi yêu cầu</li>
+        <li>Đang xem xét</li>
+        <li>Khởi tạo hệ thống</li>
+        <li>Sẵn sàng sử dụng</li>
+      </ol>
+    </div>
+  ` : '';
 
   return `
     <section class="section forms" id="trial">
       <div class="trial-panel">
         <div>
-          <p class="eyebrow">Start free trial</p>
-          <h2>Launch your demo workspace in minutes.</h2>
+          <p class="eyebrow">Request trial / buy</p>
+          <h2>Chọn gói, nhập số cửa hàng, gửi yêu cầu cho POS-Admin.</h2>
           <p>${trialNote}</p>
         </div>
-        <form class="form-card" data-form="trial">
-          <label>Restaurant name<input name="restaurant" placeholder="Saigon Bistro" required /></label>
-          <label>Contact name<input name="contactName" placeholder="Nguyen Van A" required /></label>
-          <label>Work email<input name="email" type="email" placeholder="owner@example.com" required /></label>
-          <label>Phone<input name="phone" placeholder="+84..." /></label>
-          <label>
-            Operating model
-            <select name="operatingMode">
-              <option value="simple">Counter service</option>
-              <option value="restaurant">Full-service restaurant</option>
-              <option value="chain">Multi-branch chain</option>
-            </select>
-          </label>
-          <label>
-            Package
-            <select name="packageTier">
-              <option value="starter">Starter</option>
-              <option value="pro">Pro</option>
-              <option value="restaurant" selected>Restaurant</option>
-              <option value="chain">Chain</option>
-            </select>
-          </label>
-          <button class="button primary" type="submit" ${!signedIn || locked ? 'disabled' : ''}>Create trial request</button>
-          <p class="form-message" role="status"></p>
-        </form>
+        <div class="trial-form-stack">
+          <form class="form-card" data-form="trial">
+            <label>Tên doanh nghiệp<input name="businessName" placeholder="ABC Coffee" required /></label>
+            <label>Người liên hệ<input name="contactName" placeholder="Nguyen Van A" required /></label>
+            <label>Email<input name="email" type="email" placeholder="owner@example.com" required /></label>
+            <label>Số điện thoại<input name="phone" placeholder="+84..." required /></label>
+            <div class="two-inputs">
+              <label>
+                Gói dịch vụ
+                <select name="packageTier">
+                  <option value="plus">PLUS</option>
+                  <option value="pro" selected>PRO</option>
+                </select>
+              </label>
+              <label>Số cửa hàng<input name="requestedStores" type="number" min="1" value="1" required /></label>
+            </div>
+            <div class="two-inputs">
+              <label>Số thiết bị<input name="requestedDevices" type="number" min="0" value="1" required /></label>
+              <label>
+                Loại hình
+                <select name="businessType">
+                  <option value="cafe">Cafe / cửa hàng</option>
+                  <option value="restaurant" selected>Nhà hàng</option>
+                  <option value="chain">Chuỗi nhiều chi nhánh</option>
+                </select>
+              </label>
+            </div>
+            <label>Ghi chú<textarea name="note" rows="3" placeholder="Mô hình quán, số chi nhánh dự kiến, nhu cầu triển khai..."></textarea></label>
+            <button class="button primary" type="submit" ${locked ? 'disabled' : ''}>Gửi yêu cầu</button>
+            <p class="form-message" role="status"></p>
+          </form>
+          ${requestStatus}
+        </div>
       </div>
     </section>
     <section class="section contact-signin contact-only" id="contact">
       <form class="contact-card" data-form="contact">
         <p class="eyebrow">Contact sales</p>
-        <h2>Talk to a POS specialist.</h2>
+        <h2>Dành cho chuỗi lớn cần tư vấn riêng.</h2>
         <div class="two-inputs">
-          <label>Name<input name="name" placeholder="Your name" required /></label>
-          <label>Phone<input name="phone" placeholder="+84..." required /></label>
+          <label>Họ tên<input name="name" placeholder="Your name" required /></label>
+          <label>Số điện thoại<input name="phone" placeholder="+84..." required /></label>
         </div>
-        <label>Message<textarea name="message" rows="4" placeholder="Tell us about your restaurant"></textarea></label>
-        <button class="button primary" type="submit">Send request</button>
+        <label>Email<input name="email" type="email" placeholder="owner@example.com" /></label>
+        <label>Nhu cầu<textarea name="message" rows="4" placeholder="Ví dụ: 20 cửa hàng, cần triển khai nhiều khu vực"></textarea></label>
+        <button class="button primary" type="submit">Gửi thông tin tư vấn</button>
         <p class="form-message" role="status"></p>
       </form>
     </section>
