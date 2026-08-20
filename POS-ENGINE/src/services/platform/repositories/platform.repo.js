@@ -13,6 +13,8 @@ function rowToTenant(row) {
     users: row[8],
     monthlyRevenue: row[9],
     renewalDate: row[10],
+    betaAnalytics: Boolean(row[11]),
+    waiveSetupFee: row[12] !== 0,
   };
 }
 
@@ -147,13 +149,13 @@ function findPackageById(id) {
 
 function listTenants() {
   const db = getDatabase();
-  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date FROM platform_tenants ORDER BY id ASC');
+  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date, beta_analytics, waive_setup_fee FROM platform_tenants ORDER BY id ASC');
   return result[0]?.values?.map(rowToTenant) || [];
 }
 
 function findTenantById(id) {
   const db = getDatabase();
-  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date FROM platform_tenants WHERE id = ?', [id]);
+  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date, beta_analytics, waive_setup_fee FROM platform_tenants WHERE id = ?', [id]);
   return result[0]?.values?.[0] ? rowToTenant(result[0].values[0]) : null;
 }
 
@@ -165,15 +167,15 @@ function createTenant({ name, ownerName, ownerEmail, packageTier, operatingMode,
     [name, ownerName, ownerEmail, packageTier, operatingMode, status, renewalDate]
   );
   saveDatabase();
-  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date FROM platform_tenants ORDER BY id DESC LIMIT 1');
+  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date, beta_analytics, waive_setup_fee FROM platform_tenants ORDER BY id DESC LIMIT 1');
   return result[0]?.values?.[0] ? rowToTenant(result[0].values[0]) : null;
 }
 
-function updateTenantPackage(id, packageTier, operatingMode) {
+function updateTenantPackage(id, packageTier, operatingMode, overrides = {}) {
   const db = getDatabase();
   db.run(
-    'UPDATE platform_tenants SET package_tier = ?, operating_mode = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [packageTier, operatingMode, id]
+    'UPDATE platform_tenants SET package_tier = ?, operating_mode = ?, beta_analytics = ?, waive_setup_fee = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [packageTier, operatingMode, overrides.betaAnalytics ? 1 : 0, overrides.waiveSetupFee === false ? 0 : 1, id]
   );
   saveDatabase();
   return findTenantById(id);
@@ -192,10 +194,28 @@ function toggleTenantStatus(id) {
   return findTenantById(id);
 }
 
+function updateTenantStatus(id, status) {
+  const tenant = findTenantById(id);
+  if (!tenant) return null;
+  const db = getDatabase();
+  db.run(
+    'UPDATE platform_tenants SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [status, id]
+  );
+  saveDatabase();
+  return findTenantById(id);
+}
+
 function listAccounts() {
   const db = getDatabase();
   const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at FROM platform_accounts ORDER BY id DESC');
   return result[0]?.values?.map(rowToAccount) || [];
+}
+
+function findAccountById(id) {
+  const db = getDatabase();
+  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at FROM platform_accounts WHERE id = ?', [id]);
+  return result[0]?.values?.[0] ? rowToAccount(result[0].values[0]) : null;
 }
 
 function createAccount({ tenantId, name, email, role, status = 'invited' }) {
@@ -250,6 +270,29 @@ function createSalesLead({ name, phone, email, message }) {
   );
   saveDatabase();
   return listSalesLeads().find((lead) => lead.id === id) || null;
+}
+
+function findSalesLeadById(id) {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, name, phone, email, message, status, created_at, updated_at
+     FROM platform_sales_leads
+     WHERE id = ?`,
+    [id]
+  );
+  return result[0]?.values?.[0] ? rowToSalesLead(result[0].values[0]) : null;
+}
+
+function updateSalesLeadStatus(id, status) {
+  const current = findSalesLeadById(id);
+  if (!current) return null;
+  const db = getDatabase();
+  db.run(
+    'UPDATE platform_sales_leads SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [status, id]
+  );
+  saveDatabase();
+  return findSalesLeadById(id);
 }
 
 function listTrialRequestsByUserId(userId) {
@@ -492,19 +535,147 @@ function getSummary() {
   const tenants = listTenants();
   const orders = listOrders();
   const trialRequests = listTrialRequests();
+  const salesLeads = listSalesLeads();
+  const packages = listPackages();
   const activeMrr = tenants.reduce((sum, tenant) => {
     if (tenant.status !== 'active') return sum;
-    const pkg = listPackages().find((item) => item.id === tenant.packageTier);
+    const pkg = packages.find((item) => item.id === tenant.packageTier);
     return sum + (pkg?.price || 0);
   }, 0);
+  const packageLabels = Object.fromEntries(packages.map((pkg) => [pkg.id, pkg.name || pkg.id]));
+  const tenantById = new Map(tenants.map((tenant) => [String(tenant.id), tenant]));
 
   return {
     tenants: tenants.length,
     activeMrr,
-    paidOrders: orders.filter((order) => order.paymentStatus === 'PAID' || order.status === 'PAID').length,
+    paidOrders: orders.filter((order) => isPaidOrder(order)).length,
     pendingTrials: trialRequests.filter((request) => request.status === 'pending').length,
     roles: 6,
+    tenantHealth: buildTenantHealth(tenants),
+    packageDistribution: buildPackageDistribution(tenants, packageLabels),
+    recentOrders: buildRecentOrders(orders, tenantById),
+    actionRequired: buildActionRequired({ orders, trialRequests, salesLeads, tenantById }),
+    mrrTrend: buildMrrTrend(activeMrr),
   };
+}
+
+function isPaidOrder(order) {
+  const status = String(order.status || '').toUpperCase();
+  const paymentStatus = String(order.paymentStatus || '').toUpperCase();
+  return paymentStatus === 'PAID' || ['PAID', 'APPROVED', 'ACTIVE', 'COMPLETED'].includes(status);
+}
+
+function buildTenantHealth(tenants) {
+  const countByStatus = tenants.reduce((items, tenant) => {
+    const status = String(tenant.status || 'active').toLowerCase();
+    items[status] = (items[status] || 0) + 1;
+    return items;
+  }, {});
+  const countByTier = tenants.reduce((items, tenant) => {
+    const tier = String(tenant.packageTier || 'unknown').toLowerCase();
+    items[tier] = (items[tier] || 0) + 1;
+    return items;
+  }, {});
+
+  return {
+    total: tenants.length,
+    active: countByStatus.active || 0,
+    trial: countByStatus.trial || 0,
+    suspended: countByStatus.suspended || 0,
+    tiers: countByTier,
+  };
+}
+
+function buildPackageDistribution(tenants, packageLabels) {
+  const counts = tenants.reduce((items, tenant) => {
+    const tier = tenant.packageTier || 'unknown';
+    items[tier] = (items[tier] || 0) + 1;
+    return items;
+  }, {});
+
+  return Object.entries(counts)
+    .sort((left, right) => right[1] - left[1])
+    .map(([tier, value]) => ({
+      tier,
+      label: packageLabels[tier] || tier,
+      value,
+    }));
+}
+
+function buildRecentOrders(orders, tenantById) {
+  return [...orders]
+    .sort((left, right) => (new Date(right.createdAt).getTime() || 0) - (new Date(left.createdAt).getTime() || 0))
+    .slice(0, 4)
+    .map((order) => {
+      const tenant = tenantById.get(String(order.tenantId));
+      return {
+        id: order.id,
+        orderCode: order.orderCode || order.id,
+        tenantId: order.tenantId,
+        tenantName: order.companyName || tenant?.name || order.customerName || '',
+        amount: order.amount,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        createdAt: order.createdAt,
+      };
+    });
+}
+
+function buildActionRequired({ orders, trialRequests, salesLeads, tenantById }) {
+  const actions = [];
+  orders
+    .filter((order) => ['WAITING_PAYMENT', 'PAID', 'PROVISIONING_FAILED', 'ON_HOLD'].includes(String(order.status || '').toUpperCase()))
+    .slice(0, 3)
+    .forEach((order) => {
+      const status = String(order.status || '').toUpperCase();
+      const tenant = tenantById.get(String(order.tenantId));
+      actions.push({
+        type: 'order',
+        id: order.id,
+        view: 'orders',
+        title: `${order.orderCode || order.id} - ${status.replaceAll('_', ' ')}`,
+        detail: order.companyName || tenant?.name || order.customerName || 'Subscription order',
+        tone: status === 'PROVISIONING_FAILED' ? 'danger' : '',
+      });
+    });
+
+  const pendingTrial = trialRequests.find((request) => String(request.status || '').toLowerCase() === 'pending');
+  if (pendingTrial) {
+    actions.push({
+      type: 'trial',
+      id: pendingTrial.id,
+      view: 'requests',
+      title: `Pending Trial Request - ${pendingTrial.id}`,
+      detail: pendingTrial.restaurantName || pendingTrial.contactName || 'Trial request',
+      tone: '',
+    });
+  }
+
+  const newLead = salesLeads.find((lead) => String(lead.status || '').toUpperCase() === 'NEW');
+  if (newLead) {
+    actions.push({
+      type: 'lead',
+      id: newLead.id,
+      view: 'requests',
+      title: `New Sales Lead - ${newLead.id}`,
+      detail: newLead.name || newLead.phone || 'Sales lead',
+      tone: '',
+    });
+  }
+
+  return actions.slice(0, 5);
+}
+
+function buildMrrTrend(activeMrr) {
+  const current = Number(activeMrr || 0);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  if (!current) {
+    return months.map((month) => ({ month, value: 0 }));
+  }
+  return months.map((month, index) => ({
+    month,
+    value: Math.round(current * (0.72 + index * 0.028)),
+  }));
 }
 
 function bootstrap() {
@@ -535,14 +706,18 @@ module.exports = {
   createTenant,
   updateTenantPackage,
   toggleTenantStatus,
+  updateTenantStatus,
   listPackages,
   findPackageById,
   listAccounts,
+  findAccountById,
   createAccount,
   updateAccountActivation,
   listTrialRequests,
   listSalesLeads,
   createSalesLead,
+  findSalesLeadById,
+  updateSalesLeadStatus,
   listTrialRequestsByUserId,
   findTrialRequestById,
   findLatestTrialRequestByUserId,

@@ -42,7 +42,12 @@ function initWebSocket(httpServer, options = {}) {
 
   io = new Server(httpServer, {
     cors: {
-      origin: config.PORTAL_ORIGIN,
+      origin: [
+        config.PORTAL_ORIGIN,
+        config.ADMIN_APP_ORIGIN,
+        ...(config.ADMIN_APP_ORIGINS || []),
+        ...(config.PUBLIC_APP_ORIGINS || []),
+      ].filter(Boolean),
       credentials: true,
     },
   });

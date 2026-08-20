@@ -9,5 +9,37 @@ export function loadState(initialState) {
 }
 
 export function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const safeState = {
+    ...state,
+    securityDraft: {
+      question: state.securityDraft?.question || '',
+      answer: '',
+      currentPassword: '',
+    },
+    passwordDraft: {
+      current: '',
+      next: '',
+      confirm: '',
+    },
+    resetDraft: {
+      username: state.resetDraft?.username || '',
+      question: state.resetDraft?.question || '',
+      answer: '',
+      resetToken: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+    activationDraft: {
+      activationToken: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+    realtime: {
+      connected: false,
+      error: '',
+      unread: state.realtime?.unread || 0,
+      events: state.realtime?.events || [],
+    },
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(safeState));
 }

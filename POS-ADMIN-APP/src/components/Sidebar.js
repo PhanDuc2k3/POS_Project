@@ -6,6 +6,7 @@ const navItems = [
   ['accounts', 'Accounts', 'accounts'],
   ['packages', 'Packages', 'package'],
   ['permissions', 'Permissions', 'key'],
+  ['audit', 'Audit Log', 'audit'],
 ];
 
 export function renderSidebar(activeView) {
@@ -19,7 +20,7 @@ export function renderSidebar(activeView) {
         </div>
       </div>
 
-      <button class="new-tenant-btn" data-action="view" data-view="tenants">
+      <button class="new-tenant-btn" data-action="open-create-tenant">
         <span class="plus-mark"></span>
         New Tenant
       </button>
@@ -30,7 +31,7 @@ export function renderSidebar(activeView) {
 
       <div class="sidebar-footer">
         <button class="nav-button utility" data-action="refresh-data"><i class="nav-icon sync"></i>Sync</button>
-        <button class="nav-button utility" data-action="view" data-view="accounts"><i class="nav-icon profile"></i>Profile</button>
+        <button class="nav-button utility" data-action="view" data-view="settings"><i class="nav-icon profile"></i>Profile</button>
         <button class="nav-button utility" data-action="sign-out"><i class="nav-icon signout"></i>Sign Out</button>
       </div>
     </aside>

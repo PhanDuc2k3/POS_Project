@@ -32,9 +32,15 @@ const fallbackAccounts = [
 ];
 
 export function renderAccountsPage(state) {
-  const accounts = state.accounts?.length ? state.accounts : fallbackAccounts;
-  const selected = accounts.find((account) => String(account.id) === String(state.selectedAccountId)) || null;
+  const sourceAccounts = state.accounts?.length ? state.accounts : fallbackAccounts;
+  const accounts = filterAccounts(sourceAccounts, state);
+  const pageSize = 10;
+  const page = clampPage(state.accountPage, accounts.length, pageSize);
+  const visibleAccounts = accounts.slice((page - 1) * pageSize, page * pageSize);
+  const selectedAccounts = new Set((state.selectedAccountIds || []).map(String));
+  const selected = sourceAccounts.find((account) => String(account.id) === String(state.selectedAccountId)) || null;
   const showInvite = Boolean(state.showInviteAccount);
+  const showFilters = Boolean(state.showAccountFilters);
 
   return `
     <section class="accounts-page">
@@ -47,31 +53,57 @@ export function renderAccountsPage(state) {
       </header>
 
       <section class="accounts-table-card">
+        ${selectedAccounts.size ? `
+          <div class="bulk-action-bar">
+            <strong>${esc(selectedAccounts.size)} selected</strong>
+            <button type="button" data-action="bulk-resend-invites">Resend Invites</button>
+            <button type="button" data-action="export-accounts">Export</button>
+            <button type="button" data-action="clear-account-selection">Clear</button>
+          </div>
+        ` : ''}
         <div class="accounts-toolbar">
-          <button type="button" class="accounts-tenant-filter"><i></i>All Tenants<b></b></button>
+          <label class="accounts-tenant-filter"><i></i>
+            <select data-field="accountTenantFilter" aria-label="Filter account tenant">
+              <option value="all">All Tenants</option>
+              ${tenantOptions(state).map((tenant) => `<option value="${esc(tenant.id)}" ${String(state.accountTenantFilter) === String(tenant.id) ? 'selected' : ''}>${esc(tenant.name)}</option>`).join('')}
+            </select>
+            <b></b>
+          </label>
           <label class="accounts-search">
             <i></i>
-            <input aria-label="Search accounts" placeholder="Search accounts..." />
+            <input data-field="accountSearch" value="${esc(state.accountSearch || '')}" aria-label="Search accounts" placeholder="Search accounts..." />
           </label>
           <div class="accounts-toolbar-actions">
-            <button type="button" class="accounts-icon-btn filter" aria-label="Filter accounts"></button>
-            <button type="button" class="accounts-icon-btn export" aria-label="Export accounts"></button>
+            <button type="button" class="accounts-icon-btn filter ${showFilters ? 'active' : ''}" data-action="toggle-account-filters" aria-label="Filter accounts"></button>
+            <button type="button" class="accounts-icon-btn export" data-action="export-accounts" aria-label="Export accounts"></button>
           </div>
         </div>
+        ${showFilters ? `
+          <div class="accounts-filter-row">
+            <label>Role
+              <select data-field="accountRoleFilter">
+                <option value="all">All Roles</option>
+                ${Object.keys(roleLabels).filter((role) => role !== 'platform_admin').map((role) => `<option value="${esc(role)}" ${state.accountRoleFilter === role ? 'selected' : ''}>${esc(roleLabels[role])}</option>`).join('')}
+              </select>
+            </label>
+            <label>Status
+              <select data-field="accountStatusFilter">
+                <option value="all">All Statuses</option>
+                ${uniqueOptions(sourceAccounts.map((account) => String(account.status || '').toLowerCase())).map((status) => `<option value="${esc(status)}" ${state.accountStatusFilter === status ? 'selected' : ''}>${esc(statusLabel(status))}</option>`).join('')}
+              </select>
+            </label>
+          </div>
+        ` : ''}
 
         <div class="accounts-table">
           ${tableHeader(['', 'User Details', 'Tenant', 'Role', 'Status', 'Actions'])}
-          ${accounts.map((account) => renderAccountRow(account, state)).join('')}
+          ${visibleAccounts.map((account) => renderAccountRow(account, state, selectedAccounts)).join('') || '<div class="empty">No accounts match the filters</div>'}
         </div>
 
         <div class="accounts-pagination">
-          <span>Showing 1 to ${Math.min(accounts.length, 10)} of ${accounts.length || 0} accounts</span>
+          <span>Showing ${accounts.length ? (page - 1) * pageSize + 1 : 0} to ${Math.min(page * pageSize, accounts.length)} of ${accounts.length || 0} accounts</span>
           <div>
-            <button type="button">‹</button>
-            <button type="button" class="active">1</button>
-            <button type="button">2</button>
-            <button type="button">3</button>
-            <button type="button">›</button>
+            ${paginationButtons(page, Math.max(1, Math.ceil(accounts.length / pageSize)), 'set-account-page')}
           </div>
         </div>
       </section>
@@ -82,11 +114,11 @@ export function renderAccountsPage(state) {
   `;
 }
 
-function renderAccountRow(account, state) {
+function renderAccountRow(account, state, selectedAccounts) {
   const tenantName = account.tenantName || tenantLabel(account.tenantId, state);
   return `
     <div class="accounts-table-row">
-      <label class="account-check"><input type="checkbox" /></label>
+      <label class="account-check"><input type="checkbox" data-action="toggle-account-selection" data-id="${esc(account.id)}" ${selectedAccounts.has(String(account.id)) ? 'checked' : ''} /></label>
       <button type="button" class="account-user-cell" data-action="select-account" data-id="${esc(account.id)}">
         <span>${esc(initials(account.name))}</span>
         <strong>${esc(account.name || '-')}</strong>
@@ -130,11 +162,49 @@ function renderAccountDetail(account, state) {
       </section>
 
       <div class="account-detail-actions">
-        <button type="button" class="account-secondary-btn">Resend Invite</button>
+        <button type="button" class="account-secondary-btn" data-action="resend-account-invite" data-id="${esc(account.id)}">Resend Invite</button>
         <button type="button" class="account-primary-btn" data-action="close-account-detail">Done</button>
       </div>
     </aside>
   `;
+}
+
+function filterAccounts(accounts, state) {
+  const query = String(state.accountSearch || '').trim().toLowerCase();
+  return accounts.filter((account) => {
+    const tenantMatch = state.accountTenantFilter === 'all' || !state.accountTenantFilter || String(account.tenantId) === String(state.accountTenantFilter);
+    const roleMatch = state.accountRoleFilter === 'all' || !state.accountRoleFilter || account.role === state.accountRoleFilter;
+    const statusMatch = state.accountStatusFilter === 'all' || !state.accountStatusFilter || String(account.status || '').toLowerCase() === state.accountStatusFilter;
+    const haystack = [account.id, account.name, account.email, account.role, tenantLabel(account.tenantId, state)].join(' ').toLowerCase();
+    return tenantMatch && roleMatch && statusMatch && (!query || haystack.includes(query));
+  });
+}
+
+function tenantOptions(state) {
+  const tenants = state.tenants?.length ? state.tenants : [];
+  return tenants.length ? tenants : [{ id: 1, name: 'Acme Corp (Retail)' }, { id: 2, name: 'Global Coffee Co.' }];
+}
+
+function uniqueOptions(values) {
+  return [...new Set(values.filter(Boolean).map((value) => String(value).toLowerCase()))];
+}
+
+function clampPage(value, total, pageSize) {
+  const max = Math.max(1, Math.ceil(total / pageSize));
+  return Math.min(Math.max(1, Number(value || 1)), max);
+}
+
+function paginationButtons(page, totalPages, action) {
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1).filter((item) => item === 1 || item === totalPages || Math.abs(item - page) <= 1);
+  const output = [`<button type="button" data-action="${action}" data-page="${Math.max(1, page - 1)}" ${page === 1 ? 'disabled' : ''}>Prev</button>`];
+  let previous = 0;
+  pages.forEach((item) => {
+    if (previous && item - previous > 1) output.push('<button type="button" disabled>...</button>');
+    output.push(`<button type="button" data-action="${action}" data-page="${item}" class="${item === page ? 'active' : ''}">${item}</button>`);
+    previous = item;
+  });
+  output.push(`<button type="button" data-action="${action}" data-page="${Math.min(totalPages, page + 1)}" ${page === totalPages ? 'disabled' : ''}>Next</button>`);
+  return output.join('');
 }
 
 function renderInviteModal(state) {
@@ -177,7 +247,7 @@ function renderInviteModal(state) {
 }
 
 function tableHeader(items) {
-  return `<div class="accounts-table-head">${items.map((item) => `<span>${esc(item)}</span>`).join('')}</div>`;
+  return `<div class="accounts-table-head">${items.map((item, index) => `<span>${index === 0 ? '<input type="checkbox" data-action="toggle-all-accounts" aria-label="Select visible accounts" />' : esc(item)}</span>`).join('')}</div>`;
 }
 
 function infoRow(label, value) {
@@ -221,3 +291,4 @@ function formatDate(value) {
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
+

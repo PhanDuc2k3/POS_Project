@@ -21,16 +21,28 @@ const ORDER_ACTIONS = {
     ['order-approve', 'Approve'],
   ],
   APPROVED: [
-    ['order-provision', 'Force Complete'],
+    ['order-provision', 'Provision Tenant'],
   ],
-  PROVISIONING: [
-    ['order-provision', 'Force Complete'],
+  PROVISIONING_FAILED: [
+    ['order-provision', 'Retry Provisioning'],
+  ],
+  ON_HOLD: [
+    ['order-provision', 'Resume Provisioning'],
   ],
 };
 
 export function renderOrdersPage(state, helpers) {
-  const orders = state.orders || [];
+  const sourceOrders = state.orders || [];
+  const orders = filterOrders(sourceOrders, state);
   const selected = orders.find((order) => order.id === state.selectedOrderId || order.orderCode === state.selectedOrderId) || null;
+  const tabs = [
+    ['all', 'All Orders'],
+    ['pending', 'Pending'],
+    ['in_progress', 'In Progress'],
+    ['paid', 'Paid'],
+    ['provisioning', 'Provisioning'],
+    ['completed', 'Completed'],
+  ];
 
   return `
     <section class="orders-page ${selected ? 'detail-open' : ''}">
@@ -40,16 +52,35 @@ export function renderOrdersPage(state, helpers) {
       </header>
 
       <div class="order-filter-tabs" aria-label="Order filters">
-        ${['All Orders', 'Pending', 'In Progress', 'Paid', 'Provisioning', 'Completed'].map((label, index) => `
-          <button type="button" class="${index === 0 ? 'active' : ''}">${label}</button>
+        ${tabs.map(([value, label]) => `
+          <button type="button" class="${(state.orderStatusFilter || 'all') === value ? 'active' : ''}" data-action="set-order-status-filter" data-status="${esc(value)}">${esc(label)}</button>
         `).join('')}
       </div>
 
+      ${renderPublicOrderLookup(state)}
+
       <section class="orders-card">
         <div class="order-filter-row">
-          <button type="button">Package: All <i></i></button>
-          <button type="button">Status: Any <i></i></button>
-          <button type="button">Date: Last 30 Days <i></i></button>
+          <label>Package
+            <select data-field="orderPackageFilter">
+              <option value="all">All</option>
+              ${uniqueOptions(sourceOrders.map((order) => order.packageTier)).map((value) => `<option value="${esc(value)}" ${state.orderPackageFilter === value ? 'selected' : ''}>${esc(packageLabel(value))}</option>`).join('')}
+            </select>
+          </label>
+          <label>Status
+            <select data-field="orderDetailStatusFilter">
+              <option value="all">Any</option>
+              ${uniqueOptions(sourceOrders.map((order) => String(order.status || '').toUpperCase())).map((value) => `<option value="${esc(value)}" ${state.orderDetailStatusFilter === value ? 'selected' : ''}>${esc(statusLabel(value))}</option>`).join('')}
+            </select>
+          </label>
+          <label>Date
+            <select data-field="orderDateFilter">
+              <option value="all" ${state.orderDateFilter === 'all' ? 'selected' : ''}>All time</option>
+              <option value="7" ${state.orderDateFilter === '7' ? 'selected' : ''}>Last 7 days</option>
+              <option value="30" ${!state.orderDateFilter || state.orderDateFilter === '30' ? 'selected' : ''}>Last 30 days</option>
+              <option value="90" ${state.orderDateFilter === '90' ? 'selected' : ''}>Last 90 days</option>
+            </select>
+          </label>
         </div>
 
         <div class="orders-list-table">
@@ -61,6 +92,81 @@ export function renderOrdersPage(state, helpers) {
 
       ${selected ? renderOrderDetailPopup(selected, helpers) : ''}
     </section>
+  `;
+}
+
+function filterOrders(orders, state) {
+  return orders.filter((order) => {
+    const status = String(order.status || '').toUpperCase();
+    const tabMatch = orderTabMatches(status, state.orderStatusFilter || 'all');
+    const packageMatch = state.orderPackageFilter === 'all' || !state.orderPackageFilter || order.packageTier === state.orderPackageFilter;
+    const statusMatch = state.orderDetailStatusFilter === 'all' || !state.orderDetailStatusFilter || status === state.orderDetailStatusFilter;
+    const dateMatch = orderDateMatches(order.createdAt, state.orderDateFilter || 'all');
+    return tabMatch && packageMatch && statusMatch && dateMatch;
+  });
+}
+
+function orderTabMatches(status, filter) {
+  if (filter === 'all') return true;
+  if (filter === 'pending') return status === 'PENDING';
+  if (filter === 'in_progress') return ['CONTACTED', 'QUOTED', 'WAITING_PAYMENT'].includes(status);
+  if (filter === 'paid') return status === 'PAID' || status === 'APPROVED';
+  if (filter === 'provisioning') return ['PROVISIONING', 'PROVISIONING_FAILED', 'ON_HOLD'].includes(status);
+  if (filter === 'completed') return ['COMPLETED', 'ACTIVE'].includes(status);
+  return true;
+}
+
+function orderDateMatches(value, range) {
+  if (!range || range === 'all') return true;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - Number(range));
+  return date >= cutoff;
+}
+
+function uniqueOptions(values) {
+  return [...new Set(values.filter(Boolean).map((value) => String(value)))];
+}
+
+function renderPublicOrderLookup(state) {
+  const result = state.publicOrderLookupResult || null;
+  return `
+    <section class="public-order-lookup">
+      <div class="public-order-copy">
+        <h2>Public Order Lookup</h2>
+        <p>Check the status returned to customers from the public order status endpoint.</p>
+      </div>
+      <div class="public-order-search">
+        <label>
+          <span>Order code</span>
+          <input data-field="publicOrderLookupCode" value="${esc(state.publicOrderLookupCode || '')}" placeholder="ORD-2026-000001" />
+        </label>
+        <button type="button" data-action="lookup-public-order">Lookup</button>
+        ${result ? '<button type="button" class="public-order-clear" data-action="clear-public-order-lookup">Clear</button>' : ''}
+      </div>
+      ${result ? renderPublicOrderResult(result) : ''}
+    </section>
+  `;
+}
+
+function renderPublicOrderResult(order) {
+  return `
+    <div class="public-order-result">
+      <span class="order-status-pill ${statusTone(order.status)}">${esc(statusLabel(order.status))}</span>
+      <div>
+        <strong>${esc(order.orderCode || '-')}</strong>
+        <small>Created ${esc(formatShortDate(order.createdAt) || '-')}</small>
+      </div>
+      <div>
+        <strong>${esc(packageLabel(order.packageTier))}</strong>
+        <small>${esc(order.requestedStoreCount || 1)} ${Number(order.requestedStoreCount || 1) === 1 ? 'Store' : 'Stores'}</small>
+      </div>
+      <div>
+        <strong>${esc(statusLabel(order.paymentStatus || 'UNPAID'))}</strong>
+        <small>Payment status</small>
+      </div>
+    </div>
   `;
 }
 
@@ -97,6 +203,7 @@ function renderOrderDetailPopup(order, helpers) {
 }
 
 function renderOrderDetail(order, helpers) {
+  const status = String(order.status || '').toUpperCase();
   const actions = (ORDER_ACTIONS[String(order.status || '').toUpperCase()] || [])
     .map(([action, label, tone]) => `<button class="detail-action-btn ${tone || 'primary'}" data-action="${action}" data-id="${esc(order.id)}">${esc(label)}</button>`)
     .join('');
@@ -104,6 +211,7 @@ function renderOrderDetail(order, helpers) {
   const total = Number(order.amount || 0);
   const base = Math.round(total * 0.72);
   const hardware = Math.max(0, total - base);
+  const canHold = ['APPROVED', 'PROVISIONING', 'PROVISIONING_FAILED'].includes(status);
 
   return `
     <aside class="order-detail-drawer" role="dialog" aria-modal="true" aria-label="Order details">
@@ -146,8 +254,8 @@ function renderOrderDetail(order, helpers) {
       </section>
 
       <div class="order-drawer-actions">
-        <button class="detail-action-btn muted" type="button">Hold Provisioning</button>
-        ${actions || '<button class="detail-action-btn primary" type="button">Force Complete</button>'}
+        ${canHold ? `<button class="detail-action-btn muted" type="button" data-action="order-hold-provisioning" data-id="${esc(order.id)}">Hold Provisioning</button>` : ''}
+        ${actions}
       </div>
     </aside>
   `;
@@ -198,7 +306,7 @@ function statusLabel(value) {
 
 function statusTone(value) {
   const status = String(value || '').toUpperCase();
-  if (['PROVISIONING', 'APPROVED'].includes(status)) return 'provisioning';
+  if (['PROVISIONING', 'APPROVED', 'ON_HOLD'].includes(status)) return 'provisioning';
   if (['PAID', 'COMPLETED', 'ACTIVE'].includes(status)) return 'success';
   if (['REJECTED', 'CANCELLED', 'FAILED', 'PROVISIONING_FAILED'].includes(status)) return 'danger';
   if (['PENDING', 'CONTACTED', 'QUOTED', 'WAITING_PAYMENT'].includes(status)) return 'warning';

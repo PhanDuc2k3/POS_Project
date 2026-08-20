@@ -27,6 +27,33 @@ function listTenants(user) {
   return { data: repo.listTenants() };
 }
 
+function createTenant(user, payload) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+
+  const name = String(payload?.name || '').trim();
+  const ownerName = String(payload?.ownerName || '').trim();
+  const ownerEmail = String(payload?.ownerEmail || '').trim();
+  const packageTier = String(payload?.packageTier || 'trial').trim();
+  const operatingMode = String(payload?.operatingMode || 'simple').trim();
+  const status = String(payload?.status || 'active').trim().toLowerCase();
+  const renewalDate = String(payload?.renewalDate || '').trim() || null;
+
+  if (!name || !ownerName || !ownerEmail) {
+    return { error: 'name, ownerName and ownerEmail required', status: 400 };
+  }
+  if (!repo.findPackageById(packageTier)) {
+    return { error: 'Package not found', status: 404 };
+  }
+  if (!['active', 'trial', 'suspended'].includes(status)) {
+    return { error: 'Invalid tenant status', status: 400 };
+  }
+
+  const tenant = repo.createTenant({ name, ownerName, ownerEmail, packageTier, operatingMode, status, renewalDate });
+  const account = repo.createAccount({ tenantId: tenant.id, name: ownerName, email: ownerEmail, role: 'store_owner', status: 'active' });
+  return { data: { tenant, account } };
+}
+
 function listTrialRequests(user) {
   const access = requirePlatformAdmin(user);
   if (access) return access;
@@ -45,7 +72,13 @@ function updateTenantPackage(user, tenantId, payload) {
   if (!packageTier || !operatingMode) {
     return { error: 'packageTier and operatingMode required', status: 400 };
   }
-  const tenant = repo.updateTenantPackage(tenantId, packageTier, operatingMode);
+  if (!repo.findPackageById(packageTier)) {
+    return { error: 'Package not found', status: 404 };
+  }
+  const tenant = repo.updateTenantPackage(tenantId, packageTier, operatingMode, {
+    betaAnalytics: Boolean(payload?.betaAnalytics),
+    waiveSetupFee: payload?.waiveSetupFee !== false,
+  });
   if (!tenant) return { error: 'Tenant not found', status: 404 };
   return { data: tenant };
 }
@@ -54,6 +87,18 @@ function toggleTenantStatus(user, tenantId) {
   const access = requirePlatformAdmin(user);
   if (access) return access;
   const tenant = repo.toggleTenantStatus(tenantId);
+  if (!tenant) return { error: 'Tenant not found', status: 404 };
+  return { data: tenant };
+}
+
+function updateTenantStatus(user, tenantId, payload) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const status = String(payload?.status || '').trim().toLowerCase();
+  if (!['active', 'trial', 'suspended'].includes(status)) {
+    return { error: 'Invalid tenant status', status: 400 };
+  }
+  const tenant = repo.updateTenantStatus(tenantId, status);
   if (!tenant) return { error: 'Tenant not found', status: 404 };
   return { data: tenant };
 }
@@ -79,6 +124,15 @@ function inviteAccount(user, payload) {
   }
   const name = String(email).split('@')[0];
   return { data: repo.createAccount({ tenantId, name, email, role }) };
+}
+
+function resendAccountInvite(user, accountId) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const account = repo.findAccountById(accountId);
+  if (!account) return { error: 'Account not found', status: 404 };
+  const token = repo.createPassword();
+  return { data: repo.updateAccountActivation(account.id, token) };
 }
 
 function submitTrialRequest(payload) {
@@ -281,6 +335,21 @@ function createPublicSalesLead(payload) {
   };
 }
 
+function updateSalesLeadStatus(user, leadId, payload) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+
+  const status = String(payload?.status || '').trim().toUpperCase();
+  const allowed = ['NEW', 'CONTACTED', 'QUALIFIED', 'LOST'];
+  if (!allowed.includes(status)) {
+    return { error: 'Invalid sales lead status', status: 400 };
+  }
+
+  const lead = repo.updateSalesLeadStatus(leadId, status);
+  if (!lead) return { error: 'Sales lead not found', status: 404 };
+  return { data: lead };
+}
+
 function createOrder(user, payload) {
   const access = requirePlatformAdmin(user);
   if (access) return access;
@@ -355,6 +424,24 @@ function cancelOrder(user, orderId) {
   return transitionOrder(user, orderId, 'CANCELLED');
 }
 
+function holdOrderProvisioning(user, orderId) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const order = repo.findOrderById(orderId);
+  if (!order) return { error: 'Order not found', status: 404 };
+  const status = String(order.status || '').toUpperCase();
+  if (!['APPROVED', 'PROVISIONING', 'PROVISIONING_FAILED'].includes(status)) {
+    return { error: 'Only approved or provisioning orders can be held', status: 409 };
+  }
+  return {
+    data: repo.updateOrder(order.id, {
+      status: 'ON_HOLD',
+      provisioningStep: 'ON_HOLD_BY_ADMIN',
+      failureReason: null,
+    }),
+  };
+}
+
 async function provisionOrder(user, orderId) {
   const access = requirePlatformAdmin(user);
   if (access) return access;
@@ -380,13 +467,16 @@ module.exports = {
   getBootstrap,
   getSummary,
   listTenants,
+  createTenant,
   listTrialRequests,
   getMyTrialRequest,
   updateTenantPackage,
   toggleTenantStatus,
+  updateTenantStatus,
   listPackages,
   listAccounts,
   inviteAccount,
+  resendAccountInvite,
   submitTrialRequest,
   approveTrialRequest,
   rejectTrialRequest,
@@ -395,6 +485,7 @@ module.exports = {
   createPublicOrder,
   getPublicOrderStatus,
   createPublicSalesLead,
+  updateSalesLeadStatus,
   createOrder,
   markOrderContacted,
   quoteOrder,
@@ -403,6 +494,7 @@ module.exports = {
   approveOrder,
   rejectOrder,
   cancelOrder,
+  holdOrderProvisioning,
   provisionOrder,
   getPermission,
   toggleRolePermission,

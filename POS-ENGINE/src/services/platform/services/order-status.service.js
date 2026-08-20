@@ -7,6 +7,7 @@ const TRANSITIONS = {
   APPROVED: new Set(['PROVISIONING']),
   PROVISIONING: new Set(['ACTIVE', 'PROVISIONING_FAILED']),
   PROVISIONING_FAILED: new Set(['PROVISIONING']),
+  ON_HOLD: new Set(['PROVISIONING']),
   ACTIVE: new Set([]),
   REJECTED: new Set([]),
   CANCELLED: new Set([]),

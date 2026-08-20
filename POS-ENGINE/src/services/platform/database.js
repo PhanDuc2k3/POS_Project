@@ -41,6 +41,8 @@ async function initDatabase() {
       users INTEGER DEFAULT 1,
       monthly_revenue REAL DEFAULT 0,
       renewal_date TEXT,
+      beta_analytics INTEGER DEFAULT 0,
+      waive_setup_fee INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -178,6 +180,8 @@ async function initDatabase() {
   [
     `ALTER TABLE platform_accounts ADD COLUMN activation_token TEXT`,
     `ALTER TABLE platform_accounts ADD COLUMN activation_sent_at DATETIME`,
+    `ALTER TABLE platform_tenants ADD COLUMN beta_analytics INTEGER DEFAULT 0`,
+    `ALTER TABLE platform_tenants ADD COLUMN waive_setup_fee INTEGER DEFAULT 1`,
     `ALTER TABLE platform_subscription_orders ADD COLUMN order_code TEXT`,
     `ALTER TABLE platform_subscription_orders ADD COLUMN customer_name TEXT`,
     `ALTER TABLE platform_subscription_orders ADD COLUMN company_name TEXT`,

@@ -1,4 +1,5 @@
 import { esc } from '../utils/format.js';
+import { permissionCatalog } from '../data/platform.js';
 
 const roles = [
   ['store_owner', 'Owner', 'Full Access'],
@@ -8,7 +9,7 @@ const roles = [
   ['kitchen', 'Viewer', 'Read-only'],
 ];
 
-const groups = [
+const baseGroups = [
   {
     title: 'Store Management',
     icon: 'store',
@@ -35,13 +36,15 @@ const groups = [
 ];
 
 export function renderPermissionsPage(state) {
+  const groups = buildPermissionGroups();
+  const visibleGroups = filterGroups(groups, state.permissionSearch);
   return `
     <section class="permissions-page">
       <header class="permissions-topline">
         <div class="permissions-breadcrumb">Administration <span></span> <strong>Permissions</strong></div>
         <label class="permissions-search">
           <i></i>
-          <input aria-label="Search permissions" placeholder="Search permissions..." />
+          <input data-field="permissionSearch" value="${esc(state.permissionSearch || '')}" aria-label="Search permissions" placeholder="Search permissions..." />
         </label>
       </header>
 
@@ -51,8 +54,8 @@ export function renderPermissionsPage(state) {
           <p>Configure granular capabilities available to each platform role. Access to certain domains may be restricted by your active subscription tier. Changes are applied globally across all active sessions upon saving.</p>
         </div>
         <div class="permissions-actions">
-          <button type="button" class="permission-discard-btn">Discard Changes</button>
-          <button type="button" class="permission-save-btn">Save Configuration</button>
+          <button type="button" class="permission-discard-btn" data-action="discard-permissions" ${state.permissionDirty ? '' : 'disabled'}>Discard Changes</button>
+          <button type="button" class="permission-save-btn" data-action="save-permissions" ${state.permissionDirty ? '' : 'disabled'}>Save Configuration</button>
         </div>
       </section>
 
@@ -66,10 +69,43 @@ export function renderPermissionsPage(state) {
             </span>
           `).join('')}
         </div>
-        ${groups.map((group) => renderGroup(group, state)).join('')}
+        ${visibleGroups.map((group) => renderGroup(group, state)).join('') || '<div class="empty">No permissions match the search</div>'}
       </section>
     </section>
   `;
+}
+
+function buildPermissionGroups() {
+  const described = new Set(baseGroups.flatMap((group) => group.permissions.map(([id]) => id)));
+  const extras = permissionCatalog.filter((permission) => !described.has(permission.id));
+  const accessGroups = [
+    {
+      title: 'Platform Administration',
+      icon: 'store',
+      permissions: extras
+        .filter((permission) => ['tenant.manage', 'package.assign', 'order.manage', 'account.manage', 'permission.manage', 'audit.view'].includes(permission.id))
+        .map((permission) => [permission.id, permission.label, permission.id]),
+    },
+    {
+      title: 'Operations',
+      icon: 'catalog',
+      permissions: extras
+        .filter((permission) => !['tenant.manage', 'package.assign', 'order.manage', 'account.manage', 'permission.manage', 'audit.view'].includes(permission.id))
+        .map((permission) => [permission.id, permission.label, permission.id]),
+    },
+  ].filter((group) => group.permissions.length);
+  return [...baseGroups, ...accessGroups];
+}
+
+function filterGroups(items, queryValue) {
+  const query = String(queryValue || '').trim().toLowerCase();
+  if (!query) return items;
+  return items
+    .map((group) => ({
+      ...group,
+      permissions: group.permissions.filter((permission) => [group.title, ...permission].join(' ').toLowerCase().includes(query)),
+    }))
+    .filter((group) => group.permissions.length);
 }
 
 function renderGroup(group, state) {
@@ -95,24 +131,18 @@ function renderPermissionRow(permission, state) {
 }
 
 function renderPermissionCell(role, permission, state) {
-  const enabled = new Set(state.permissions?.[role] || []);
-  const checked = enabled.has(permission) || inferredDefault(role, permission);
+  const permissions = state.permissionDraft || state.permissions || {};
+  const enabled = new Set(permissions?.[role] || []);
+  const checked = enabled.has(permission);
   return `
     <label class="permission-check-cell">
       <input
         type="checkbox"
-        data-action="toggle-permission"
+        data-action="toggle-permission-draft"
         data-role="${esc(role)}"
         data-permission="${esc(permission)}"
         ${checked ? 'checked' : ''}
       />
     </label>
   `;
-}
-
-function inferredDefault(role, permission) {
-  if (role === 'store_owner') return true;
-  if (role === 'chain_admin') return true;
-  if (role === 'manager') return ['branch.manage', 'product.manage', 'transaction.view'].includes(permission);
-  return false;
 }

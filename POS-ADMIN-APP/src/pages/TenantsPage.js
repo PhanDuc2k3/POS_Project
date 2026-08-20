@@ -40,7 +40,12 @@ const fallbackTenants = [
 ];
 
 export function renderTenantsPage(state) {
-  const tenants = state.tenants?.length ? state.tenants : fallbackTenants;
+  const sourceTenants = state.tenants?.length ? state.tenants : fallbackTenants;
+  const tenants = filterTenants(sourceTenants, state);
+  const pageSize = 10;
+  const page = clampPage(state.tenantPage, tenants.length, pageSize);
+  const visibleTenants = tenants.slice((page - 1) * pageSize, page * pageSize);
+  const selected = new Set((state.selectedTenantIds || []).map(String));
   const active = tenants.filter((tenant) => statusOf(tenant) === 'active').length;
   const suspended = tenants.filter((tenant) => statusOf(tenant) === 'suspended').length;
   const totalStores = tenants.reduce((sum, tenant) => sum + Number(tenant.branches || 0), 0);
@@ -53,8 +58,8 @@ export function renderTenantsPage(state) {
           <p>Manage all businesses using the POS platform.</p>
         </div>
         <div class="tenants-heading-actions">
-          <button type="button" class="tenant-export-btn"><i></i>Export</button>
-          <button type="button" class="tenant-add-btn" data-action="view" data-view="requests"><span></span>Add Tenant</button>
+          <button type="button" class="tenant-export-btn" data-action="export-tenants"><i></i>Export</button>
+          <button type="button" class="tenant-add-btn" data-action="open-create-tenant"><span></span>Add Tenant</button>
         </div>
       </header>
 
@@ -66,41 +71,139 @@ export function renderTenantsPage(state) {
       </section>
 
       <section class="tenants-table-card">
+        ${selected.size ? `
+          <div class="bulk-action-bar">
+            <strong>${esc(selected.size)} selected</strong>
+            <button type="button" data-action="bulk-tenant-status" data-status="active">Activate</button>
+            <button type="button" data-action="bulk-tenant-status" data-status="suspended">Suspend</button>
+            <button type="button" data-action="clear-tenant-selection">Clear</button>
+          </div>
+        ` : ''}
         <div class="tenants-toolbar">
           <label class="tenant-search">
             <i></i>
-            <input aria-label="Search tenants" placeholder="Search tenant name or ID..." />
+            <input data-field="tenantSearch" value="${esc(state.tenantSearch || '')}" aria-label="Search tenants" placeholder="Search tenant name or ID..." />
           </label>
           <div class="tenant-filters">
-            <button type="button">All Packages</button>
-            <button type="button">All Modes</button>
-            <button type="button">Status: All</button>
-            <button type="button" class="tenant-filter-icon" aria-label="Filter options"></button>
+            <select data-field="tenantPackageFilter" aria-label="Filter tenant package">
+              <option value="all">All Packages</option>
+              ${uniqueOptions(sourceTenants.map((tenant) => tenant.packageTier)).map((value) => `<option value="${esc(value)}" ${state.tenantPackageFilter === value ? 'selected' : ''}>${esc(packageLabel(value))}</option>`).join('')}
+            </select>
+            <select data-field="tenantModeFilter" aria-label="Filter tenant mode">
+              <option value="all">All Modes</option>
+              ${uniqueOptions(sourceTenants.map((tenant) => tenant.operatingMode)).map((value) => `<option value="${esc(value)}" ${state.tenantModeFilter === value ? 'selected' : ''}>${esc(modeLabel(value))}</option>`).join('')}
+            </select>
+            <select data-field="tenantStatusFilter" aria-label="Filter tenant status">
+              <option value="all">Status: All</option>
+              ${uniqueOptions(sourceTenants.map((tenant) => statusOf(tenant))).map((value) => `<option value="${esc(value)}" ${state.tenantStatusFilter === value ? 'selected' : ''}>${esc(statusLabel(value))}</option>`).join('')}
+            </select>
           </div>
         </div>
 
         <div class="tenant-table">
           ${tableHeader(['', 'Tenant Name', 'Owner', 'Package', 'Op. Mode', 'Stores / Users', 'Status', 'Renewal', 'Actions'])}
-          ${tenants.map((tenant) => renderTenantRow(tenant)).join('')}
+          ${visibleTenants.map((tenant) => renderTenantRow(tenant, selected)).join('') || '<div class="empty">No tenants match the filters</div>'}
         </div>
 
         <div class="tenant-pagination">
-          <span>Showing 1 to ${Math.min(tenants.length, 10)} of ${tenants.length || 0} entries</span>
+          <span>Showing ${tenants.length ? (page - 1) * pageSize + 1 : 0} to ${Math.min(page * pageSize, tenants.length)} of ${tenants.length || 0} entries</span>
           <div>
-            <button type="button">Prev</button>
-            <button type="button" class="active">1</button>
-            <button type="button">2</button>
-            <button type="button">3</button>
-            <button type="button">...</button>
-            <button type="button">Next</button>
+            ${paginationButtons(page, Math.max(1, Math.ceil(tenants.length / pageSize)), 'set-tenant-page')}
           </div>
         </div>
       </section>
     </section>
+    ${state.showCreateTenant ? renderCreateTenantModal(state) : ''}
   `;
 }
 
-function renderTenantRow(tenant) {
+function filterTenants(tenants, state) {
+  const query = String(state.tenantSearch || '').trim().toLowerCase();
+  return tenants.filter((tenant) => {
+    const packageMatch = state.tenantPackageFilter === 'all' || !state.tenantPackageFilter || tenant.packageTier === state.tenantPackageFilter;
+    const modeMatch = state.tenantModeFilter === 'all' || !state.tenantModeFilter || tenant.operatingMode === state.tenantModeFilter;
+    const statusMatch = state.tenantStatusFilter === 'all' || !state.tenantStatusFilter || statusOf(tenant) === state.tenantStatusFilter;
+    const haystack = [tenant.id, tenant.name, tenant.ownerName, tenant.ownerEmail, tenant.packageTier, tenant.operatingMode].join(' ').toLowerCase();
+    return packageMatch && modeMatch && statusMatch && (!query || haystack.includes(query));
+  });
+}
+
+function uniqueOptions(values) {
+  return [...new Set(values.filter(Boolean).map((value) => String(value).toLowerCase()))];
+}
+
+function renderCreateTenantModal(state) {
+  const draft = state.tenantDraft || {};
+  const packages = state.packages?.length ? state.packages : [];
+  const packageOptions = (packages.length ? packages : [
+    { id: 'trial', name: 'Trial Plus' },
+    { id: 'plus', name: 'PLUS' },
+    { id: 'pro', name: 'PRO' },
+  ]).map((item) => `
+    <option value="${esc(item.id)}" ${String(draft.packageTier || 'trial') === String(item.id) ? 'selected' : ''}>
+      ${esc(item.name || item.id)}
+    </option>
+  `).join('');
+
+  return `
+    <div class="tenant-create-backdrop" data-action="close-create-tenant"></div>
+    <section class="tenant-create-modal" role="dialog" aria-modal="true" aria-labelledby="tenant-create-title">
+      <header class="tenant-create-head">
+        <div>
+          <h2 id="tenant-create-title">Create Tenant</h2>
+          <p>Add a business directly without going through a trial request.</p>
+        </div>
+        <button type="button" data-action="close-create-tenant" aria-label="Close create tenant form"></button>
+      </header>
+
+      <div class="tenant-create-form">
+        <label class="tenant-create-field">
+          <span>Tenant name</span>
+          <input data-field="tenantName" value="${esc(draft.name || '')}" placeholder="Business name" />
+        </label>
+        <label class="tenant-create-field">
+          <span>Owner name</span>
+          <input data-field="tenantOwnerName" value="${esc(draft.ownerName || '')}" placeholder="Primary owner" />
+        </label>
+        <label class="tenant-create-field">
+          <span>Owner email</span>
+          <input data-field="tenantOwnerEmail" type="email" value="${esc(draft.ownerEmail || '')}" placeholder="owner@example.com" />
+        </label>
+        <label class="tenant-create-field">
+          <span>Package</span>
+          <select data-field="tenantPackageTier">${packageOptions}</select>
+        </label>
+        <label class="tenant-create-field">
+          <span>Operating mode</span>
+          <select data-field="tenantOperatingMode">
+            <option value="simple" ${String(draft.operatingMode || 'simple') === 'simple' ? 'selected' : ''}>Simple</option>
+            <option value="restaurant" ${String(draft.operatingMode || '') === 'restaurant' ? 'selected' : ''}>Restaurant</option>
+            <option value="retail" ${String(draft.operatingMode || '') === 'retail' ? 'selected' : ''}>Retail</option>
+          </select>
+        </label>
+        <label class="tenant-create-field">
+          <span>Status</span>
+          <select data-field="tenantStatus">
+            <option value="active" ${String(draft.status || 'active') === 'active' ? 'selected' : ''}>Active</option>
+            <option value="trial" ${String(draft.status || '') === 'trial' ? 'selected' : ''}>Trial</option>
+            <option value="suspended" ${String(draft.status || '') === 'suspended' ? 'selected' : ''}>Suspended</option>
+          </select>
+        </label>
+        <label class="tenant-create-field tenant-create-field-wide">
+          <span>Renewal date</span>
+          <input data-field="tenantRenewalDate" type="date" value="${esc(draft.renewalDate || '')}" />
+        </label>
+      </div>
+
+      <footer class="tenant-create-actions">
+        <button type="button" class="tenant-create-secondary" data-action="close-create-tenant">Cancel</button>
+        <button type="button" class="tenant-create-primary" data-action="create-tenant">Create Tenant</button>
+      </footer>
+    </section>
+  `;
+}
+
+function renderTenantRow(tenant, selected) {
   const status = statusOf(tenant);
   const initials = tenantInitials(tenant.name);
   const branches = Number(tenant.branches || 0);
@@ -108,7 +211,7 @@ function renderTenantRow(tenant) {
 
   return `
     <div class="tenant-table-row">
-      <label class="tenant-check"><input type="checkbox" /></label>
+      <label class="tenant-check"><input type="checkbox" data-action="toggle-tenant-selection" data-id="${esc(tenant.id)}" ${selected.has(String(tenant.id)) ? 'checked' : ''} /></label>
       <button type="button" class="tenant-name-cell" data-action="select-tenant" data-id="${esc(tenant.id)}">
         <span>${esc(initials)}</span>
         <strong>${esc(tenant.name)}</strong>
@@ -133,6 +236,24 @@ function renderTenantRow(tenant) {
   `;
 }
 
+function clampPage(value, total, pageSize) {
+  const max = Math.max(1, Math.ceil(total / pageSize));
+  return Math.min(Math.max(1, Number(value || 1)), max);
+}
+
+function paginationButtons(page, totalPages, action) {
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1).filter((item) => item === 1 || item === totalPages || Math.abs(item - page) <= 1);
+  const output = [`<button type="button" data-action="${action}" data-page="${Math.max(1, page - 1)}" ${page === 1 ? 'disabled' : ''}>Prev</button>`];
+  let previous = 0;
+  pages.forEach((item) => {
+    if (previous && item - previous > 1) output.push('<button type="button" disabled>...</button>');
+    output.push(`<button type="button" data-action="${action}" data-page="${item}" class="${item === page ? 'active' : ''}">${item}</button>`);
+    previous = item;
+  });
+  output.push(`<button type="button" data-action="${action}" data-page="${Math.min(totalPages, page + 1)}" ${page === totalPages ? 'disabled' : ''}>Next</button>`);
+  return output.join('');
+}
+
 function metricCard(label, value, change, tone) {
   return `
     <article class="tenant-metric ${tone}">
@@ -144,7 +265,7 @@ function metricCard(label, value, change, tone) {
 }
 
 function tableHeader(items) {
-  return `<div class="tenant-table-head">${items.map((item) => `<span>${esc(item)}</span>`).join('')}</div>`;
+  return `<div class="tenant-table-head">${items.map((item, index) => `<span>${index === 0 ? '<input type="checkbox" data-action="toggle-all-tenants" aria-label="Select visible tenants" />' : esc(item)}</span>`).join('')}</div>`;
 }
 
 function tenantId(id) {
@@ -165,6 +286,7 @@ function statusOf(tenant) {
 }
 
 function statusLabel(value) {
+  if (value === 'trial') return 'Trial';
   return value === 'suspended' ? 'Suspended' : 'Active';
 }
 

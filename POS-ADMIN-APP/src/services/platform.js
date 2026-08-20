@@ -10,10 +10,17 @@ export async function bootstrap() {
   return readJson(await apiFetch('/platform/bootstrap'));
 }
 
-export async function updateTenantPackage(id, packageTier, operatingMode) {
+export async function updateTenantPackage(id, packageTier, operatingMode, overrides = {}) {
   return readJson(await apiFetch(`/platform/tenants/${id}/package`, {
     method: 'PUT',
-    body: JSON.stringify({ packageTier, operatingMode }),
+    body: JSON.stringify({ packageTier, operatingMode, ...overrides }),
+  }));
+}
+
+export async function createTenant(payload) {
+  return readJson(await apiFetch('/platform/tenants', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   }));
 }
 
@@ -23,11 +30,22 @@ export async function toggleTenantStatus(id) {
   }));
 }
 
+export async function setTenantStatus(id, status) {
+  return readJson(await apiFetch(`/platform/tenants/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  }));
+}
+
 export async function createOrder(tenantId, packageTier) {
   return readJson(await apiFetch('/platform/orders', {
     method: 'POST',
     body: JSON.stringify({ tenantId, packageTier }),
   }));
+}
+
+export async function getPublicOrderStatus(orderCode) {
+  return readJson(await apiFetch(`/public/orders/${encodeURIComponent(orderCode)}/status`));
 }
 
 export async function getOrder(id) {
@@ -69,10 +87,20 @@ export async function provisionOrder(id) {
   return readJson(await apiFetch(`/platform/orders/${id}/provision`, { method: 'POST' }));
 }
 
+export async function holdOrderProvisioning(id) {
+  return readJson(await apiFetch(`/platform/orders/${id}/hold-provisioning`, { method: 'POST' }));
+}
+
 export async function inviteAccount(tenantId, email, role) {
   return readJson(await apiFetch('/platform/accounts/invite', {
     method: 'POST',
     body: JSON.stringify({ tenantId, email, role }),
+  }));
+}
+
+export async function resendAccountInvite(accountId) {
+  return readJson(await apiFetch(`/platform/accounts/${accountId}/resend-invite`, {
+    method: 'POST',
   }));
 }
 
@@ -85,6 +113,13 @@ export async function approveTrialRequest(id) {
 export async function rejectTrialRequest(id) {
   return readJson(await apiFetch(`/platform/trial-requests/${id}/reject`, {
     method: 'POST',
+  }));
+}
+
+export async function updateSalesLeadStatus(id, status) {
+  return readJson(await apiFetch(`/platform/sales-leads/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
   }));
 }
 

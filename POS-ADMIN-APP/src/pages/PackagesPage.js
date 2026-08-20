@@ -78,10 +78,12 @@ export function renderPackagesPage(state, helpers) {
             ${displayPackages.map((pkg) => renderPackageCard(pkg, selectedPackageId)).join('')}
           </div>
 
-          <button type="button" class="comparison-toggle">
-            <span>View Detailed Module Comparison matrix</span>
+          <button type="button" class="comparison-toggle" data-action="toggle-package-comparison">
+            <span>${state.showPackageComparison ? 'Hide Detailed Module Comparison matrix' : 'View Detailed Module Comparison matrix'}</span>
             <i></i>
           </button>
+
+          ${state.showPackageComparison ? renderPackageComparison(displayPackages) : ''}
         </section>
 
         <aside class="assign-package-panel">
@@ -110,14 +112,20 @@ export function renderPackagesPage(state, helpers) {
           <div class="assign-field compact">
             <span>Overrides / Add-ons</span>
             <label class="check-line">
-              <input type="checkbox" />
+              <input type="checkbox" data-field="packageBetaAnalytics" ${state.packageOverrides?.betaAnalytics ? 'checked' : ''} />
               <span>Include Beta Analytics Access</span>
             </label>
             <label class="check-line">
-              <input type="checkbox" checked />
+              <input type="checkbox" data-field="packageWaiveSetupFee" ${state.packageOverrides?.waiveSetupFee !== false ? 'checked' : ''} />
               <span>Waive initial setup fee</span>
             </label>
           </div>
+
+          <div class="package-override-summary">
+            <span>Override Summary</span>
+            <strong>${esc(overrideSummary(state.packageOverrides))}</strong>
+          </div>
+          ${state.packageMessage ? `<p class="package-apply-message">${esc(state.packageMessage)}</p>` : ''}
 
           <div class="mrr-row">
             <span>New Monthly Recurrence</span>
@@ -130,6 +138,35 @@ export function renderPackagesPage(state, helpers) {
           </button>
         </aside>
       </div>
+    </section>
+  `;
+}
+
+function renderPackageComparison(packages) {
+  const modules = [...new Set(packages.flatMap((pkg) => {
+    const ui = packageUi[pkg.id] || toPackageUi(pkg);
+    return [...ui.included, ...ui.disabled];
+  }))];
+
+  return `
+    <section class="package-comparison-card" style="--package-count: ${esc(packages.length)}">
+      <div class="package-comparison-head">
+        <span>Module</span>
+        ${packages.map((pkg) => {
+          const ui = packageUi[pkg.id] || toPackageUi(pkg);
+          return `<span>${esc(ui.label)}</span>`;
+        }).join('')}
+      </div>
+      ${modules.map((moduleName) => `
+        <div class="package-comparison-row">
+          <strong>${esc(moduleName)}</strong>
+          ${packages.map((pkg) => {
+            const ui = packageUi[pkg.id] || toPackageUi(pkg);
+            const included = ui.included.includes(moduleName);
+            return `<span class="${included ? 'included' : 'excluded'}">${included ? 'Included' : 'Not included'}</span>`;
+          }).join('')}
+        </div>
+      `).join('')}
     </section>
   `;
 }
@@ -187,9 +224,17 @@ function renderPackageOption(pkg, selectedPackageId) {
 }
 
 function preferredPackages(packages) {
-  const order = ['plus', 'pro'];
+  const order = ['trial', 'plus', 'pro'];
   const selected = order.map((id) => packages.find((pkg) => pkg.id === id)).filter(Boolean);
-  return selected.length ? selected : packages;
+  const extra = packages.filter((pkg) => !order.includes(pkg.id));
+  return selected.length ? [...selected, ...extra] : packages;
+}
+
+function overrideSummary(overrides = {}) {
+  const items = [];
+  if (overrides.betaAnalytics) items.push('Beta Analytics');
+  if (overrides.waiveSetupFee !== false) items.push('Setup fee waived');
+  return items.length ? items.join(' + ') : 'No overrides selected';
 }
 
 function findPackage(id) {

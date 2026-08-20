@@ -48,15 +48,17 @@ const fallbackLeads = [
 ];
 
 export function renderTrialRequestsPage(state) {
-  const requests = state.trialRequests?.length ? state.trialRequests : fallbackRequests;
+  const sourceRequests = state.trialRequests?.length ? state.trialRequests : fallbackRequests;
+  const requests = filterRequests(sourceRequests, state);
   const leads = state.salesLeads?.length ? state.salesLeads : fallbackLeads;
-  const selected = requests.find((request) => String(request.id) === String(state.selectedTrialRequestId)) || null;
+  const selected = sourceRequests.find((request) => String(request.id) === String(state.selectedTrialRequestId)) || null;
+  const selectedLead = leads.find((lead) => String(lead.id) === String(state.selectedSalesLeadId)) || null;
   const pendingCount = requests.filter((request) => statusOf(request) === 'pending').length;
   const approvedCount = requests.filter((request) => statusOf(request) === 'approved').length;
   const rejectedCount = requests.filter((request) => statusOf(request) === 'rejected').length;
 
   return `
-    <section class="trial-page ${selected ? 'detail-open' : ''}">
+    <section class="trial-page ${selected || selectedLead ? 'detail-open' : ''}">
       <header class="trial-heading">
         <div>
           <h1>Trial Requests</h1>
@@ -75,20 +77,34 @@ export function renderTrialRequestsPage(state) {
       <div class="trial-workspace">
         <section class="trial-table-card">
           <div class="trial-tabs">
-            ${['All Requests', 'Pending', 'Approved', 'Rejected'].map((label, index) => `
-              <button type="button" class="${index === 0 ? 'active' : ''}">${label}</button>
+            ${[
+              ['all', 'All Requests'],
+              ['pending', 'Pending'],
+              ['approved', 'Approved'],
+              ['rejected', 'Rejected'],
+            ].map(([value, label]) => `
+              <button type="button" class="${(state.trialStatusFilter || 'all') === value ? 'active' : ''}" data-action="set-trial-status-filter" data-status="${esc(value)}">${esc(label)}</button>
             `).join('')}
           </div>
 
           <div class="trial-toolbar">
             <label class="trial-search">
               <i></i>
-              <input aria-label="Search trial requests" placeholder="Search restaurant, contact, email..." />
+              <input data-field="trialSearch" value="${esc(state.trialSearch || '')}" aria-label="Search trial requests" placeholder="Search restaurant, contact, email..." />
             </label>
             <div class="trial-filters">
-              <button type="button">All Packages</button>
-              <button type="button">All Modes</button>
-              <button type="button">Newest First</button>
+              <select data-field="trialPackageFilter" aria-label="Filter trial package">
+                <option value="all">All Packages</option>
+                ${uniqueOptions(sourceRequests.map((request) => request.packageTier)).map((value) => `<option value="${esc(value)}" ${state.trialPackageFilter === value ? 'selected' : ''}>${esc(packageLabel(value))}</option>`).join('')}
+              </select>
+              <select data-field="trialModeFilter" aria-label="Filter trial mode">
+                <option value="all">All Modes</option>
+                ${uniqueOptions(sourceRequests.map((request) => request.operatingMode)).map((value) => `<option value="${esc(value)}" ${state.trialModeFilter === value ? 'selected' : ''}>${esc(modeLabel(value))}</option>`).join('')}
+              </select>
+              <select data-field="trialSort" aria-label="Sort trial requests">
+                <option value="newest" ${state.trialSort !== 'oldest' ? 'selected' : ''}>Newest First</option>
+                <option value="oldest" ${state.trialSort === 'oldest' ? 'selected' : ''}>Oldest First</option>
+              </select>
             </div>
           </div>
 
@@ -110,8 +126,29 @@ export function renderTrialRequestsPage(state) {
       </div>
 
       ${selected ? renderRequestDetail(selected) : ''}
+      ${selectedLead ? renderLeadDetail(selectedLead) : ''}
     </section>
   `;
+}
+
+function filterRequests(requests, state) {
+  const query = String(state.trialSearch || '').trim().toLowerCase();
+  const filtered = requests.filter((request) => {
+    const statusMatch = state.trialStatusFilter === 'all' || !state.trialStatusFilter || statusOf(request) === state.trialStatusFilter;
+    const packageMatch = state.trialPackageFilter === 'all' || !state.trialPackageFilter || request.packageTier === state.trialPackageFilter;
+    const modeMatch = state.trialModeFilter === 'all' || !state.trialModeFilter || request.operatingMode === state.trialModeFilter;
+    const haystack = [request.id, request.restaurantName, request.contactName, request.email, request.phone, request.message].join(' ').toLowerCase();
+    return statusMatch && packageMatch && modeMatch && (!query || haystack.includes(query));
+  });
+  return filtered.sort((a, b) => {
+    const left = new Date(a.createdAt).getTime() || 0;
+    const right = new Date(b.createdAt).getTime() || 0;
+    return state.trialSort === 'oldest' ? left - right : right - left;
+  });
+}
+
+function uniqueOptions(values) {
+  return [...new Set(values.filter(Boolean).map((value) => String(value).toLowerCase()))];
 }
 
 function renderRequestRow(request) {
@@ -190,15 +227,77 @@ function renderRequestDetail(request) {
 
 function renderLeadCard(lead) {
   return `
-    <article class="sales-lead-card">
+    <button type="button" class="sales-lead-card" data-action="select-sales-lead" data-id="${esc(lead.id)}">
       <div>
         <strong>${esc(lead.name || '-')}</strong>
         <span>${esc(lead.phone || 'No phone')} · ${esc(lead.email || 'No email')}</span>
       </div>
-      <b>${esc(statusLabel(statusOf(lead)))}</b>
+      <b class="${esc(statusOf(lead))}">${esc(statusLabel(statusOf(lead)))}</b>
       ${lead.message ? `<p>${esc(lead.message)}</p>` : ''}
       <small>${esc(formatDate(lead.createdAt))}</small>
-    </article>
+    </button>
+  `;
+}
+
+function renderLeadDetail(lead) {
+  const status = statusOf(lead);
+  return `
+    <div class="trial-detail-backdrop" data-action="close-sales-lead"></div>
+    <aside class="trial-detail-drawer sales-lead-detail" role="dialog" aria-modal="true" aria-label="Sales lead detail">
+      <header class="trial-detail-head">
+        <div>
+          <h2>${esc(lead.name || 'Sales Lead')}</h2>
+          <p>${esc(lead.id)} Â· Created ${esc(formatDate(lead.createdAt))}</p>
+        </div>
+        <b class="trial-status ${esc(status)}">${esc(statusLabel(status))}</b>
+        <button type="button" data-action="close-sales-lead" aria-label="Close sales lead"></button>
+      </header>
+
+      <section class="trial-contact-card">
+        <span>${esc(initials(lead.name))}</span>
+        <div>
+          <strong>${esc(lead.name || '-')}</strong>
+          <small>${esc(lead.email || 'No email')}</small>
+          <small>${esc(lead.phone || 'No phone')}</small>
+        </div>
+      </section>
+
+      <section class="trial-info-box">
+        <h3>Lead Details</h3>
+        ${infoRow('Contact Name', lead.name)}
+        ${infoRow('Phone', lead.phone || 'No phone')}
+        ${infoRow('Email', lead.email || 'No email')}
+        ${infoRow('Message', lead.message || 'No message provided')}
+        ${infoRow('Last Updated', lead.updatedAt ? formatDate(lead.updatedAt) : '-')}
+      </section>
+
+      <section class="trial-review-timeline">
+        <h3>Sales Timeline</h3>
+        ${timelineItem('Lead Received', lead.createdAt, 'Public contact form', 'done')}
+        ${timelineItem('Initial Contact', status === 'new' ? '' : lead.updatedAt, status === 'new' ? 'Waiting for outreach' : 'Lead has been contacted', status === 'new' ? 'current' : 'done')}
+        ${timelineItem('Qualification', ['qualified', 'lost'].includes(status) ? lead.updatedAt : '', status === 'qualified' ? 'Qualified for sales follow-up' : status === 'lost' ? 'Lead marked as lost' : 'Pending qualification', ['qualified', 'lost'].includes(status) ? 'done' : '')}
+      </section>
+
+      <div class="trial-detail-actions lead-detail-actions">
+        ${leadActionButton(lead, 'CONTACTED', 'Mark Contacted', 'trial-secondary-btn')}
+        ${leadActionButton(lead, 'QUALIFIED', 'Mark Qualified', 'trial-primary-btn')}
+        ${leadActionButton(lead, 'LOST', 'Mark Lost', 'trial-danger-btn')}
+      </div>
+    </aside>
+  `;
+}
+
+function leadActionButton(lead, status, label, className) {
+  const current = statusOf(lead) === status.toLowerCase();
+  return `
+    <button
+      type="button"
+      class="${esc(className)}"
+      data-action="update-sales-lead-status"
+      data-id="${esc(lead.id)}"
+      data-status="${esc(status)}"
+      ${current ? 'disabled' : ''}
+    >${esc(label)}</button>
   `;
 }
 
@@ -250,7 +349,7 @@ function statusOf(item) {
 }
 
 function statusLabel(value) {
-  const map = { pending: 'Pending', approved: 'Approved', rejected: 'Rejected', new: 'New', contacted: 'Contacted' };
+  const map = { pending: 'Pending', approved: 'Approved', rejected: 'Rejected', new: 'New', contacted: 'Contacted', qualified: 'Qualified', lost: 'Lost' };
   return map[value] || value;
 }
 

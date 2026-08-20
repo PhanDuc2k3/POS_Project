@@ -34,7 +34,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../shared/config');
 const logger = require('../shared/logger');
 const { generalLimiter, strictLimiter } = require('../shared/rate-limit');
-const { initWebSocket, getConnectedCount, getIO } = require('../shared/websocket');
+const { initWebSocket, getConnectedCount, getIO, broadcast } = require('../shared/websocket');
 const { gracefulShutdown } = require('../shared/graceful-shutdown');
 const deviceRegistry = require('./device-registry');
 
@@ -162,6 +162,7 @@ async function forwardJson(req, res, targetUrl, targetPath, { includeAuthContext
       signal: AbortSignal.timeout(10000),
     });
     const text = await response.text();
+    broadcastPlatformChange(req, response, targetPath, text);
     res.status(response.status).type(response.headers.get('content-type') || 'application/json').send(text);
   } catch (err) {
     logger.error('Forward failed', {
@@ -172,6 +173,32 @@ async function forwardJson(req, res, targetUrl, targetPath, { includeAuthContext
     });
     res.status(502).json({ error: 'Service unavailable' });
   }
+}
+
+function broadcastPlatformChange(req, response, targetPath, responseText) {
+  const method = String(req.method || 'GET').toUpperCase();
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return;
+  if (response.status < 200 || response.status >= 300) return;
+
+  const isPlatformPath = targetPath.startsWith('/platform/');
+  const isPublicPlatformPath = targetPath.startsWith('/public/orders') || targetPath.startsWith('/public/sales-leads');
+  if (!isPlatformPath && !isPublicPlatformPath) return;
+
+  let payload = null;
+  try {
+    payload = responseText ? JSON.parse(responseText) : null;
+  } catch {
+    payload = null;
+  }
+
+  broadcast('platform:changed', {
+    method,
+    path: targetPath,
+    status: response.status,
+    actor: req.headers['x-user-name'] || 'public',
+    data: payload?.data || payload || null,
+    occurredAt: new Date().toISOString(),
+  });
 }
 
 // ─── Public auth endpoints (no JWT required, strict rate-limit) ────────

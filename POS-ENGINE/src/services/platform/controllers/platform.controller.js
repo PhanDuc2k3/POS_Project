@@ -25,6 +25,10 @@ function getTenants(req, res) {
   return send(res, service.listTenants(getUser(req)));
 }
 
+function createTenant(req, res) {
+  return send(res, service.createTenant(getUser(req), req.body), true);
+}
+
 function getTrialRequests(req, res) {
   return send(res, service.listTrialRequests(getUser(req)));
 }
@@ -41,6 +45,10 @@ function toggleTenantStatus(req, res) {
   return send(res, service.toggleTenantStatus(getUser(req), parseInt(req.params.id, 10)));
 }
 
+function updateTenantStatus(req, res) {
+  return send(res, service.updateTenantStatus(getUser(req), parseInt(req.params.id, 10), req.body));
+}
+
 function getPackages(req, res) {
   return send(res, service.listPackages(getUser(req)));
 }
@@ -51,6 +59,10 @@ function getAccounts(req, res) {
 
 function inviteAccount(req, res) {
   return send(res, service.inviteAccount(getUser(req), req.body), true);
+}
+
+function resendAccountInvite(req, res) {
+  return send(res, service.resendAccountInvite(getUser(req), req.params.id), true);
 }
 
 function submitTrialRequest(req, res) {
@@ -85,6 +97,10 @@ function createPublicSalesLead(req, res) {
   return send(res, service.createPublicSalesLead(req.body), true);
 }
 
+function updateSalesLeadStatus(req, res) {
+  return send(res, service.updateSalesLeadStatus(getUser(req), req.params.id, req.body));
+}
+
 function createOrder(req, res) {
   return send(res, service.createOrder(getUser(req), req.body), true);
 }
@@ -117,6 +133,10 @@ function cancelOrder(req, res) {
   return send(res, service.cancelOrder(getUser(req), req.params.id));
 }
 
+function holdOrderProvisioning(req, res) {
+  return send(res, service.holdOrderProvisioning(getUser(req), req.params.id));
+}
+
 async function provisionOrder(req, res) {
   return send(res, await service.provisionOrder(getUser(req), req.params.id), true);
 }
@@ -133,13 +153,16 @@ module.exports = {
   getBootstrap,
   getSummary,
   getTenants,
+  createTenant,
   getTrialRequests,
   getMyTrialRequest,
   updateTenantPackage,
   toggleTenantStatus,
+  updateTenantStatus,
   getPackages,
   getAccounts,
   inviteAccount,
+  resendAccountInvite,
   submitTrialRequest,
   approveTrialRequest,
   rejectTrialRequest,
@@ -148,6 +171,7 @@ module.exports = {
   createPublicOrder,
   getPublicOrderStatus,
   createPublicSalesLead,
+  updateSalesLeadStatus,
   createOrder,
   markOrderContacted,
   quoteOrder,
@@ -156,6 +180,7 @@ module.exports = {
   approveOrder,
   rejectOrder,
   cancelOrder,
+  holdOrderProvisioning,
   provisionOrder,
   getPermission,
   togglePermission,
