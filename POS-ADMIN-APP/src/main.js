@@ -172,6 +172,11 @@ function bindEvents() {
 
     try {
       if (action === 'view') setView(target.dataset.view);
+      if (action === 'select-package') {
+        state.packageDraft = target.dataset.package;
+        saveState(state);
+        render();
+      }
       if (action === 'login') await handleLogin();
       if (action === 'refresh-data') await handleRefresh();
       if (action === 'sign-out') await handleSignOut();
@@ -185,13 +190,51 @@ function bindEvents() {
           render();
         }
       }
-      if (action === 'apply-package') await handleApplyPackage();
+      if (action === 'apply-package') {
+        if (target.dataset.package) state.packageDraft = target.dataset.package;
+        await handleApplyPackage();
+      }
       if (action === 'toggle-status') await handleToggleStatus(Number(target.dataset.id));
       if (action === 'approve-trial') await handleApproveTrial(target.dataset.id);
       if (action === 'reject-trial') await handleRejectTrial(target.dataset.id);
       if (action === 'create-order') await handleCreateOrder();
       if (action === 'select-order') {
         state.selectedOrderId = target.dataset.id;
+        saveState(state);
+        render();
+      }
+      if (action === 'close-order-detail') {
+        state.selectedOrderId = null;
+        saveState(state);
+        render();
+      }
+      if (action === 'select-account') {
+        state.selectedAccountId = target.dataset.id;
+        saveState(state);
+        render();
+      }
+      if (action === 'close-account-detail') {
+        state.selectedAccountId = null;
+        saveState(state);
+        render();
+      }
+      if (action === 'open-invite-account') {
+        state.showInviteAccount = true;
+        saveState(state);
+        render();
+      }
+      if (action === 'close-invite-account') {
+        state.showInviteAccount = false;
+        saveState(state);
+        render();
+      }
+      if (action === 'select-trial-request') {
+        state.selectedTrialRequestId = target.dataset.id;
+        saveState(state);
+        render();
+      }
+      if (action === 'close-trial-request') {
+        state.selectedTrialRequestId = null;
         saveState(state);
         render();
       }
@@ -212,7 +255,10 @@ function bindEvents() {
         if (confirm('Provision tenant for this order?')) await handleOrderAction(provisionOrder, target.dataset.id);
       }
       if (action === 'invite-account') await handleInviteAccount();
-      if (action === 'toggle-permission') await handleTogglePermission(target.dataset.permission);
+      if (action === 'toggle-permission') {
+        if (target.dataset.role) state.permissionRole = target.dataset.role;
+        await handleTogglePermission(target.dataset.permission);
+      }
     } catch (err) {
       state.error = err.message;
       render();
@@ -222,16 +268,30 @@ function bindEvents() {
   app.addEventListener('input', (event) => {
     const field = event.target.dataset.field;
     if (!field) return;
+    let shouldRender = false;
 
     if (field === 'username') state.username = event.target.value;
     if (field === 'password') state.password = event.target.value;
     if (field === 'rememberMe') state.rememberMe = event.target.checked;
-    if (field === 'packageDraft') state.packageDraft = event.target.value;
+    if (field === 'packageDraft') {
+      state.packageDraft = event.target.value;
+      shouldRender = true;
+    }
     if (field === 'modeDraft') state.modeDraft = event.target.value;
+    if (field === 'selectedTenantId') {
+      const tenant = state.tenants.find((item) => String(item.id) === String(event.target.value));
+      if (tenant) {
+        state.selectedTenantId = tenant.id;
+        state.packageDraft = tenant.packageTier;
+        state.modeDraft = tenant.operatingMode;
+        shouldRender = true;
+      }
+    }
     if (field === 'inviteEmail') state.inviteEmail = event.target.value;
     if (field === 'roleDraft') state.roleDraft = event.target.value;
     if (field === 'permissionRole') state.permissionRole = event.target.value;
     saveState(state);
+    if (shouldRender) render();
   });
 }
 
@@ -289,6 +349,7 @@ async function handleInviteAccount() {
   if (!tenant || !String(state.inviteEmail || '').trim()) return;
   await inviteAccount(tenant.id, state.inviteEmail.trim(), state.roleDraft);
   state.inviteEmail = '';
+  state.showInviteAccount = false;
   await loadPlatformData();
 }
 
@@ -312,30 +373,23 @@ function viewTitle() {
 }
 
 function renderAppShell() {
-  const tenant = selectedTenant();
-  const summary = state.summary || { tenants: 0, activeMrr: 0, paidOrders: 0, roles: 0 };
-
   return `
     <div class="admin-shell">
       ${renderSidebar(state.activeView)}
       <main class="content">
         <header class="topbar">
-          <div>
-            <p class="eyebrow">Project owner account</p>
-            <h1>${viewTitle()}</h1>
+          <div class="topbar-left">
+            <label class="top-search">
+              <i></i>
+              <input aria-label="Search" placeholder="Search tenants, orders, packages..." />
+            </label>
           </div>
-          <div class="identity">
-            <strong>${esc(state.user?.username || 'platform')}</strong>
-            <span>${esc(state.user?.role || 'platform_admin')}</span>
+          <div class="topbar-actions">
+            <button class="top-icon" aria-label="Notifications"></button>
+            <button class="top-icon settings" aria-label="Settings"></button>
+            <button class="top-avatar" aria-label="${esc(state.user?.username || 'platform')}"></button>
           </div>
         </header>
-
-        <section class="metric-grid">
-          ${renderMetricCard('Tenants', summary.tenants || 0)}
-          ${renderMetricCard('Active MRR', money(summary.activeMrr || 0))}
-          ${renderMetricCard('Paid Orders', summary.paidOrders || 0)}
-          ${renderMetricCard('Pending Trials', summary.pendingTrials || 0)}
-        </section>
 
         ${state.activeView === 'overview' ? renderOverviewPage(state, { selectedTenant, tenantName }) : ''}
         ${state.activeView === 'requests' ? renderTrialRequestsPage(state) : ''}

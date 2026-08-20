@@ -1,23 +1,47 @@
+const navItems = [
+  ['overview', 'Overview', 'grid'],
+  ['orders', 'Orders', 'receipt'],
+  ['requests', 'Trial Requests', 'request'],
+  ['tenants', 'Tenants', 'tenant'],
+  ['accounts', 'Accounts', 'accounts'],
+  ['packages', 'Packages', 'package'],
+  ['permissions', 'Permissions', 'key'],
+];
+
 export function renderSidebar(activeView) {
   return `
     <aside class="sidebar">
       <div class="brand-block">
-        <strong>POS Platform</strong>
-        <span>Owner Console</span>
+        <div class="brand-mark"></div>
+        <div>
+          <strong>POS Platform</strong>
+          <span>Admin Console</span>
+        </div>
       </div>
-      ${navButton('overview', 'Overview', activeView)}
-      ${navButton('requests', 'Requests', activeView)}
-      ${navButton('tenants', 'Tenants', activeView)}
-      ${navButton('packages', 'Packages', activeView)}
-      ${navButton('accounts', 'Accounts', activeView)}
-      ${navButton('orders', 'Orders', activeView)}
-      ${navButton('permissions', 'Permissions', activeView)}
-      <button class="nav-button soft" data-action="refresh-data">Refresh data</button>
-      <button class="nav-button soft" data-action="sign-out">Sign out</button>
+
+      <button class="new-tenant-btn" data-action="view" data-view="tenants">
+        <span class="plus-mark"></span>
+        New Tenant
+      </button>
+
+      <nav class="sidebar-nav">
+        ${navItems.map(([view, label, icon]) => navButton(view, label, icon, activeView)).join('')}
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="nav-button utility" data-action="refresh-data"><i class="nav-icon sync"></i>Sync</button>
+        <button class="nav-button utility" data-action="view" data-view="accounts"><i class="nav-icon profile"></i>Profile</button>
+        <button class="nav-button utility" data-action="sign-out"><i class="nav-icon signout"></i>Sign Out</button>
+      </div>
     </aside>
   `;
 }
 
-function navButton(view, label, activeView) {
-  return `<button class="nav-button ${activeView === view ? 'active' : ''}" data-action="view" data-view="${view}">${label}</button>`;
+function navButton(view, label, icon, activeView) {
+  return `
+    <button class="nav-button ${activeView === view ? 'active' : ''}" data-action="view" data-view="${view}">
+      <i class="nav-icon ${icon}"></i>
+      ${label}
+    </button>
+  `;
 }
