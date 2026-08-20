@@ -4567,8 +4567,9 @@ body {
 }
 
 .overview-dashboard-grid {
+  grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr);
   grid-template-areas:
-    "mrr mrr"
+    "mrr actions"
     "subs actions"
     "orders health";
 }
