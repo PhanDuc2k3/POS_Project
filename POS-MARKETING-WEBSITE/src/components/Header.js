@@ -1,17 +1,34 @@
 import { renderBrand } from './Brand.js';
 import { navLinks } from '../shared/data.js';
 
+function esc(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 export function renderHeader(activeRoute = '#home', state = {}) {
-  const links = navLinks
-    .map((item) => `<a href="${item.href}" class="${item.href === activeRoute ? 'active' : ''}">${item.label}</a>`)
+  const profileActive = activeRoute === '#profile' || activeRoute === '#order';
+  const navItems = state.marketingSignup?.signupToken
+    ? [...navLinks, { href: '#profile', label: 'Cá nhân' }]
+    : navLinks;
+  const links = navItems
+    .map((item) => `<a href="${item.href}" class="${item.href === activeRoute || (item.href === '#profile' && profileActive) ? 'active' : ''}">${item.label}</a>`)
     .join('');
 
-  const actions = state.user ? `
-          <span class="text-link">${state.user.displayName || state.user.username}</span>
-          <button class="button secondary small" type="button" data-action="logout">Đăng xuất</button>
+  const signup = state.marketingSignup || null;
+  const actions = signup?.signupToken ? `
+          <a class="account-chip ${profileActive ? 'active' : ''}" href="#profile" title="${esc(signup.email || signup.name)}">
+            <span class="account-dot"></span>
+            <span>${esc(signup.name || signup.email)}</span>
+          </a>
+          <button class="button secondary small auth-button logout-button" type="button" data-action="logout">Đăng xuất</button>
   ` : `
-          <button class="text-link auth-trigger" type="button" data-action="open-auth" data-auth-mode="signin">Đăng nhập</button>
-          <button class="button primary small" type="button" data-action="open-auth" data-auth-mode="signup">Đăng ký</button>
+          <button class="auth-login-button" type="button" data-action="open-auth" data-auth-mode="signin">Đăng nhập</button>
+          <button class="button primary small auth-button" type="button" data-action="open-auth" data-auth-mode="signup">Đăng ký</button>
   `;
 
   return `

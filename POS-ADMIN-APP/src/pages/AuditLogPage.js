@@ -9,58 +9,58 @@ export function renderAuditLogPage(state) {
     <section class="audit-page">
       <header class="audit-heading">
         <div>
-          <h1>Security Center</h1>
-          <p>Manage active login sessions and review account security activity.</p>
+          <h1>Trung tâm bảo mật</h1>
+          <p>Quản lý phiên đăng nhập đang hoạt động và rà soát hoạt động bảo mật tài khoản.</p>
         </div>
-        <button type="button" class="audit-refresh-btn" data-action="refresh-audit-data"><i></i>Refresh</button>
+        <button type="button" class="audit-refresh-btn" data-action="refresh-audit-data"><i></i>Làm mới</button>
       </header>
 
       <section class="audit-metrics">
-        ${metricCard('Total Events', total)}
-        ${metricCard('Active Sessions', sessions.length)}
-        ${metricCard('Security Events', countSecurityEvents(activity))}
-        ${metricCard('Latest Event', latestEventLabel(activity))}
+        ${metricCard('Tổng sự kiện', total)}
+        ${metricCard('Phiên hoạt động', sessions.length)}
+        ${metricCard('Sự kiện bảo mật', countSecurityEvents(activity))}
+        ${metricCard('Sự kiện mới nhất', latestEventLabel(activity))}
       </section>
 
       <section class="session-management-card">
         <div class="security-section-head">
           <div>
-            <h2>Session Management</h2>
-            <p>Review trusted devices and revoke access when a session looks unfamiliar.</p>
+            <h2>Quản lý phiên</h2>
+            <p>Rà soát thiết bị tin cậy và thu hồi truy cập khi phiên đăng nhập có dấu hiệu lạ.</p>
           </div>
           <div class="security-section-actions">
-            <span>${esc(sessions.length)} active</span>
-            <button type="button" class="logout-all-btn" data-action="logout-all-devices">Logout All Devices</button>
+            <span>${esc(sessions.length)} đang hoạt động</span>
+            <button type="button" class="logout-all-btn" data-action="logout-all-devices">Đăng xuất mọi thiết bị</button>
           </div>
         </div>
         <div class="session-table">
           <div class="session-table-head">
-            <span>Device</span>
+            <span>Thiết bị</span>
             <span>Client</span>
-            <span>Location</span>
-            <span>Last Used</span>
-            <span>Action</span>
+            <span>Vị trí</span>
+            <span>Dùng gần nhất</span>
+            <span>Thao tác</span>
           </div>
-          ${sessions.map(renderSessionRow).join('') || '<div class="session-empty">No active sessions found</div>'}
+          ${sessions.map(renderSessionRow).join('') || '<div class="session-empty">Không tìm thấy phiên hoạt động</div>'}
         </div>
       </section>
 
       <section class="audit-table-card">
         <div class="security-section-head">
           <div>
-            <h2>Activity Log</h2>
-            <p>Recent login, profile, password, session and security events.</p>
+            <h2>Nhật ký hoạt động</h2>
+            <p>Các sự kiện đăng nhập, hồ sơ, mật khẩu, phiên và bảo mật gần đây.</p>
           </div>
-          <span>${esc(activity.length)} visible</span>
+          <span>${esc(activity.length)} đang hiển thị</span>
         </div>
         <div class="audit-table-head">
-          <span>Action</span>
-          <span>Details</span>
-          <span>IP Address</span>
-          <span>Created</span>
+          <span>Thao tác</span>
+          <span>Chi tiết</span>
+          <span>Địa chỉ IP</span>
+          <span>Thời điểm tạo</span>
         </div>
         <div class="audit-table-body">
-          ${activity.map(renderAuditRow).join('') || '<div class="audit-empty">No audit events found</div>'}
+          ${activity.map(renderAuditRow).join('') || '<div class="audit-empty">Không tìm thấy sự kiện kiểm toán</div>'}
         </div>
       </section>
     </section>
@@ -68,19 +68,19 @@ export function renderAuditLogPage(state) {
 }
 
 function renderSessionRow(session) {
-  const title = session.deviceName || session.browser || session.deviceType || 'Unknown device';
+  const title = session.deviceName || session.browser || session.deviceType || 'Thiết bị không xác định';
   const client = [session.clientType, session.browser, session.os].filter(Boolean).join(' / ');
   return `
     <article class="session-table-row">
       <span>
-        <strong>${esc(title)} ${session.isCurrent ? '<em>Current</em>' : ''}</strong>
-        <small>${esc(session.deviceId || session.screenResolution || 'No device id')}</small>
+        <strong>${esc(title)} ${session.isCurrent ? '<em>Hiện tại</em>' : ''}</strong>
+        <small>${esc(session.deviceId || session.screenResolution || 'Chưa có mã thiết bị')}</small>
       </span>
       <span>${esc(client || '-')}</span>
       <span>${esc(session.ipAddress || '-')}</span>
       <span>${esc(formatDate(session.lastUsed || session.createdAt))}</span>
       <span>
-        <button type="button" class="session-revoke-btn" data-action="revoke-session" data-id="${esc(session.id)}">Revoke</button>
+        <button type="button" class="session-revoke-btn" data-action="revoke-session" data-id="${esc(session.id)}">Thu hồi</button>
       </span>
     </article>
   `;
@@ -93,7 +93,7 @@ function renderAuditRow(item) {
         <strong>${esc(formatAction(item.action))}</strong>
         <small>${esc(item.action || '-')}</small>
       </span>
-      <span>${esc(item.details || 'No details')}</span>
+      <span>${esc(item.details || 'Không có chi tiết')}</span>
       <span>${esc(item.ipAddress || '-')}</span>
       <span>${esc(formatDate(item.createdAt))}</span>
     </article>
@@ -130,5 +130,5 @@ function formatDate(value) {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }

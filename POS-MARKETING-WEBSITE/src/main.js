@@ -4,16 +4,16 @@ import { renderHeader } from './components/Header.js';
 import { renderHomePage } from './pages/HomePage.js';
 import { renderLocationPage } from './pages/LocationPage.js';
 import { renderNewsPage } from './pages/NewsPage.js';
+import { renderOrderDetailPage } from './pages/OrderDetailPage.js';
+import { renderProfilePage } from './pages/ProfilePage.js';
 import { renderProductPage } from './pages/ProductPage.js';
 import { renderWarrantyPage } from './pages/WarrantyPage.js';
 import {
-  clearStoredAuth,
-  getMe,
+  getMarketingSession,
   getPublicOrderStatus,
-  getStoredAuth,
   getStoredOrder,
-  login as loginApi,
-  setStoredAuth,
+  loginMarketingSignup,
+  registerMarketingSignup,
   setStoredOrder,
   submitPublicOrder,
   submitSalesLead,
@@ -24,10 +24,12 @@ let lastRenderedHash = null;
 
 const routes = new Map([
   ['#home', renderHomePage],
+  ['#order', renderOrderDetailPage],
   ['#products', renderProductPage],
   ['#news', renderNewsPage],
   ['#warranty', renderWarrantyPage],
   ['#locations', renderLocationPage],
+  ['#profile', renderProfilePage],
 ]);
 
 const state = {
@@ -35,14 +37,46 @@ const state = {
   myTrialRequest: null,
   purchaseOrder: null,
   packageDraft: 'pro',
-  accessToken: '',
-  refreshToken: '',
+  marketingSignup: null,
+  profileOrders: [],
+  profileLeads: [],
   authModalOpen: false,
   authMode: 'signin',
   ready: false,
 };
 
+function getMarketingSignup() {
+  try {
+    return JSON.parse(localStorage.getItem('pos_marketing_signup') || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function setMarketingSignup(signup) {
+  state.marketingSignup = signup || null;
+  if (signup) {
+    localStorage.setItem('pos_marketing_signup', JSON.stringify(signup));
+  } else {
+    localStorage.removeItem('pos_marketing_signup');
+  }
+}
+
+function canSubmitMarketingForms() {
+  return Boolean(state.marketingSignup?.signupToken);
+}
+
+function getMarketingSignupPayload() {
+  return {
+    marketingSignupToken: state.marketingSignup?.signupToken || '',
+  };
+}
+
 function getRoute() {
+  if (window.location.hash.startsWith('#order/')) {
+    return '#order';
+  }
+
   if (window.location.hash.startsWith('#products/')) {
     return '#products';
   }
@@ -85,7 +119,7 @@ function syncLockedForms() {
 
 function scrollToHash() {
   const hash = window.location.hash;
-  if (!hash || routes.has(hash) || hash.startsWith('#products/') || hash.startsWith('#news/')) {
+  if (!hash || routes.has(hash) || hash.startsWith('#order/') || hash.startsWith('#products/') || hash.startsWith('#news/')) {
     window.scrollTo({ top: 0, behavior: 'auto' });
     return;
   }
@@ -95,82 +129,113 @@ function scrollToHash() {
   });
 }
 
-function setSession(auth, user) {
-  state.accessToken = auth.accessToken || '';
-  state.refreshToken = auth.refreshToken || '';
-  state.user = user || null;
-  if (state.accessToken || state.refreshToken) {
-    setStoredAuth(auth);
-  } else {
-    clearStoredAuth();
-  }
-}
-
 async function loadSession() {
-  const storedOrder = getStoredOrder();
-  if (storedOrder?.orderCode) {
+  state.marketingSignup = getMarketingSignup();
+  if (state.marketingSignup?.signupToken) {
     try {
-      const orderStatus = await getPublicOrderStatus(storedOrder.orderCode);
-      state.purchaseOrder = { ...storedOrder, ...orderStatus };
-      state.myTrialRequest = {
-        id: orderStatus.orderCode,
-        businessName: storedOrder.businessName,
-        packageTier: orderStatus.packageTier || storedOrder.packageTier,
-        requestedStores: orderStatus.requestedStoreCount || storedOrder.requestedStores,
-        status: orderStatus.status,
-        createdAt: orderStatus.createdAt || storedOrder.createdAt,
-      };
+      const session = await getMarketingSession(state.marketingSignup.signupToken);
+      setMarketingSignup({
+        id: session.signupId,
+        name: session.name,
+        email: session.email,
+        status: session.status,
+        signupToken: session.signupToken,
+        registeredAt: session.createdAt,
+      });
+      state.profileOrders = session.orders || [];
+      state.profileLeads = session.salesLeads || [];
     } catch {
-      state.purchaseOrder = storedOrder;
-      state.myTrialRequest = {
-        id: storedOrder.orderCode,
-        businessName: storedOrder.businessName,
-        packageTier: storedOrder.packageTier,
-        requestedStores: storedOrder.requestedStores,
-        status: storedOrder.status,
-        createdAt: storedOrder.createdAt,
-      };
+      setMarketingSignup(null);
+      state.profileOrders = [];
+      state.profileLeads = [];
     }
   }
 
-  const auth = getStoredAuth();
-  if (!auth.accessToken) {
-    state.ready = true;
-    render();
-    return;
-  }
+  await loadOrderFromHashOrStorage();
 
-  try {
-    const me = await getMe(auth.accessToken);
-    state.accessToken = auth.accessToken;
-    state.refreshToken = auth.refreshToken;
-    state.user = me;
-  } catch (err) {
-    clearStoredAuth();
-    state.user = null;
-    state.myTrialRequest = null;
-  } finally {
-    state.ready = true;
-    render();
+  state.ready = true;
+  render();
+}
+
+async function loadOrderFromHashOrStorage() {
+  const hashOrderCode = window.location.hash.startsWith('#order/')
+    ? decodeURIComponent(window.location.hash.replace('#order/', '').trim())
+    : '';
+  const storedOrder = hashOrderCode ? { orderCode: hashOrderCode } : getStoredOrder();
+  if (storedOrder?.orderCode) {
+    const profileOrder = state.profileOrders.find((item) => (item.orderCode || item.id) === storedOrder.orderCode);
+    try {
+      const orderStatus = await getPublicOrderStatus(storedOrder.orderCode);
+      state.purchaseOrder = {
+        ...storedOrder,
+        ...profileOrder,
+        ...orderStatus,
+        account: profileOrder?.account || orderStatus.account || null,
+      };
+      state.myTrialRequest = {
+        id: orderStatus.orderCode,
+        orderCode: orderStatus.orderCode,
+        businessName: storedOrder.businessName || profileOrder?.companyName || profileOrder?.businessName || orderStatus.orderCode,
+        packageTier: orderStatus.packageTier || storedOrder.packageTier,
+        requestedStores: orderStatus.requestedStoreCount || storedOrder.requestedStores,
+        status: orderStatus.status,
+        nextStep: orderStatus.nextStep,
+        message: orderStatus.message,
+        account: profileOrder?.account || null,
+        createdAt: orderStatus.createdAt || storedOrder.createdAt,
+      };
+      if (!state.profileOrders.some((item) => (item.orderCode || item.id) === orderStatus.orderCode)) {
+        state.profileOrders = [state.myTrialRequest, ...state.profileOrders].filter(Boolean);
+      }
+    } catch {
+      state.purchaseOrder = { ...storedOrder, ...profileOrder, account: profileOrder?.account || null };
+      state.myTrialRequest = {
+        id: storedOrder.orderCode,
+        orderCode: storedOrder.orderCode,
+        businessName: storedOrder.businessName || profileOrder?.companyName || profileOrder?.businessName,
+        packageTier: storedOrder.packageTier,
+        requestedStores: storedOrder.requestedStores,
+        status: storedOrder.status,
+        account: profileOrder?.account || null,
+        createdAt: storedOrder.createdAt,
+      };
+      if (!state.profileOrders.some((item) => (item.orderCode || item.id) === storedOrder.orderCode)) {
+        state.profileOrders = [state.myTrialRequest, ...state.profileOrders].filter(Boolean);
+      }
+    }
   }
 }
 
 async function handleLogin(form) {
   const formData = new FormData(form);
-  const auth = await loginApi({
-    username: formData.get('username'),
-    password: formData.get('password'),
-    rememberMe: true,
+  const email = String(formData.get('email') || '').trim().toLowerCase();
+  const password = String(formData.get('password') || '');
+
+  if (!email || !password) {
+    throw new Error('Vui long nhap email va mat khau.');
+  }
+
+  const signup = await loginMarketingSignup({
+    email,
+    password,
   });
-  setSession(auth, auth.user);
+  setMarketingSignup({
+    id: signup.signupId,
+    name: signup.name,
+    email: signup.email,
+    status: signup.status,
+    signupToken: signup.signupToken,
+    registeredAt: signup.createdAt,
+  });
   form.reset();
   state.authModalOpen = false;
-  return auth.user;
+  return signup;
 }
 
 async function handleTrialSubmit(form) {
   const formData = new FormData(form);
   const order = await submitPublicOrder({
+    ...getMarketingSignupPayload(),
     companyName: formData.get('businessName'),
     customerName: formData.get('contactName'),
     email: formData.get('email'),
@@ -192,28 +257,65 @@ async function handleTrialSubmit(form) {
   });
   state.myTrialRequest = {
     id: order.orderCode,
+    orderCode: order.orderCode,
     businessName: formData.get('businessName'),
     packageTier: formData.get('packageTier'),
     requestedStores: Number(formData.get('requestedStores') || 1),
     status: order.status,
+    nextStep: order.nextStep,
+    message: order.message,
     createdAt: order.createdAt,
   };
+  state.profileOrders = [state.myTrialRequest, ...state.profileOrders.filter((item) => (item.orderCode || item.id) !== order.orderCode)];
+  window.location.hash = `#order/${encodeURIComponent(order.orderCode)}`;
   form.reset();
   return order;
 }
 
-function handleSignupSubmit(form) {
+async function handleSignupSubmit(form) {
+  const formData = new FormData(form);
+  const name = String(formData.get('name') || '').trim();
+  const email = String(formData.get('email') || '').trim().toLowerCase();
+  const password = String(formData.get('password') || '');
+  const confirmPassword = String(formData.get('confirmPassword') || '');
+
+  if (!name || !email || !password) {
+    throw new Error('Vui long nhap day du ho ten, email va mat khau.');
+  }
+  if (password.length < 6) {
+    throw new Error('Mat khau can toi thieu 6 ky tu.');
+  }
+  if (password !== confirmPassword) {
+    throw new Error('Mat khau nhap lai khong khop.');
+  }
+
+  const signup = await registerMarketingSignup({
+    name,
+    email,
+    password,
+  });
+  setMarketingSignup({
+    id: signup.signupId,
+    name: signup.name,
+    email: signup.email,
+    status: signup.status,
+    signupToken: signup.signupToken,
+    registeredAt: signup.createdAt,
+  });
   form.reset();
+  return signup;
 }
 
 async function handleContactSubmit(form) {
   const formData = new FormData(form);
   const lead = await submitSalesLead({
+    ...getMarketingSignupPayload(),
     name: formData.get('name'),
     phone: formData.get('phone'),
     email: formData.get('email'),
     message: formData.get('message'),
   });
+  state.profileLeads = [lead, ...state.profileLeads];
   form.reset();
   return lead;
 }
@@ -230,6 +332,17 @@ function openAuthModal(mode = 'signin') {
   render();
 }
 
+function requireMarketingSignup(form) {
+  if (canSubmitMarketingForms()) return true;
+
+  const message = form.querySelector('.form-message');
+  if (message) {
+    message.textContent = 'Vui long dang ky truoc khi gui form de han che spam.';
+  }
+  openAuthModal('signup');
+  return false;
+}
+
 function closeAuthModal() {
   state.authModalOpen = false;
   render();
@@ -237,13 +350,6 @@ function closeAuthModal() {
 
 function bindEvents() {
   app.addEventListener('click', (event) => {
-    if (event.target.closest('[data-action="demo-forgot"]')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      window.location.href = 'http://localhost:3000/forgot-password';
-      return;
-    }
-
     const menuButton = event.target.closest('.menu-button');
     if (menuButton) {
       const isOpen = document.body.classList.toggle('nav-open');
@@ -279,12 +385,6 @@ function bindEvents() {
       return;
     }
 
-    const demoForgotButton = event.target.closest('[data-action="demo-forgot"]');
-    if (demoForgotButton) {
-      setModalMessage(demoForgotButton, 'Chức năng quên mật khẩu sẽ được kết nối sau.');
-      return;
-    }
-
     if (event.target.matches('.modal-backdrop') || event.target.closest('[data-action="close-auth"]')) {
       closeAuthModal();
       return;
@@ -296,19 +396,19 @@ function bindEvents() {
     }
 
     if (event.target.closest('[data-action="logout"]')) {
-      clearStoredAuth();
-      state.user = null;
+      setMarketingSignup(null);
       state.myTrialRequest = null;
-      state.accessToken = '';
-      state.refreshToken = '';
+      state.profileOrders = [];
+      state.profileLeads = [];
       state.authModalOpen = false;
+      if (window.location.hash === '#profile') window.location.hash = '#home';
       render();
     }
   });
 
   app.addEventListener('submit', async (event) => {
     const form = event.target.closest('form[data-form]');
-    if (!form || !['signin', 'signup', 'contact'].includes(form.dataset.form)) return;
+    if (!form || !['signin', 'signup', 'contact', 'trial'].includes(form.dataset.form)) return;
 
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -323,59 +423,43 @@ function bindEvents() {
       }
 
       if (form.dataset.form === 'signup') {
-        handleSignupSubmit(form);
-        if (message) message.textContent = 'Khach hang moi chi can gui form ben duoi. Admin se tao tai khoan sau khi duyet.';
+        if (message) message.textContent = 'Dang dang ky...';
+        await handleSignupSubmit(form);
+        state.authModalOpen = false;
+        render();
+        const trialMessage = app.querySelector('form[data-form="trial"] .form-message');
+        if (trialMessage) {
+          trialMessage.textContent = 'Dang ky thanh cong. Ban co the gui form yeu cau ngay bay gio.';
+        }
         return;
       }
 
       if (form.dataset.form === 'contact') {
+        if (!requireMarketingSignup(form)) return;
         if (message) message.textContent = 'Dang gui thong tin...';
         const lead = await handleContactSubmit(form);
         if (message) message.textContent = `Da gui thong tin tu van. Ma lien he: ${lead.leadCode}.`;
-      }
-    } catch (err) {
-      if (message) message.textContent = err.message;
-    }
-  });
-
-  app.addEventListener('submit', async (event) => {
-    const form = event.target.closest('form[data-form]');
-    if (!form) return;
-
-    event.preventDefault();
-    const message = form.querySelector('.form-message');
-
-    try {
-      if (form.dataset.form === 'signin') {
-        handleLogin(form);
-        if (message) message.textContent = 'Giao diện đăng nhập đã sẵn sàng.';
-        return;
-      }
-
-      if (form.dataset.form === 'signup') {
-        handleSignupSubmit(form);
-        if (message) message.textContent = 'Giao diện đăng ký đã sẵn sàng.';
         return;
       }
 
       if (form.dataset.form === 'trial') {
-        if (message) message.textContent = 'Đang gửi yêu cầu...';
+        if (!requireMarketingSignup(form)) return;
+        if (message) message.textContent = 'Dang gui yeu cau...';
         const order = await handleTrialSubmit(form);
         render();
         const trialMessage = app.querySelector('form[data-form="trial"] .form-message');
         if (trialMessage) {
           trialMessage.textContent =
-            `Yêu cầu của bạn đã được tiếp nhận. Mã yêu cầu: ${order.orderCode}. Chúng tôi sẽ liên hệ để hoàn tất quá trình đăng ký.`;
+            `Yeu cau cua ban da duoc tiep nhan. Ma yeu cau: ${order.orderCode}. Chung toi se lien he de hoan tat qua trinh dang ky.`;
         }
         return;
       }
-
-      if (message) message.textContent = 'Đã ghi nhận thông tin. Endpoint sales request sẽ nối sau.';
-      form.reset();
     } catch (err) {
       if (message) message.textContent = err.message;
     }
   });
+
+
 }
 
 bindEvents();
@@ -384,5 +468,10 @@ window.addEventListener('keydown', (event) => {
     closeAuthModal();
   }
 });
-window.addEventListener('hashchange', render);
+window.addEventListener('hashchange', async () => {
+  if (window.location.hash.startsWith('#order/')) {
+    await loadOrderFromHashOrStorage();
+  }
+  render();
+});
 await loadSession();

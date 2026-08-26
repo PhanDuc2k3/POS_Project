@@ -5,25 +5,25 @@ export function renderAuthModal(state = {}) {
   const isSignup = mode === 'signup';
 
   return `
-    <div class="modal-backdrop" data-action="close-auth">
+    <div class="modal-backdrop">
       <section class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
-        <button class="modal-close" type="button" aria-label="Đóng" data-action="close-auth">×</button>
+        <button class="modal-close" type="button" aria-label="Dong" data-action="close-auth">x</button>
         <form class="auth-panel" data-form="${isSignup ? 'signup' : 'signin'}">
-          <h2 id="auth-modal-title">${isSignup ? 'ĐĂNG KÝ' : 'ĐĂNG NHẬP'}</h2>
-          <div class="auth-divider"><span>Tài khoản POS</span></div>
+          <h2 id="auth-modal-title">${isSignup ? 'DANG KY' : 'DANG NHAP'}</h2>
+          <div class="auth-divider"><span>Tai khoan marketing</span></div>
           ${isSignup ? `
-            <input name="name" placeholder="Họ tên" autocomplete="name" required />
+            <input name="name" placeholder="Ho ten" autocomplete="name" required />
             <input name="email" type="email" placeholder="Email" autocomplete="email" required />
-            <input name="password" type="password" placeholder="Mật khẩu" autocomplete="new-password" required />
+            <input name="password" type="password" placeholder="Mat khau" autocomplete="new-password" minlength="6" required />
+            <input name="confirmPassword" type="password" placeholder="Nhap lai mat khau" autocomplete="new-password" minlength="6" required />
           ` : `
-            <input name="username" placeholder="Tài khoản" autocomplete="username" required />
-            <input name="password" type="password" placeholder="Mật khẩu" autocomplete="current-password" required />
-            <button class="forgot-link" type="button" data-action="demo-forgot">Quên mật khẩu ?</button>
+            <input name="email" type="email" placeholder="Email" autocomplete="email" required />
+            <input name="password" type="password" placeholder="Mat khau" autocomplete="current-password" required />
           `}
-          <button class="auth-submit" type="submit">${isSignup ? 'Đăng ký' : 'Đăng nhập'}</button>
+          <button class="auth-submit" type="submit">${isSignup ? 'Dang ky' : 'Dang nhap'}</button>
           <p class="form-message" role="status"></p>
           <button class="auth-switch" type="button" data-action="switch-auth" data-auth-mode="${isSignup ? 'signin' : 'signup'}">
-            ${isSignup ? 'ĐĂNG NHẬP' : 'ĐĂNG KÝ NGAY'}
+            ${isSignup ? 'Da co tai khoan? Dang nhap' : 'Chua co tai khoan? Dang ky'}
           </button>
         </form>
       </section>

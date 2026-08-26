@@ -1,25 +1,4 @@
-export const API_URL = 'http://localhost:4000/api';
-
-export function getStoredAuth() {
-  try {
-    return {
-      accessToken: localStorage.getItem('pos_marketing_access_token') || '',
-      refreshToken: localStorage.getItem('pos_marketing_refresh_token') || '',
-    };
-  } catch (err) {
-    return { accessToken: '', refreshToken: '' };
-  }
-}
-
-export function setStoredAuth({ accessToken, refreshToken }) {
-  localStorage.setItem('pos_marketing_access_token', accessToken || '');
-  localStorage.setItem('pos_marketing_refresh_token', refreshToken || '');
-}
-
-export function clearStoredAuth() {
-  localStorage.removeItem('pos_marketing_access_token');
-  localStorage.removeItem('pos_marketing_refresh_token');
-}
+export const API_URL = window.POS_API_URL || 'http://localhost:4000/api';
 
 export function getStoredOrder() {
   try {
@@ -33,8 +12,30 @@ export function setStoredOrder(order) {
   localStorage.setItem('pos_marketing_order', JSON.stringify(order || null));
 }
 
-export async function login(payload) {
-  const response = await fetch(`${API_URL}/auth/login`, {
+export async function submitPublicOrder(payload) {
+  const response = await fetch(`${API_URL}/public/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Could not submit order');
+  return data;
+}
+
+export async function registerMarketingSignup(payload) {
+  const response = await fetch(`${API_URL}/public/marketing-signups`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Could not register');
+  return data;
+}
+
+export async function loginMarketingSignup(payload) {
+  const response = await fetch(`${API_URL}/public/marketing-signups/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -44,46 +45,12 @@ export async function login(payload) {
   return data;
 }
 
-export async function getMe(accessToken) {
-  const response = await fetch(`${API_URL}/auth/me`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+export async function getMarketingSession(signupToken) {
+  const response = await fetch(`${API_URL}/public/marketing-signups/session`, {
+    headers: { Authorization: `Bearer ${signupToken}` },
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Could not load session');
-  return data;
-}
-
-export async function getMyTrialRequest(accessToken) {
-  const response = await fetch(`${API_URL}/platform/trial-requests/me`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Could not load trial status');
-  return data;
-}
-
-export async function submitTrialRequest(accessToken, payload) {
-  const response = await fetch(`${API_URL}/platform/trial-requests`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Could not submit trial request');
-  return data;
-}
-
-export async function submitPublicOrder(payload) {
-  const response = await fetch(`${API_URL}/public/orders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Could not submit order');
+  if (!response.ok) throw new Error(data.error || 'Could not load marketing session');
   return data;
 }
 

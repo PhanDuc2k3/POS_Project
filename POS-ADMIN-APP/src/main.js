@@ -4,7 +4,6 @@ import { initialState, packageCatalog } from './data/platform.js';
 import { renderLoginPage } from './pages/LoginPage.js';
 import { renderOverviewPage } from './pages/OverviewPage.js';
 import { renderTenantsPage } from './pages/TenantsPage.js';
-import { renderTrialRequestsPage } from './pages/TrialRequestsPage.js';
 import { renderPackagesPage } from './pages/PackagesPage.js';
 import { renderAccountsPage } from './pages/AccountsPage.js';
 import { renderOrdersPage } from './pages/OrdersPage.js';
@@ -64,6 +63,7 @@ let realtimeRefreshTimer = null;
 
 state.user = state.user || getUser();
 state.authenticated = !!(getAccessToken() || getRefreshToken());
+if (state.activeView === 'requests') state.activeView = 'orders';
 
 function selectedTenant() {
   return state.tenants.find((tenant) => tenant.id === state.selectedTenantId) || state.tenants[0] || null;
@@ -77,11 +77,11 @@ function tenantOverrides(tenant) {
 }
 
 function tenantName(id) {
-  return state.tenants.find((tenant) => tenant.id === id)?.name || 'Unknown tenant';
+  return state.tenants.find((tenant) => tenant.id === id)?.name || 'Tenant không xác định';
 }
 
 function setView(view) {
-  state.activeView = view;
+  state.activeView = view === 'requests' ? 'orders' : view;
   saveState(state);
   render();
 }
@@ -108,6 +108,7 @@ function applyBackendData(data) {
   state.tenants = data.tenants || [];
   state.trialRequests = data.trialRequests || [];
   state.salesLeads = data.salesLeads || [];
+  state.marketingSignups = data.marketingSignups || [];
   state.packages = data.packages || [];
   state.orders = data.orders || [];
   state.accounts = data.accounts || [];
@@ -184,26 +185,29 @@ function handleRealtimePlatformChange(event) {
 function normalizeRealtimeEvent(event = {}) {
   const path = String(event.path || '');
   const data = event.data || {};
-  let label = 'Platform data changed';
+  let label = 'Dữ liệu nền tảng đã thay đổi';
   let view = 'overview';
 
   if (path.includes('/trial-requests')) {
-    label = `${event.method || 'POST'} trial request ${data.restaurantName || data.id || ''}`.trim();
-    view = 'requests';
+    label = `${event.method || 'POST'} yêu cầu dùng thử ${data.restaurantName || data.id || ''}`.trim();
+    view = 'orders';
+  } else if (path.includes('/marketing-signups')) {
+    label = `${event.method || 'POST'} đăng ký marketing ${data.email || data.signupId || ''}`.trim();
+    view = 'orders';
   } else if (path.includes('/sales-leads')) {
-    label = `${event.method || 'POST'} sales lead ${data.name || data.id || ''}`.trim();
-    view = 'requests';
+    label = `${event.method || 'POST'} lead bán hàng ${data.name || data.id || ''}`.trim();
+    view = 'orders';
   } else if (path.includes('/orders')) {
-    label = `${event.method || 'POST'} order ${data.orderCode || data.id || ''}`.trim();
+    label = `${event.method || 'POST'} đơn đăng ký ${data.orderCode || data.id || ''}`.trim();
     view = 'orders';
   } else if (path.includes('/tenants')) {
     label = `${event.method || 'POST'} tenant ${data.name || data.id || ''}`.trim();
     view = 'tenants';
   } else if (path.includes('/accounts')) {
-    label = `${event.method || 'POST'} account ${data.email || data.id || ''}`.trim();
+    label = `${event.method || 'POST'} tài khoản ${data.email || data.id || ''}`.trim();
     view = 'accounts';
   } else if (path.includes('/permissions')) {
-    label = 'Permission configuration changed';
+    label = 'Cấu hình phân quyền đã thay đổi';
     view = 'permissions';
   }
 
@@ -295,7 +299,7 @@ async function handleLogin() {
   const username = String(state.username || '').trim();
   const password = String(state.password || '').trim();
   if (!username || !password) {
-    state.error = 'Enter username and password';
+    state.error = 'Vui lòng nhập tên đăng nhập và mật khẩu';
     render();
     return;
   }
@@ -321,7 +325,7 @@ async function handleLogin() {
 async function handleForgotQuestion() {
   const username = String(state.resetDraft?.username || '').trim();
   if (!username) {
-    state.error = 'Enter your username';
+    state.error = 'Vui lòng nhập tên đăng nhập';
     render();
     return;
   }
@@ -331,7 +335,7 @@ async function handleForgotQuestion() {
   try {
     const data = await requestSecurityQuestion(username);
     state.resetDraft = { ...(state.resetDraft || {}), username, question: data.question || '' };
-    state.authMessage = 'Security question loaded';
+    state.authMessage = 'Đã tải câu hỏi bảo mật';
     saveState(state);
   } finally {
     state.loading = false;
@@ -347,7 +351,7 @@ async function handleForgotVerify() {
   try {
     const data = await verifySecurityAnswer(draft.username, draft.answer);
     state.resetDraft = { ...draft, resetToken: data.resetToken || '' };
-    state.authMessage = `Answer verified. Reset token expires in ${data.expiresIn || 0} minutes.`;
+    state.authMessage = `Đã xác minh câu trả lời. Mã đặt lại hết hạn sau ${data.expiresIn || 0} phút.`;
     saveState(state);
   } finally {
     state.loading = false;
@@ -358,7 +362,7 @@ async function handleForgotVerify() {
 async function handleForgotReset() {
   const draft = state.resetDraft || {};
   if (draft.newPassword !== draft.confirmPassword) {
-    state.error = 'New password and confirmation do not match';
+    state.error = 'Mật khẩu mới và xác nhận không khớp';
     render();
     return;
   }
@@ -370,7 +374,7 @@ async function handleForgotReset() {
     state.authMode = 'login';
     state.password = '';
     state.resetDraft = { username: '', question: '', answer: '', resetToken: '', newPassword: '', confirmPassword: '' };
-    state.authMessage = 'Password reset. Please sign in.';
+    state.authMessage = 'Đã đặt lại mật khẩu. Vui lòng đăng nhập.';
     saveState(state);
   } finally {
     state.loading = false;
@@ -381,7 +385,7 @@ async function handleForgotReset() {
 async function handleActivateAccount() {
   const draft = state.activationDraft || {};
   if (draft.newPassword !== draft.confirmPassword) {
-    state.error = 'New password and confirmation do not match';
+    state.error = 'Mật khẩu mới và xác nhận không khớp';
     render();
     return;
   }
@@ -392,7 +396,7 @@ async function handleActivateAccount() {
     await activateAccount(draft.activationToken, draft.newPassword);
     state.authMode = 'login';
     state.activationDraft = { activationToken: '', newPassword: '', confirmPassword: '' };
-    state.authMessage = 'Account activated. Please sign in.';
+    state.authMessage = 'Đã kích hoạt tài khoản. Vui lòng đăng nhập.';
     saveState(state);
   } finally {
     state.loading = false;
@@ -446,7 +450,9 @@ function bindEvents() {
           state.selectedOrderId = target.dataset.id;
         }
         if (target.dataset.type === 'trial') {
-          state.selectedTrialRequestId = target.dataset.id;
+          state.activeView = 'orders';
+          state.selectedOrderId = `trial:${target.dataset.id}`;
+          state.selectedTrialRequestId = null;
           state.selectedSalesLeadId = null;
         }
         if (target.dataset.type === 'lead') {
@@ -479,12 +485,20 @@ function bindEvents() {
         const tenant = state.tenants.find((item) => item.id === Number(target.dataset.id));
         if (tenant) {
           state.selectedTenantId = tenant.id;
-          state.packageDraft = tenant.packageTier;
+          state.selectedTenantDetailId = tenant.id;
+          state.packageDraft = normalizeTenantPackageTier(tenant.packageTier);
           state.modeDraft = tenant.operatingMode;
           state.packageOverrides = tenantOverrides(tenant);
+          state.packageMessage = '';
           saveState(state);
           render();
         }
+      }
+      if (action === 'close-tenant-detail') {
+        state.selectedTenantDetailId = null;
+        state.packageMessage = '';
+        saveState(state);
+        render();
       }
       if (action === 'apply-package') {
         if (target.dataset.package) state.packageDraft = target.dataset.package;
@@ -597,19 +611,25 @@ function bindEvents() {
       if (action === 'order-wait-payment') await handleOrderAction(waitOrderPayment, target.dataset.id);
       if (action === 'order-confirm-payment') await handleOrderAction(confirmOrderPayment, target.dataset.id);
       if (action === 'order-approve') {
-        if (confirm('Approve this order?')) await handleOrderAction(approveOrder, target.dataset.id);
+        if (confirm('Duyệt đơn đăng ký này?')) await handleOrderAction(approveOrder, target.dataset.id);
       }
       if (action === 'order-reject') {
-        if (confirm('Reject this order?')) await handleOrderAction((id) => rejectOrder(id, 'Rejected by platform admin'), target.dataset.id);
+        openOrderRejectDialog(target.dataset.id);
+      }
+      if (action === 'close-order-reject-dialog') {
+        closeOrderRejectDialog();
+      }
+      if (action === 'confirm-order-reject') {
+        await handleConfirmOrderReject();
       }
       if (action === 'order-cancel') {
-        if (confirm('Cancel this order?')) await handleOrderAction(cancelOrder, target.dataset.id);
+        if (confirm('Hủy đơn đăng ký này?')) await handleOrderAction(cancelOrder, target.dataset.id);
       }
       if (action === 'order-provision') {
-        if (confirm('Provision tenant for this order?')) await handleOrderAction(provisionOrder, target.dataset.id);
+        if (confirm('Khởi tạo tenant cho đơn đăng ký này?')) await handleOrderAction(provisionOrder, target.dataset.id);
       }
       if (action === 'order-hold-provisioning') {
-        if (confirm('Hold provisioning for this order?')) await handleOrderAction(holdOrderProvisioning, target.dataset.id);
+        if (confirm('Tạm giữ khởi tạo cho đơn đăng ký này?')) await handleOrderAction(holdOrderProvisioning, target.dataset.id);
       }
       if (action === 'invite-account') await handleInviteAccount();
       if (action === 'resend-account-invite') await handleResendAccountInvite(target.dataset.id);
@@ -705,7 +725,7 @@ function bindEvents() {
       const tenant = state.tenants.find((item) => String(item.id) === String(event.target.value));
       if (tenant) {
         state.selectedTenantId = tenant.id;
-        state.packageDraft = tenant.packageTier;
+        state.packageDraft = normalizeTenantPackageTier(tenant.packageTier);
         state.modeDraft = tenant.operatingMode;
         state.packageOverrides = tenantOverrides(tenant);
         shouldRender = true;
@@ -713,6 +733,7 @@ function bindEvents() {
     }
     if (field === 'inviteEmail') state.inviteEmail = event.target.value;
     if (field === 'publicOrderLookupCode') state.publicOrderLookupCode = event.target.value;
+    if (field === 'rejectOrderReason') state.rejectOrderDialog = { ...(state.rejectOrderDialog || {}), reason: event.target.value };
     if (field === 'tenantSearch') {
       state.tenantSearch = event.target.value;
       state.tenantPage = 1;
@@ -835,20 +856,25 @@ function bindEvents() {
 async function handleApplyPackage() {
   const tenant = selectedTenant();
   if (!tenant) return;
-  await updateTenantPackage(tenant.id, state.packageDraft, state.modeDraft, {
+  const packageTier = normalizeTenantPackageTier(state.packageDraft || tenant.packageTier);
+  await updateTenantPackage(tenant.id, packageTier, state.modeDraft, {
     betaAnalytics: Boolean(state.packageOverrides?.betaAnalytics),
     waiveSetupFee: state.packageOverrides?.waiveSetupFee !== false,
   });
   const overrides = [];
   if (state.packageOverrides?.betaAnalytics) overrides.push('Beta Analytics');
-  if (state.packageOverrides?.waiveSetupFee !== false) overrides.push('setup fee waived');
-  state.packageMessage = overrides.length ? `Package applied with ${overrides.join(' and ')}.` : 'Package applied without overrides.';
+  if (state.packageOverrides?.waiveSetupFee !== false) overrides.push('miễn phí thiết lập');
+  state.packageMessage = overrides.length ? `Đã áp dụng gói với ${overrides.join(' và ')}.` : 'Đã áp dụng gói không kèm ghi đè.';
   await loadPlatformData();
 }
 
 async function handleToggleStatus(id) {
   await toggleTenantStatus(id);
   await loadPlatformData();
+  state.selectedTenantDetailId = id || state.selectedTenantDetailId || null;
+  state.selectedTenantId = id || state.selectedTenantId || null;
+  saveState(state);
+  render();
 }
 
 function handleToggleSelection(key, id, checked) {
@@ -925,14 +951,14 @@ async function handleBulkResendInvites() {
 async function handleCreateOrder() {
   const tenant = selectedTenant();
   if (!tenant) return;
-  await createOrder(tenant.id, state.packageDraft);
+  await createOrder(tenant.id, normalizeTenantPackageTier(state.packageDraft || tenant.packageTier));
   await loadPlatformData();
 }
 
 async function handleLookupPublicOrder() {
   const orderCode = String(state.publicOrderLookupCode || '').trim();
   if (!orderCode) {
-    state.error = 'Enter a public order code to look up';
+    state.error = 'Vui lòng nhập mã đơn công khai để tra cứu';
     render();
     return;
   }
@@ -952,11 +978,54 @@ async function handleLookupPublicOrder() {
   }
 }
 
+function openOrderRejectDialog(id) {
+  if (!id) return;
+  const order = (state.orders || []).find((item) => item.id === id || item.orderCode === id);
+  state.rejectOrderDialog = {
+    open: true,
+    orderId: id,
+    orderCode: order?.orderCode || id,
+    reason: '',
+  };
+  state.error = '';
+  saveState(state);
+  render();
+}
+
+function closeOrderRejectDialog() {
+  state.rejectOrderDialog = null;
+  saveState(state);
+  render();
+}
+
+async function handleConfirmOrderReject() {
+  const dialog = state.rejectOrderDialog || {};
+  const reason = String(dialog.reason || '').trim();
+  if (!dialog.orderId) return;
+  if (!reason) {
+    state.error = 'Vui lòng nhập lý do từ chối';
+    render();
+    return;
+  }
+  state.rejectOrderDialog = null;
+  await handleOrderAction((id) => rejectOrder(id, reason), dialog.orderId);
+}
+
 async function handleOrderAction(actionFn, id) {
   if (!id) return;
   state.loading = true;
   render();
-  await actionFn(id);
+  const result = await actionFn(id);
+  if (result?.activationEmail || result?.account || result?.tenant) {
+    state.lastProvisioningResult = {
+      orderId: id,
+      activationEmail: result.activationEmail || null,
+      account: result.account || null,
+      tenant: result.tenant || null,
+      authUser: result.authUser || null,
+      store: result.store || null,
+    };
+  }
   await loadPlatformData();
   state.selectedOrderId = id;
   state.activeView = 'orders';
@@ -1001,7 +1070,8 @@ async function handleApproveTrial(id) {
   if (!id) return;
   await approveTrialRequest(id);
   await loadPlatformData();
-  state.activeView = 'requests';
+  state.activeView = 'orders';
+  state.selectedOrderId = `trial:${id}`;
   saveState(state);
   render();
 }
@@ -1010,7 +1080,8 @@ async function handleRejectTrial(id) {
   if (!id) return;
   await rejectTrialRequest(id);
   await loadPlatformData();
-  state.activeView = 'requests';
+  state.activeView = 'orders';
+  state.selectedOrderId = `trial:${id}`;
   saveState(state);
   render();
 }
@@ -1023,7 +1094,7 @@ async function handleUpdateSalesLeadStatus(id, status) {
   try {
     await updateSalesLeadStatus(id, status);
     await loadPlatformData();
-    state.activeView = 'requests';
+    state.activeView = 'orders';
     state.selectedSalesLeadId = id;
     saveState(state);
     render();
@@ -1063,7 +1134,7 @@ async function handleResendAccountInvite(id) {
 async function handleCreateTenant() {
   const draft = normalizeTenantDraft(state.tenantDraft);
   if (!draft.name || !draft.ownerName || !draft.ownerEmail) {
-    state.error = 'Tenant name, owner name, and owner email are required';
+    state.error = 'Tên tenant, tên chủ sở hữu và email chủ sở hữu là bắt buộc';
     state.tenantDraft = draft;
     render();
     return;
@@ -1097,11 +1168,19 @@ function normalizeTenantDraft(draft = {}) {
     name: String(draft.name || '').trim(),
     ownerName: String(draft.ownerName || '').trim(),
     ownerEmail: String(draft.ownerEmail || '').trim(),
-    packageTier: draft.packageTier || state.packages?.[0]?.id || 'trial',
+    packageTier: normalizeTenantPackageTier(draft.packageTier || 'trial'),
     operatingMode: draft.operatingMode || 'simple',
     status: draft.status || 'active',
     renewalDate: draft.renewalDate || '',
   };
+}
+
+function normalizeTenantPackageTier(value) {
+  const tier = String(value || '').toLowerCase();
+  if (['trial', 'trial-plus', 'plus-trial'].includes(tier)) return 'trial';
+  if (['plus', 'starter'].includes(tier)) return 'plus';
+  if (['pro', 'restaurant', 'chain'].includes(tier)) return 'pro';
+  return 'trial';
 }
 
 async function handleTogglePermission(permission) {
@@ -1198,7 +1277,7 @@ function getFilteredAccounts() {
 
 function downloadCsv(filename, rows) {
   if (!rows.length) {
-    state.error = 'No rows to export';
+    state.error = 'Không có dòng nào để xuất dữ liệu';
     render();
     return;
   }
@@ -1227,7 +1306,7 @@ async function handleSaveProfile() {
   await updateProfile(String(draft.displayName || '').trim(), String(draft.email || '').trim());
   state.user = await getProfile();
   syncProfileDraft();
-  state.securityMessage = 'Profile updated';
+  state.securityMessage = 'Đã cập nhật hồ sơ';
   state.securityTone = 'success';
   state.settingsPanel = '';
   state.loading = false;
@@ -1242,7 +1321,7 @@ async function handleSaveSecurityQuestion() {
   await setSecurityQuestion(draft.question, draft.answer, draft.currentPassword);
   state.user = await getProfile();
   syncProfileDraft();
-  state.securityMessage = 'Security question updated';
+  state.securityMessage = 'Đã cập nhật câu hỏi bảo mật';
   state.securityTone = 'success';
   state.settingsPanel = '';
   state.loading = false;
@@ -1253,7 +1332,7 @@ async function handleSaveSecurityQuestion() {
 async function handleChangePassword() {
   const draft = state.passwordDraft || {};
   if (draft.next !== draft.confirm) {
-    state.securityMessage = 'New password and confirmation do not match';
+    state.securityMessage = 'Mật khẩu mới và xác nhận không khớp';
     state.securityTone = 'danger';
     render();
     return;
@@ -1266,7 +1345,7 @@ async function handleChangePassword() {
   state.authenticated = false;
   state.user = null;
   state.password = '';
-  state.error = 'Password changed. Please sign in again.';
+  state.error = 'Đã đổi mật khẩu. Vui lòng đăng nhập lại.';
   state.loading = false;
   saveState(state);
   render();
@@ -1274,7 +1353,7 @@ async function handleChangePassword() {
 
 async function handleUploadAvatar(file) {
   if (file.size > 2 * 1024 * 1024) {
-    state.securityMessage = 'Avatar must be 2MB or smaller';
+    state.securityMessage = 'Ảnh đại diện phải từ 2MB trở xuống';
     state.securityTone = 'danger';
     render();
     return;
@@ -1285,7 +1364,7 @@ async function handleUploadAvatar(file) {
   await uploadAvatar(dataUrl);
   state.user = await getProfile();
   syncProfileDraft();
-  state.securityMessage = 'Avatar updated';
+  state.securityMessage = 'Đã cập nhật ảnh đại diện';
   state.securityTone = 'success';
   state.settingsPanel = '';
   state.loading = false;
@@ -1299,7 +1378,7 @@ async function handleDeleteAvatar() {
   await deleteAvatar();
   state.user = await getProfile();
   syncProfileDraft();
-  state.securityMessage = 'Avatar removed';
+  state.securityMessage = 'Đã gỡ ảnh đại diện';
   state.securityTone = 'success';
   state.settingsPanel = '';
   state.loading = false;
@@ -1312,13 +1391,13 @@ async function handleRevokeSession(id) {
   await revokeSession(id);
   if (state.activeView === 'audit') await loadAuditData();
   else await loadSecurityData();
-  state.securityMessage = 'Session revoked';
+  state.securityMessage = 'Đã thu hồi phiên đăng nhập';
   state.securityTone = 'success';
   render();
 }
 
 async function handleLogoutAllDevices() {
-  if (!confirm('Log out all devices for this account? You will need to sign in again.')) return;
+  if (!confirm('Đăng xuất mọi thiết bị của tài khoản này? Bạn sẽ cần đăng nhập lại.')) return;
   disconnectRealtime();
   state.loading = true;
   render();
@@ -1333,7 +1412,7 @@ async function handleLogoutAllDevices() {
     authMode: 'login',
     user: null,
     loading: false,
-    error: 'All devices have been logged out. Please sign in again.',
+    error: 'Tất cả thiết bị đã được đăng xuất. Vui lòng đăng nhập lại.',
   };
   saveState(state);
   render();
@@ -1343,24 +1422,23 @@ function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Failed to read avatar file'));
+    reader.onerror = () => reject(new Error('Không thể đọc file ảnh đại diện'));
     reader.readAsDataURL(file);
   });
 }
 
 function viewTitle() {
   const titles = {
-    overview: 'Platform overview',
-    requests: 'Trial requests',
-    tenants: 'Tenant management',
-    packages: 'Package setup',
-    accounts: 'Account control',
-    orders: 'Subscription orders',
-    permissions: 'Permission matrix',
-    settings: 'Profile & security',
-    audit: 'Audit log',
+    overview: 'Tổng quan nền tảng',
+    tenants: 'Quản lý tenant',
+    packages: 'Thiết lập gói',
+    accounts: 'Quản lý tài khoản',
+    orders: 'Đơn đăng ký',
+    permissions: 'Ma trận phân quyền',
+    settings: 'Hồ sơ & bảo mật',
+    audit: 'Nhật ký kiểm toán',
   };
-  return titles[state.activeView] || 'Platform admin';
+  return titles[state.activeView] || 'Quản trị nền tảng';
 }
 
 function globalSearchResults() {
@@ -1368,9 +1446,9 @@ function globalSearchResults() {
   if (!query) return [];
   const rows = [
     ...(state.tenants || []).map((item) => ({ type: 'Tenant', label: item.name, meta: item.ownerEmail || item.packageTier, view: 'tenants' })),
-    ...(state.orders || []).map((item) => ({ type: 'Order', label: item.orderCode || item.id, meta: [item.customerName, item.companyName, item.status].filter(Boolean).join(' / '), view: 'orders', id: item.id })),
-    ...(state.accounts || []).map((item) => ({ type: 'Account', label: item.name || item.email, meta: [item.email, item.role].filter(Boolean).join(' / '), view: 'accounts', id: item.id })),
-    ...(state.trialRequests || []).map((item) => ({ type: 'Trial', label: item.restaurantName, meta: [item.contactName, item.status].filter(Boolean).join(' / '), view: 'requests', id: item.id })),
+    ...(state.orders || []).map((item) => ({ type: 'Đơn đăng ký', label: item.orderCode || item.id, meta: [item.customerName, item.companyName, item.status].filter(Boolean).join(' / '), view: 'orders', id: item.id })),
+    ...(state.accounts || []).map((item) => ({ type: 'Tài khoản', label: item.name || item.email, meta: [item.email, item.role].filter(Boolean).join(' / '), view: 'accounts', id: item.id })),
+    ...(state.trialRequests || []).map((item) => ({ type: 'PLUS-Trial', label: item.restaurantName, meta: [item.contactName, item.status].filter(Boolean).join(' / '), view: 'orders', id: `trial:${item.id}` })),
   ];
   return rows.filter((row) => [row.type, row.label, row.meta].join(' ').toLowerCase().includes(query)).slice(0, 8);
 }
@@ -1381,8 +1459,8 @@ function renderGlobalSearchPanel() {
   return `
     <div class="global-search-panel">
       <header>
-        <span>${esc(results.length)} results</span>
-        <button type="button" data-action="clear-global-search">Clear</button>
+        <span>${esc(results.length)} kết quả</span>
+        <button type="button" data-action="clear-global-search">Xóa</button>
       </header>
       ${results.map((item) => `
         <button type="button" data-action="view" data-view="${esc(item.view)}">
@@ -1390,7 +1468,7 @@ function renderGlobalSearchPanel() {
           <strong>${esc(item.label || '-')}</strong>
           <small>${esc(item.meta || '-')}</small>
         </button>
-      `).join('') || '<p>No matches found</p>'}
+      `).join('') || '<p>Không tìm thấy kết quả phù hợp</p>'}
     </div>
   `;
 }
@@ -1404,12 +1482,12 @@ function renderNotifications() {
   return `
     <div class="notification-panel">
       <header>
-        <strong>Notifications</strong>
-        <small class="${state.realtime?.connected ? 'realtime-on' : 'realtime-off'}">${state.realtime?.connected ? 'Live' : 'Offline'}</small>
+        <strong>Thông báo</strong>
+        <small class="${state.realtime?.connected ? 'realtime-on' : 'realtime-off'}">${state.realtime?.connected ? 'Trực tiếp' : 'Ngoại tuyến'}</small>
       </header>
-      <button type="button" data-action="view" data-view="requests"><span>${esc(pendingTrials)}</span> pending trial requests</button>
-      <button type="button" data-action="view" data-view="requests"><span>${esc(newLeads)}</span> new sales leads</button>
-      <button type="button" data-action="view" data-view="orders"><span>${esc(provisioning)}</span> provisioning items</button>
+      <button type="button" data-action="view" data-view="orders"><span>${esc(pendingTrials)}</span> PLUS-Trial đang chờ</button>
+      <button type="button" data-action="view" data-view="orders"><span>${esc(newLeads)}</span> lead bán hàng mới</button>
+      <button type="button" data-action="view" data-view="orders"><span>${esc(provisioning)}</span> mục đang khởi tạo</button>
       ${events.length ? `
         <div class="realtime-events">
           ${events.map((item) => `
@@ -1420,16 +1498,16 @@ function renderNotifications() {
             </button>
           `).join('')}
         </div>
-      ` : '<p>No realtime updates yet</p>'}
+      ` : '<p>Chưa có cập nhật realtime</p>'}
       ${state.realtime?.error ? `<p>${esc(state.realtime.error)}</p>` : ''}
     </div>
   `;
 }
 
 function formatRealtimeTime(value) {
-  if (!value) return 'just now';
+  if (!value) return 'vừa xong';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'just now';
+  if (Number.isNaN(date.getTime())) return 'vừa xong';
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -1442,15 +1520,15 @@ function renderAppShell() {
           <div class="topbar-left">
             <label class="top-search">
               <i></i>
-              <input data-field="globalSearch" value="${esc(state.globalSearch || '')}" aria-label="Search" placeholder="Search tenants, orders, packages..." />
+              <input data-field="globalSearch" value="${esc(state.globalSearch || '')}" aria-label="Tìm kiếm" placeholder="Tìm tenant, đơn đăng ký, gói..." />
             </label>
             ${renderGlobalSearchPanel()}
           </div>
           <div class="topbar-actions">
-            <button class="top-icon notification-trigger ${state.realtime?.connected ? 'live' : ''}" data-action="toggle-notifications" aria-label="Notifications">
+            <button class="top-icon notification-trigger ${state.realtime?.connected ? 'live' : ''}" data-action="toggle-notifications" aria-label="Thông báo">
               ${state.realtime?.unread ? `<span>${esc(state.realtime.unread)}</span>` : ''}
             </button>
-            <button class="top-icon settings" data-action="view" data-view="settings" aria-label="Settings"></button>
+            <button class="top-icon settings" data-action="view" data-view="settings" aria-label="Cài đặt"></button>
             <button class="top-avatar" data-action="view" data-view="settings" aria-label="${esc(state.user?.username || 'platform')}"></button>
             ${renderNotifications()}
           </div>
@@ -1458,7 +1536,6 @@ function renderAppShell() {
 
         <div class="content-scroll">
           ${state.activeView === 'overview' ? renderOverviewPage(state, { selectedTenant, tenantName }) : ''}
-          ${state.activeView === 'requests' ? renderTrialRequestsPage(state) : ''}
           ${state.activeView === 'tenants' ? renderTenantsPage(state, { selectedTenant }) : ''}
           ${state.activeView === 'packages' ? renderPackagesPage(state, { selectedTenant }) : ''}
           ${state.activeView === 'accounts' ? renderAccountsPage(state, { selectedTenant }) : ''}
@@ -1474,7 +1551,7 @@ function renderAppShell() {
 
 function render() {
   if (state.authLoading) {
-    app.innerHTML = '<div class="loading">Loading...</div>';
+    app.innerHTML = '<div class="loading">Đang tải...</div>';
     return;
   }
 
@@ -1485,7 +1562,7 @@ function render() {
 
   app.innerHTML = `
     ${renderAppShell()}
-    ${state.loading ? '<div class="toast">Loading platform data...</div>' : ''}
+    ${state.loading ? '<div class="toast">Đang tải dữ liệu nền tảng...</div>' : ''}
     ${state.error ? `<div class="toast">${esc(state.error)}</div>` : ''}
   `;
 }

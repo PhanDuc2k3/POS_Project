@@ -15,10 +15,10 @@ export function renderProfileSettingsPage(state) {
     <section class="settings-page">
       <header class="settings-heading">
         <div>
-          <h1>Admin Profile</h1>
-          <p>View platform admin information and open account controls when needed.</p>
+          <h1>Hồ sơ quản trị</h1>
+          <p>Xem thông tin quản trị nền tảng và mở các thiết lập tài khoản khi cần.</p>
         </div>
-        <button type="button" class="settings-refresh-btn" data-action="refresh-security-data"><i></i>Refresh</button>
+        <button type="button" class="settings-refresh-btn" data-action="refresh-security-data"><i></i>Làm mới</button>
       </header>
 
       ${state.securityMessage ? `<div class="settings-message ${esc(state.securityTone || 'info')}">${esc(state.securityMessage)}</div>` : ''}
@@ -27,35 +27,35 @@ export function renderProfileSettingsPage(state) {
         <section class="admin-profile-hero">
           <div class="admin-profile-main">
             <div class="profile-avatar-xl ${avatarUrl ? 'has-image' : ''}">
-              ${avatarUrl ? `<img src="${esc(avatarUrl)}" alt="${esc(user.displayName || user.username || 'Avatar')}" />` : esc(initials(user.displayName || user.username))}
+              ${avatarUrl ? `<img src="${esc(avatarUrl)}" alt="${esc(user.displayName || user.username || 'Ảnh đại diện')}" />` : esc(initials(user.displayName || user.username))}
             </div>
             <div class="admin-profile-copy">
-              <span>Platform Admin</span>
-              <h2>${esc(user.displayName || user.username || 'Platform Admin')}</h2>
-              <p>${esc(user.email || 'No email configured')}</p>
+              <span>Quản trị nền tảng</span>
+              <h2>${esc(user.displayName || user.username || 'Quản trị nền tảng')}</h2>
+              <p>${esc(user.email || 'Chưa cấu hình email')}</p>
               <div class="admin-profile-badges">
-                <b>${esc(roleLabels[user.role] || user.role || 'Admin')}</b>
-                <b>${user.hasSecurityQuestion ? 'Security Question Set' : 'Security Question Missing'}</b>
-                <b>${esc(sessions.length)} Active Sessions</b>
+                <b>${esc(roleLabels[user.role] || user.role || 'Quản trị')}</b>
+                <b>${user.hasSecurityQuestion ? 'Đã đặt câu hỏi bảo mật' : 'Chưa có câu hỏi bảo mật'}</b>
+                <b>${esc(sessions.length)} phiên hoạt động</b>
               </div>
             </div>
           </div>
           <div class="admin-profile-details">
-            ${infoTile('Username', user.username)}
+            ${infoTile('Tên đăng nhập', user.username)}
             ${infoTile('Email', user.email)}
-            ${infoTile('Role', roleLabels[user.role] || user.role)}
-            ${infoTile('Last Login', formatDate(user.lastLogin))}
-            ${infoTile('Created At', formatDate(user.createdAt))}
-            ${infoTile('Security', user.hasSecurityQuestion ? 'Configured' : 'Needs setup')}
+            ${infoTile('Vai trò', roleLabels[user.role] || user.role)}
+            ${infoTile('Đăng nhập gần nhất', formatDate(user.lastLogin))}
+            ${infoTile('Ngày tạo', formatDate(user.createdAt))}
+            ${infoTile('Bảo mật', user.hasSecurityQuestion ? 'Đã cấu hình' : 'Cần thiết lập')}
           </div>
         </section>
 
         <section class="profile-action-panel">
-          ${actionButton('profile', 'Update Info', 'Name and email', activePanel)}
-          ${actionButton('password', 'Change Password', 'Requires current password', activePanel)}
-          ${actionButton('security', 'Security Question', user.hasSecurityQuestion ? 'Update recovery question' : 'Set recovery question', activePanel)}
-          ${actionButton('avatar', 'Avatar', 'Upload or remove image', activePanel)}
-          ${actionButton('sessions', 'Sessions', `${sessions.length} active devices`, activePanel)}
+          ${actionButton('profile', 'Cập nhật thông tin', 'Tên và email', activePanel)}
+          ${actionButton('password', 'Đổi mật khẩu', 'Cần mật khẩu hiện tại', activePanel)}
+          ${actionButton('security', 'Câu hỏi bảo mật', user.hasSecurityQuestion ? 'Cập nhật câu hỏi khôi phục' : 'Đặt câu hỏi khôi phục', activePanel)}
+          ${actionButton('avatar', 'Ảnh đại diện', 'Tải lên hoặc gỡ ảnh', activePanel)}
+          ${actionButton('sessions', 'Phiên đăng nhập', `${sessions.length} thiết bị đang hoạt động`, activePanel)}
         </section>
 
       </div>
@@ -65,7 +65,7 @@ export function renderProfileSettingsPage(state) {
         <section class="settings-card settings-modal" role="dialog" aria-modal="true" aria-label="${esc(panelTitle(activePanel))}">
           <div class="settings-card-head">
             <h2>${esc(panelTitle(activePanel))}</h2>
-            <button type="button" class="settings-close-btn" data-action="set-settings-panel" data-panel="" aria-label="Close"></button>
+            <button type="button" class="settings-close-btn" data-action="set-settings-panel" data-panel="" aria-label="Đóng"></button>
           </div>
           ${renderPanel(activePanel, { draft, security, password, sessions, user })}
         </section>
@@ -79,24 +79,24 @@ function renderPanel(activePanel, context) {
   if (activePanel === 'profile') {
     return `
       <div class="settings-form-grid">
-        ${field('Display Name', 'profileDisplayName', draft.displayName ?? user.displayName ?? '')}
+        ${field('Tên hiển thị', 'profileDisplayName', draft.displayName ?? user.displayName ?? '')}
         ${field('Email', 'profileEmail', draft.email ?? user.email ?? '', 'email')}
       </div>
       <div class="settings-actions">
-        <button type="button" class="settings-secondary-btn" data-action="refresh-security-data">Reset</button>
-        <button type="button" class="settings-primary-btn" data-action="save-profile">Save Profile</button>
+        <button type="button" class="settings-secondary-btn" data-action="refresh-security-data">Đặt lại</button>
+        <button type="button" class="settings-primary-btn" data-action="save-profile">Lưu hồ sơ</button>
       </div>
     `;
   }
   if (activePanel === 'password') {
     return `
       <div class="settings-editor-body">
-        ${field('Current Password', 'passwordCurrent', password.current || '', 'password')}
-        ${field('New Password', 'passwordNew', password.next || '', 'password')}
-        ${field('Confirm New Password', 'passwordConfirm', password.confirm || '', 'password')}
+        ${field('Mật khẩu hiện tại', 'passwordCurrent', password.current || '', 'password')}
+        ${field('Mật khẩu mới', 'passwordNew', password.next || '', 'password')}
+        ${field('Xác nhận mật khẩu mới', 'passwordConfirm', password.confirm || '', 'password')}
       </div>
       <div class="settings-actions">
-        <button type="button" class="settings-danger-btn" data-action="change-password">Change Password</button>
+        <button type="button" class="settings-danger-btn" data-action="change-password">Đổi mật khẩu</button>
       </div>
     `;
   }
@@ -104,14 +104,14 @@ function renderPanel(activePanel, context) {
     return `
       <div class="settings-editor-body">
         <label class="settings-field">
-          <span>Question</span>
-          <textarea data-field="securityQuestion" rows="3" placeholder="Example: What was your first store name?">${esc(security.question ?? user.securityQuestion ?? '')}</textarea>
+          <span>Câu hỏi</span>
+          <textarea data-field="securityQuestion" rows="3" placeholder="Ví dụ: Tên cửa hàng đầu tiên của bạn là gì?">${esc(security.question ?? user.securityQuestion ?? '')}</textarea>
         </label>
-        ${field('Answer', 'securityAnswer', security.answer || '', 'password')}
-        ${field('Current Password', 'securityCurrentPassword', security.currentPassword || '', 'password')}
+        ${field('Câu trả lời', 'securityAnswer', security.answer || '', 'password')}
+        ${field('Mật khẩu hiện tại', 'securityCurrentPassword', security.currentPassword || '', 'password')}
       </div>
       <div class="settings-actions">
-        <button type="button" class="settings-primary-btn" data-action="save-security-question">Save Question</button>
+        <button type="button" class="settings-primary-btn" data-action="save-security-question">Lưu câu hỏi</button>
       </div>
     `;
   }
@@ -121,23 +121,23 @@ function renderPanel(activePanel, context) {
         <label class="avatar-dropzone">
           <input type="file" data-action="upload-avatar" accept="image/png,image/jpeg,image/webp" />
           <i></i>
-          <strong>Upload Avatar</strong>
-          <span>PNG, JPG, WebP up to 2MB</span>
+          <strong>Tải ảnh đại diện</strong>
+          <span>PNG, JPG, WebP tối đa 2MB</span>
         </label>
       </div>
       <div class="settings-actions">
-        <button type="button" class="settings-secondary-btn" data-action="delete-avatar">Remove Avatar</button>
+        <button type="button" class="settings-secondary-btn" data-action="delete-avatar">Gỡ ảnh đại diện</button>
       </div>
     `;
   }
   if (activePanel === 'sessions') {
     return `
       <div class="settings-session-toolbar">
-        <span>${esc(sessions.length)} active sessions</span>
-        <button type="button" class="logout-all-btn" data-action="logout-all-devices">Logout All Devices</button>
+        <span>${esc(sessions.length)} phiên hoạt động</span>
+        <button type="button" class="logout-all-btn" data-action="logout-all-devices">Đăng xuất mọi thiết bị</button>
       </div>
       <div class="settings-list">
-        ${sessions.map(renderSession).join('') || '<div class="settings-empty">No active sessions found</div>'}
+        ${sessions.map(renderSession).join('') || '<div class="settings-empty">Không tìm thấy phiên hoạt động</div>'}
       </div>
     `;
   }
@@ -173,26 +173,26 @@ function actionButton(panel, label, note, activePanel) {
 
 function panelTitle(panel) {
   const titles = {
-    profile: 'Update Information',
-    password: 'Change Password',
-    security: 'Security Question',
-    avatar: 'Avatar',
-    sessions: 'Active Sessions',
+    profile: 'Cập nhật thông tin',
+    password: 'Đổi mật khẩu',
+    security: 'Câu hỏi bảo mật',
+    avatar: 'Ảnh đại diện',
+    sessions: 'Phiên hoạt động',
   };
-  return titles[panel] || 'Profile Action';
+  return titles[panel] || 'Thao tác hồ sơ';
 }
 
 function renderSession(session) {
-  const title = session.deviceName || session.browser || session.deviceType || 'Unknown device';
+  const title = session.deviceName || session.browser || session.deviceType || 'Thiết bị không xác định';
   const detail = [session.browser, session.os, session.ipAddress].filter(Boolean).join(' / ');
   return `
     <article class="settings-list-item">
       <div>
-        <strong>${esc(title)} ${session.isCurrent ? '<em>Current</em>' : ''}</strong>
-        <span>${esc(detail || 'No device details')}</span>
-        <small>Last used ${esc(formatDate(session.lastUsed || session.createdAt))}</small>
+        <strong>${esc(title)} ${session.isCurrent ? '<em>Hiện tại</em>' : ''}</strong>
+        <span>${esc(detail || 'Chưa có chi tiết thiết bị')}</span>
+        <small>Dùng gần nhất ${esc(formatDate(session.lastUsed || session.createdAt))}</small>
       </div>
-      <button type="button" data-action="revoke-session" data-id="${esc(session.id)}">Revoke</button>
+      <button type="button" data-action="revoke-session" data-id="${esc(session.id)}">Thu hồi</button>
     </article>
   `;
 }
@@ -210,5 +210,5 @@ function formatDate(value) {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }

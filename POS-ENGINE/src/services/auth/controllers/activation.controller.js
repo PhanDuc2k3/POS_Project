@@ -30,7 +30,15 @@ function activate(req, res) {
   return res.json(result.data);
 }
 
+function getOwnerByPlatformAccount(req, res) {
+  if (!requireInternal(req, res)) return;
+  const result = activationService.getOwnerByPlatformAccount(req.params.platformAccountId);
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  return res.json(result.data);
+}
+
 module.exports = {
   provisionOwner,
   activate,
+  getOwnerByPlatformAccount,
 };

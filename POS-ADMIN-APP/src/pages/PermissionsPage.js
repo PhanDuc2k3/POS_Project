@@ -2,35 +2,35 @@ import { esc } from '../utils/format.js';
 import { permissionCatalog } from '../data/platform.js';
 
 const roles = [
-  ['store_owner', 'Owner', 'Full Access'],
-  ['chain_admin', 'Admin', 'Configuration'],
-  ['manager', 'Manager', 'Operations'],
-  ['cashier', 'Staff', 'Execution'],
-  ['kitchen', 'Viewer', 'Read-only'],
+  ['store_owner', 'Chủ sở hữu', 'Toàn quyền'],
+  ['chain_admin', 'Quản trị', 'Cấu hình'],
+  ['manager', 'Quản lý', 'Vận hành'],
+  ['cashier', 'Nhân viên', 'Thực thi'],
+  ['kitchen', 'Theo dõi', 'Chỉ đọc'],
 ];
 
 const baseGroups = [
   {
-    title: 'Store Management',
+    title: 'Quản lý cửa hàng',
     icon: 'store',
     permissions: [
-      ['store.manage', 'Manage Store Profiles', 'store.profile.write'],
-      ['branch.manage', 'Configure Business Hours', 'store.hours.write'],
+      ['store.manage', 'Quản lý hồ sơ cửa hàng', 'store.profile.write'],
+      ['branch.manage', 'Cấu hình giờ hoạt động', 'store.hours.write'],
     ],
   },
   {
-    title: 'Product Catalog',
+    title: 'Danh mục sản phẩm',
     icon: 'catalog',
     permissions: [
-      ['product.manage', 'Create/Edit Products', 'catalog.product.write'],
-      ['topping.manage', 'Bulk Import/Export', 'catalog.bulk.execute', 'PRO TIER'],
+      ['product.manage', 'Tạo/sửa sản phẩm', 'catalog.product.write'],
+      ['topping.manage', 'Nhập/xuất hàng loạt', 'catalog.bulk.execute', 'GÓI PRO'],
     ],
   },
   {
-    title: 'Orders & Finance',
+    title: 'Đơn hàng & tài chính',
     icon: 'finance',
     permissions: [
-      ['transaction.view', 'Process Refunds', 'finance.refund.execute'],
+      ['transaction.view', 'Xử lý hoàn tiền', 'finance.refund.execute'],
     ],
   },
 ];
@@ -41,27 +41,27 @@ export function renderPermissionsPage(state) {
   return `
     <section class="permissions-page">
       <header class="permissions-topline">
-        <div class="permissions-breadcrumb">Administration <span></span> <strong>Permissions</strong></div>
+        <div class="permissions-breadcrumb">Quản trị <span></span> <strong>Phân quyền</strong></div>
         <label class="permissions-search">
           <i></i>
-          <input data-field="permissionSearch" value="${esc(state.permissionSearch || '')}" aria-label="Search permissions" placeholder="Search permissions..." />
+          <input data-field="permissionSearch" value="${esc(state.permissionSearch || '')}" aria-label="Tìm quyền" placeholder="Tìm quyền..." />
         </label>
       </header>
 
       <section class="permissions-heading">
         <div>
-          <h1>Permissions Matrix</h1>
-          <p>Configure granular capabilities available to each platform role. Access to certain domains may be restricted by your active subscription tier. Changes are applied globally across all active sessions upon saving.</p>
+          <h1>Ma trận phân quyền</h1>
+          <p>Cấu hình quyền chi tiết cho từng vai trò trên nền tảng. Một số miền có thể bị giới hạn theo gói thuê bao đang hoạt động. Thay đổi sẽ áp dụng toàn cục cho mọi phiên sau khi lưu.</p>
         </div>
         <div class="permissions-actions">
-          <button type="button" class="permission-discard-btn" data-action="discard-permissions" ${state.permissionDirty ? '' : 'disabled'}>Discard Changes</button>
-          <button type="button" class="permission-save-btn" data-action="save-permissions" ${state.permissionDirty ? '' : 'disabled'}>Save Configuration</button>
+          <button type="button" class="permission-discard-btn" data-action="discard-permissions" ${state.permissionDirty ? '' : 'disabled'}>Bỏ thay đổi</button>
+          <button type="button" class="permission-save-btn" data-action="save-permissions" ${state.permissionDirty ? '' : 'disabled'}>Lưu cấu hình</button>
         </div>
       </section>
 
       <section class="permission-matrix-card">
         <div class="permission-matrix-head">
-          <span>Domain / Capability</span>
+          <span>Miền / Quyền</span>
           ${roles.map(([, label, note]) => `
             <span>
               <strong>${esc(label)}</strong>
@@ -69,7 +69,7 @@ export function renderPermissionsPage(state) {
             </span>
           `).join('')}
         </div>
-        ${visibleGroups.map((group) => renderGroup(group, state)).join('') || '<div class="empty">No permissions match the search</div>'}
+        ${visibleGroups.map((group) => renderGroup(group, state)).join('') || '<div class="empty">Không có quyền phù hợp tìm kiếm</div>'}
       </section>
     </section>
   `;
@@ -80,14 +80,14 @@ function buildPermissionGroups() {
   const extras = permissionCatalog.filter((permission) => !described.has(permission.id));
   const accessGroups = [
     {
-      title: 'Platform Administration',
+      title: 'Quản trị nền tảng',
       icon: 'store',
       permissions: extras
         .filter((permission) => ['tenant.manage', 'package.assign', 'order.manage', 'account.manage', 'permission.manage', 'audit.view'].includes(permission.id))
         .map((permission) => [permission.id, permission.label, permission.id]),
     },
     {
-      title: 'Operations',
+      title: 'Vận hành',
       icon: 'catalog',
       permissions: extras
         .filter((permission) => !['tenant.manage', 'package.assign', 'order.manage', 'account.manage', 'permission.manage', 'audit.view'].includes(permission.id))

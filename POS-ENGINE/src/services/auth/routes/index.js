@@ -18,6 +18,7 @@ router.post('/auth/logout', authController.logout);
 router.post('/auth/logout-all', authController.logoutAll);
 router.post('/auth/activate', activationController.activate);
 router.post('/internal/auth/owners', activationController.provisionOwner);
+router.get('/internal/auth/platform-accounts/:platformAccountId/owner', activationController.getOwnerByPlatformAccount);
 
 // ─── Profile ─────────────────────────────────────────────────────────
 router.get('/auth/me', profileController.getMe);

@@ -46,49 +46,49 @@ export function renderAccountsPage(state) {
     <section class="accounts-page">
       <header class="accounts-heading">
         <div>
-          <h1>Accounts</h1>
-          <p>Manage accounts belonging to customer tenants.</p>
+          <h1>Tài khoản</h1>
+          <p>Quản lý tài khoản thuộc các tenant khách hàng.</p>
         </div>
-        <button type="button" class="account-invite-open" data-action="open-invite-account"><span></span>Invite Account</button>
+        <button type="button" class="account-invite-open" data-action="open-invite-account"><span></span>Mời tài khoản</button>
       </header>
 
       <section class="accounts-table-card">
         ${selectedAccounts.size ? `
           <div class="bulk-action-bar">
-            <strong>${esc(selectedAccounts.size)} selected</strong>
-            <button type="button" data-action="bulk-resend-invites">Resend Invites</button>
-            <button type="button" data-action="export-accounts">Export</button>
-            <button type="button" data-action="clear-account-selection">Clear</button>
+            <strong>${esc(selectedAccounts.size)} đã chọn</strong>
+            <button type="button" data-action="bulk-resend-invites">Gửi lại lời mời</button>
+            <button type="button" data-action="export-accounts">Xuất dữ liệu</button>
+            <button type="button" data-action="clear-account-selection">Bỏ chọn</button>
           </div>
         ` : ''}
         <div class="accounts-toolbar">
           <label class="accounts-tenant-filter"><i></i>
             <select data-field="accountTenantFilter" aria-label="Filter account tenant">
-              <option value="all">All Tenants</option>
+              <option value="all">Tất cả tenant</option>
               ${tenantOptions(state).map((tenant) => `<option value="${esc(tenant.id)}" ${String(state.accountTenantFilter) === String(tenant.id) ? 'selected' : ''}>${esc(tenant.name)}</option>`).join('')}
             </select>
             <b></b>
           </label>
           <label class="accounts-search">
             <i></i>
-            <input data-field="accountSearch" value="${esc(state.accountSearch || '')}" aria-label="Search accounts" placeholder="Search accounts..." />
+            <input data-field="accountSearch" value="${esc(state.accountSearch || '')}" aria-label="Tìm tài khoản" placeholder="Tìm tài khoản..." />
           </label>
           <div class="accounts-toolbar-actions">
-            <button type="button" class="accounts-icon-btn filter ${showFilters ? 'active' : ''}" data-action="toggle-account-filters" aria-label="Filter accounts"></button>
-            <button type="button" class="accounts-icon-btn export" data-action="export-accounts" aria-label="Export accounts"></button>
+            <button type="button" class="accounts-icon-btn filter ${showFilters ? 'active' : ''}" data-action="toggle-account-filters" aria-label="Lọc tài khoản"></button>
+            <button type="button" class="accounts-icon-btn export" data-action="export-accounts" aria-label="Xuất tài khoản"></button>
           </div>
         </div>
         ${showFilters ? `
           <div class="accounts-filter-row">
-            <label>Role
+            <label>Vai trò
               <select data-field="accountRoleFilter">
-                <option value="all">All Roles</option>
+                <option value="all">Tất cả vai trò</option>
                 ${Object.keys(roleLabels).filter((role) => role !== 'platform_admin').map((role) => `<option value="${esc(role)}" ${state.accountRoleFilter === role ? 'selected' : ''}>${esc(roleLabels[role])}</option>`).join('')}
               </select>
             </label>
-            <label>Status
+            <label>Trạng thái
               <select data-field="accountStatusFilter">
-                <option value="all">All Statuses</option>
+                <option value="all">Tất cả trạng thái</option>
                 ${uniqueOptions(sourceAccounts.map((account) => String(account.status || '').toLowerCase())).map((status) => `<option value="${esc(status)}" ${state.accountStatusFilter === status ? 'selected' : ''}>${esc(statusLabel(status))}</option>`).join('')}
               </select>
             </label>
@@ -96,12 +96,12 @@ export function renderAccountsPage(state) {
         ` : ''}
 
         <div class="accounts-table">
-          ${tableHeader(['', 'User Details', 'Tenant', 'Role', 'Status', 'Actions'])}
-          ${visibleAccounts.map((account) => renderAccountRow(account, state, selectedAccounts)).join('') || '<div class="empty">No accounts match the filters</div>'}
+          ${tableHeader(['', 'Thông tin người dùng', 'Tenant', 'Vai trò', 'Trạng thái', 'Thao tác'])}
+          ${visibleAccounts.map((account) => renderAccountRow(account, state, selectedAccounts)).join('') || '<div class="empty">Không có tài khoản phù hợp bộ lọc</div>'}
         </div>
 
         <div class="accounts-pagination">
-          <span>Showing ${accounts.length ? (page - 1) * pageSize + 1 : 0} to ${Math.min(page * pageSize, accounts.length)} of ${accounts.length || 0} accounts</span>
+          <span>Hiển thị ${accounts.length ? (page - 1) * pageSize + 1 : 0} đến ${Math.min(page * pageSize, accounts.length)} trong ${accounts.length || 0} tài khoản</span>
           <div>
             ${paginationButtons(page, Math.max(1, Math.ceil(accounts.length / pageSize)), 'set-account-page')}
           </div>
@@ -128,7 +128,7 @@ function renderAccountRow(account, state, selectedAccounts) {
       <span class="account-role">${esc(roleLabels[account.role] || account.role || '-')}</span>
       <span><b class="account-status ${esc(statusTone(account.status))}">${esc(statusLabel(account.status))}</b></span>
       <span class="account-actions">
-        <button type="button" data-action="select-account" data-id="${esc(account.id)}" aria-label="Open account detail"></button>
+        <button type="button" data-action="select-account" data-id="${esc(account.id)}" aria-label="Mở chi tiết tài khoản"></button>
       </span>
     </div>
   `;
@@ -137,13 +137,13 @@ function renderAccountRow(account, state, selectedAccounts) {
 function renderAccountDetail(account, state) {
   return `
     <div class="account-detail-backdrop" data-action="close-account-detail"></div>
-    <aside class="account-detail-drawer" role="dialog" aria-modal="true" aria-label="Account detail">
+    <aside class="account-detail-drawer" role="dialog" aria-modal="true" aria-label="Chi tiết tài khoản">
       <header class="account-detail-head">
         <div>
-          <h2>Account Detail</h2>
+          <h2>Chi tiết tài khoản</h2>
           <p>${esc(account.email || '-')}</p>
         </div>
-        <button type="button" data-action="close-account-detail" aria-label="Close account detail"></button>
+        <button type="button" data-action="close-account-detail" aria-label="Đóng chi tiết tài khoản"></button>
       </header>
 
       <section class="account-profile-card">
@@ -156,14 +156,14 @@ function renderAccountDetail(account, state) {
       <section class="account-info-list">
         ${infoRow('Tenant', account.tenantName || tenantLabel(account.tenantId, state))}
         ${infoRow('Email', account.email)}
-        ${infoRow('Role', roleLabels[account.role] || account.role)}
-        ${infoRow('Activation Token', account.activationToken || 'Pending delivery')}
-        ${infoRow('Invited At', formatDate(account.activationSentAt || account.createdAt))}
+        ${infoRow('Vai trò', roleLabels[account.role] || account.role)}
+        ${infoRow('Mã kích hoạt', account.activationToken || 'Chờ gửi')}
+        ${infoRow('Thời điểm mời', formatDate(account.activationSentAt || account.createdAt))}
       </section>
 
       <div class="account-detail-actions">
-        <button type="button" class="account-secondary-btn" data-action="resend-account-invite" data-id="${esc(account.id)}">Resend Invite</button>
-        <button type="button" class="account-primary-btn" data-action="close-account-detail">Done</button>
+        <button type="button" class="account-secondary-btn" data-action="resend-account-invite" data-id="${esc(account.id)}">Gửi lại lời mời</button>
+        <button type="button" class="account-primary-btn" data-action="close-account-detail">Xong</button>
       </div>
     </aside>
   `;
@@ -196,36 +196,36 @@ function clampPage(value, total, pageSize) {
 
 function paginationButtons(page, totalPages, action) {
   const pages = Array.from({ length: totalPages }, (_, index) => index + 1).filter((item) => item === 1 || item === totalPages || Math.abs(item - page) <= 1);
-  const output = [`<button type="button" data-action="${action}" data-page="${Math.max(1, page - 1)}" ${page === 1 ? 'disabled' : ''}>Prev</button>`];
+  const output = [`<button type="button" data-action="${action}" data-page="${Math.max(1, page - 1)}" ${page === 1 ? 'disabled' : ''}>Trước</button>`];
   let previous = 0;
   pages.forEach((item) => {
     if (previous && item - previous > 1) output.push('<button type="button" disabled>...</button>');
     output.push(`<button type="button" data-action="${action}" data-page="${item}" class="${item === page ? 'active' : ''}">${item}</button>`);
     previous = item;
   });
-  output.push(`<button type="button" data-action="${action}" data-page="${Math.min(totalPages, page + 1)}" ${page === totalPages ? 'disabled' : ''}>Next</button>`);
+  output.push(`<button type="button" data-action="${action}" data-page="${Math.min(totalPages, page + 1)}" ${page === totalPages ? 'disabled' : ''}>Sau</button>`);
   return output.join('');
 }
 
 function renderInviteModal(state) {
   return `
     <div class="invite-account-backdrop" data-action="close-invite-account"></div>
-    <aside class="invite-account-modal" role="dialog" aria-modal="true" aria-label="Invite account">
+    <aside class="invite-account-modal" role="dialog" aria-modal="true" aria-label="Mời tài khoản">
       <header class="invite-account-head">
         <div>
-          <h2>Invite Account</h2>
-          <p>Create access for a customer tenant user.</p>
+          <h2>Mời tài khoản</h2>
+          <p>Tạo quyền truy cập cho người dùng thuộc tenant khách hàng.</p>
         </div>
-        <button type="button" data-action="close-invite-account" aria-label="Close invite account"></button>
+        <button type="button" data-action="close-invite-account" aria-label="Đóng form mời tài khoản"></button>
       </header>
 
       <label class="invite-field">
-        <span>Email Address</span>
+        <span>Địa chỉ email</span>
         <input data-field="inviteEmail" value="${esc(state.inviteEmail || '')}" placeholder="new.user@store.local" />
       </label>
 
       <label class="invite-field">
-        <span>Role</span>
+        <span>Vai trò</span>
         <select data-field="roleDraft">
           ${Object.keys(roleLabels).filter((role) => role !== 'platform_admin').map((role) => `
             <option value="${esc(role)}" ${state.roleDraft === role ? 'selected' : ''}>${esc(roleLabels[role])}</option>
@@ -234,20 +234,20 @@ function renderInviteModal(state) {
       </label>
 
       <div class="invite-preview">
-        <span>Invitation Preview</span>
-        <p>The user will receive an activation link and inherit permissions from the selected role.</p>
+        <span>Xem trước lời mời</span>
+        <p>Người dùng sẽ nhận liên kết kích hoạt và kế thừa quyền từ vai trò đã chọn.</p>
       </div>
 
       <div class="invite-actions">
-        <button type="button" class="account-secondary-btn" data-action="close-invite-account">Cancel</button>
-        <button type="button" class="account-primary-btn" data-action="invite-account">Send Invite</button>
+        <button type="button" class="account-secondary-btn" data-action="close-invite-account">Hủy</button>
+        <button type="button" class="account-primary-btn" data-action="invite-account">Gửi lời mời</button>
       </div>
     </aside>
   `;
 }
 
 function tableHeader(items) {
-  return `<div class="accounts-table-head">${items.map((item, index) => `<span>${index === 0 ? '<input type="checkbox" data-action="toggle-all-accounts" aria-label="Select visible accounts" />' : esc(item)}</span>`).join('')}</div>`;
+  return `<div class="accounts-table-head">${items.map((item, index) => `<span>${index === 0 ? '<input type="checkbox" data-action="toggle-all-accounts" aria-label="Chọn tài khoản đang hiển thị" />' : esc(item)}</span>`).join('')}</div>`;
 }
 
 function infoRow(label, value) {
@@ -281,14 +281,14 @@ function statusTone(value) {
 
 function statusLabel(value) {
   const status = String(value || 'pending').toLowerCase();
-  if (status === 'invited') return 'Pending';
-  return status[0].toUpperCase() + status.slice(1);
+  const map = { active: 'Đang hoạt động', pending: 'Đang chờ', invited: 'Đã mời', suspended: 'Tạm ngưng' };
+  return map[status] || (status ? status[0].toUpperCase() + status.slice(1) : 'Đang chờ');
 }
 
 function formatDate(value) {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 

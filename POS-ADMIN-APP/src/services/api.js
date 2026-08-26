@@ -1,6 +1,6 @@
 import { getAccessToken } from './session.js';
 
-export const API_URL = 'http://localhost:4000/api';
+export const API_URL = window.POS_API_URL || 'http://localhost:4000/api';
 
 export async function apiFetch(path, options = {}) {
   const headers = {

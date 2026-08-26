@@ -169,6 +169,18 @@ async function initDatabase() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_marketing_signups (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'REGISTERED',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   try {
     db.run(`ALTER TABLE platform_trial_requests ADD COLUMN submitted_by_user_id INTEGER`);
   } catch (e) {}

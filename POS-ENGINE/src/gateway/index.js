@@ -181,7 +181,7 @@ function broadcastPlatformChange(req, response, targetPath, responseText) {
   if (response.status < 200 || response.status >= 300) return;
 
   const isPlatformPath = targetPath.startsWith('/platform/');
-  const isPublicPlatformPath = targetPath.startsWith('/public/orders') || targetPath.startsWith('/public/sales-leads');
+  const isPublicPlatformPath = targetPath === '/public/marketing-signups' || targetPath.startsWith('/public/orders') || targetPath.startsWith('/public/sales-leads');
   if (!isPlatformPath && !isPublicPlatformPath) return;
 
   let payload = null;
@@ -205,6 +205,10 @@ function broadcastPlatformChange(req, response, targetPath, responseText) {
 
 const loginLimiter = strictLimiter('login', 10, 15 * 60 * 1000);
 const forgotLimiter = strictLimiter('forgot-password', 5, 15 * 60 * 1000);
+const publicSignupLimiter = strictLimiter('public-marketing-signup', 5, 15 * 60 * 1000);
+const publicMarketingLoginLimiter = strictLimiter('public-marketing-login', 10, 15 * 60 * 1000);
+const publicOrderLimiter = strictLimiter('public-order', 3, 15 * 60 * 1000);
+const publicSalesLeadLimiter = strictLimiter('public-sales-lead', 5, 15 * 60 * 1000);
 
 async function forwardAuthPost(req, res, path) {
   return forwardJson(req, res, config.AUTH_SERVICE_URL, path);
@@ -262,7 +266,19 @@ app.post('/api/payment-webhooks/sepay', async (req, res) => {
 
 app.use('/api/public', (req, res) => {
   const path = req.path || '/';
-  if (path === '/orders' || path.startsWith('/orders/') || path === '/sales-leads') {
+  if (path === '/marketing-signups' || path.startsWith('/marketing-signups/') || path === '/orders' || path.startsWith('/orders/') || path === '/sales-leads') {
+    if (req.method === 'POST' && path === '/marketing-signups') {
+      return publicSignupLimiter(req, res, () => forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`));
+    }
+    if (req.method === 'POST' && path === '/marketing-signups/login') {
+      return publicMarketingLoginLimiter(req, res, () => forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`));
+    }
+    if (req.method === 'POST' && path === '/orders') {
+      return publicOrderLimiter(req, res, () => forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`));
+    }
+    if (req.method === 'POST' && path === '/sales-leads') {
+      return publicSalesLeadLimiter(req, res, () => forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`));
+    }
     return forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`);
   }
   if (path.startsWith('/menu')) {

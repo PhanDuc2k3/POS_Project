@@ -46,7 +46,7 @@ function Login() {
           {error && <div className="login-error">{error}</div>}
 
           <div className="login-field">
-            <label htmlFor="username">Tên đăng nhập</label>
+            <label htmlFor="username">Email hoặc tên đăng nhập</label>
             <div className="login-input-wrap">
               <User className="login-input-icon" size={16} />
               <input
@@ -54,7 +54,7 @@ function Login() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Nhập mã nhân viên"
+                placeholder="Nhập email hoặc tên đăng nhập"
                 autoComplete="username"
                 required
               />

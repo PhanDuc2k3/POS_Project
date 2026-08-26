@@ -1,12 +1,11 @@
 const navItems = [
-  ['overview', 'Overview', 'grid'],
-  ['orders', 'Orders', 'receipt'],
-  ['requests', 'Trial Requests', 'request'],
-  ['tenants', 'Tenants', 'tenant'],
-  ['accounts', 'Accounts', 'accounts'],
-  ['packages', 'Packages', 'package'],
-  ['permissions', 'Permissions', 'key'],
-  ['audit', 'Audit Log', 'audit'],
+  ['overview', 'Tổng quan', 'grid'],
+  ['orders', 'Đơn đăng ký', 'receipt'],
+  ['tenants', 'Tenant', 'tenant'],
+  ['accounts', 'Tài khoản', 'accounts'],
+  ['packages', 'Gói dịch vụ', 'package'],
+  ['permissions', 'Phân quyền', 'key'],
+  ['audit', 'Nhật ký kiểm toán', 'audit'],
 ];
 
 export function renderSidebar(activeView) {
@@ -16,13 +15,13 @@ export function renderSidebar(activeView) {
         <div class="brand-mark"></div>
         <div>
           <strong>POS Platform</strong>
-          <span>Admin Console</span>
+          <span>Bảng quản trị</span>
         </div>
       </div>
 
       <button class="new-tenant-btn" data-action="open-create-tenant">
         <span class="plus-mark"></span>
-        New Tenant
+        Tạo tenant
       </button>
 
       <nav class="sidebar-nav">
@@ -30,9 +29,9 @@ export function renderSidebar(activeView) {
       </nav>
 
       <div class="sidebar-footer">
-        <button class="nav-button utility" data-action="refresh-data"><i class="nav-icon sync"></i>Sync</button>
-        <button class="nav-button utility" data-action="view" data-view="settings"><i class="nav-icon profile"></i>Profile</button>
-        <button class="nav-button utility" data-action="sign-out"><i class="nav-icon signout"></i>Sign Out</button>
+        <button class="nav-button utility" data-action="refresh-data"><i class="nav-icon sync"></i>Đồng bộ</button>
+        <button class="nav-button utility" data-action="view" data-view="settings"><i class="nav-icon profile"></i>Hồ sơ</button>
+        <button class="nav-button utility" data-action="sign-out"><i class="nav-icon signout"></i>Đăng xuất</button>
       </div>
     </aside>
   `;

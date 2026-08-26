@@ -1,11 +1,14 @@
 export function renderFormsSection(state = {}) {
   const request = state.myTrialRequest || null;
   const packageDraft = state.packageDraft || 'pro';
+  const hasMarketingSignup = Boolean(state.marketingSignup?.signupToken);
   const status = String(request?.status || '').toUpperCase();
   const locked = request && ['PENDING', 'CONTACTED', 'QUOTED', 'WAITING_PAYMENT', 'PAID', 'APPROVED', 'ACTIVE'].includes(status);
   const trialNote = locked
     ? `Yêu cầu hiện tại đang ở trạng thái ${status}.`
-    : 'Khách không cần tài khoản trước. Admin sẽ duyệt, tạo tenant và gửi tài khoản Portal sau.';
+    : hasMarketingSignup
+      ? 'Bạn đã đăng ký thông tin. Hãy gửi form để Admin duyệt, tạo tenant và gửi tài khoản Portal sau.'
+      : 'Vui lòng đăng ký trước khi gửi form để hạn chế spam.';
   const requestStatus = request ? `
     <div class="request-status">
       <p class="eyebrow">Yêu cầu của bạn</p>
@@ -57,7 +60,7 @@ export function renderFormsSection(state = {}) {
               </label>
             </div>
             <label>Ghi chú<textarea name="note" rows="3" placeholder="Mô hình quán, số chi nhánh dự kiến, nhu cầu triển khai..."></textarea></label>
-            <button class="button primary" type="submit" ${locked ? 'disabled' : ''}>Gửi yêu cầu</button>
+            <button class="button primary" type="submit" ${locked ? 'disabled' : ''}>${hasMarketingSignup ? 'Gửi yêu cầu' : 'Đăng ký để gửi yêu cầu'}</button>
             <p class="form-message" role="status"></p>
           </form>
           ${requestStatus}
@@ -74,7 +77,7 @@ export function renderFormsSection(state = {}) {
         </div>
         <label>Email<input name="email" type="email" placeholder="owner@example.com" /></label>
         <label>Nhu cầu<textarea name="message" rows="4" placeholder="Ví dụ: 20 cửa hàng, cần triển khai nhiều khu vực"></textarea></label>
-        <button class="button primary" type="submit">Gửi thông tin tư vấn</button>
+        <button class="button primary" type="submit">${hasMarketingSignup ? 'Gửi thông tin tư vấn' : 'Đăng ký để gửi tư vấn'}</button>
         <p class="form-message" role="status"></p>
       </form>
     </section>

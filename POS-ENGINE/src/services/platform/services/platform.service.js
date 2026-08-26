@@ -1,4 +1,7 @@
 const repo = require('../repositories/platform.repo');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const config = require('../../../shared/config');
 const orderStatus = require('./order-status.service');
 const provisioningService = require('./provisioning.service');
 
@@ -252,7 +255,199 @@ function normalizePackageTier(value) {
   return raw;
 }
 
+function signMarketingSignup(signup) {
+  return jwt.sign(
+    { type: 'marketing_signup', signupId: signup.id, email: signup.email },
+    config.JWT_ACCESS_SECRET,
+    { expiresIn: '30d' }
+  );
+}
+
+function publicSignupResponse(signup) {
+  return {
+    signupId: signup.id,
+    name: signup.name,
+    email: signup.email,
+    status: signup.status,
+    signupToken: signMarketingSignup(signup),
+    createdAt: signup.createdAt,
+  };
+}
+
+function createPublicMarketingSignup(payload) {
+  const name = String(payload?.name || '').trim();
+  const email = String(payload?.email || '').trim().toLowerCase();
+  const password = String(payload?.password || '');
+
+  if (!name || !email || !password) {
+    return { error: 'name, email and password required', status: 400 };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: 'Invalid email', status: 400 };
+  }
+  if (password.length < 6) {
+    return { error: 'Password must be at least 6 characters', status: 400 };
+  }
+
+  const existing = repo.findMarketingSignupByEmail(email);
+  if (existing) {
+    const credentials = repo.findMarketingSignupCredentialsByEmail(email);
+    if (!credentials || !bcrypt.compareSync(password, credentials.passwordHash || '')) {
+      return { error: 'Email already registered', status: 409 };
+    }
+    return { data: publicSignupResponse(credentials) };
+  }
+
+  const signup = repo.createMarketingSignup({
+    name,
+    email,
+    passwordHash: bcrypt.hashSync(password, 10),
+  });
+
+  return { data: publicSignupResponse(signup) };
+}
+
+function decodeMarketingSignupToken(token) {
+  if (!token) {
+    return { error: 'Marketing signup required before submitting form', status: 401 };
+  }
+
+  let decoded = null;
+  try {
+    decoded = jwt.verify(token, config.JWT_ACCESS_SECRET);
+  } catch {
+    return { error: 'Marketing signup expired. Please sign up again.', status: 401 };
+  }
+
+  if (decoded?.type !== 'marketing_signup' || !decoded.signupId || !decoded.email) {
+    return { error: 'Invalid marketing signup', status: 401 };
+  }
+
+  const signup = repo.findMarketingSignupById(decoded.signupId);
+  if (!signup || String(signup.email || '').toLowerCase() !== String(decoded.email || '').toLowerCase()) {
+    return { error: 'Invalid marketing signup', status: 401 };
+  }
+
+  return { signup };
+}
+
+function verifyMarketingSignup(payload) {
+  const token = String(payload?.marketingSignupToken || '').trim();
+  const result = decodeMarketingSignupToken(token);
+  if (result.error) return result;
+  return null;
+}
+
+function loginPublicMarketingSignup(payload) {
+  const email = String(payload?.email || payload?.username || '').trim().toLowerCase();
+  const password = String(payload?.password || '');
+
+  if (!email || !password) {
+    return { error: 'email and password required', status: 400 };
+  }
+
+  const signup = repo.findMarketingSignupCredentialsByEmail(email);
+  if (!signup || !bcrypt.compareSync(password, signup.passwordHash || '')) {
+    return { error: 'Invalid email or password', status: 401 };
+  }
+
+  return { data: publicSignupResponse(signup) };
+}
+
+async function getPublicMarketingSession(authorization = '') {
+  const token = String(authorization || '').startsWith('Bearer ')
+    ? String(authorization).slice(7)
+    : String(authorization || '');
+  const result = decodeMarketingSignupToken(token.trim());
+  if (result.error) return result;
+  const signup = result.signup;
+  const email = String(signup.email || '').toLowerCase();
+  const orderItems = repo.listOrders()
+    .filter((order) => String(order.email || '').toLowerCase() === email)
+    .slice(0, 10);
+  const orders = await Promise.all(orderItems.map(async (order) => {
+      const status = String(order.status || 'PENDING').toUpperCase();
+      return {
+        orderCode: order.orderCode || order.id,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        packageTier: order.packageTier,
+        requestedStoreCount: order.requestedStoreCount,
+        requestedDeviceCount: order.requestedDeviceCount,
+        companyName: order.companyName,
+        customerName: order.customerName,
+        amount: order.amount,
+        nextStep: publicOrderNextStep(status),
+        message: publicOrderMessage(status),
+        account: await publicOrderAccountInfo(order),
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+      };
+    }));
+  const salesLeads = repo.listSalesLeads()
+    .filter((lead) => String(lead.email || '').toLowerCase() === email)
+    .slice(0, 10);
+  return {
+    data: {
+      ...publicSignupResponse(signup),
+      orders,
+      salesLeads,
+    },
+  };
+}
+
+async function publicOrderAccountInfo(order) {
+  const status = String(order.status || '').toUpperCase();
+  if (!order.tenantId || !['ACTIVE', 'COMPLETED'].includes(status)) return null;
+
+  const account = repo.listAccounts().find((item) => (
+    String(item.tenantId) === String(order.tenantId)
+    && String(item.email || '').toLowerCase() === String(order.email || '').toLowerCase()
+  ));
+  if (!account) return null;
+
+  const authUser = await getInternalOwnerByPlatformAccount(account.id);
+  const activationUsable = Boolean(authUser?.activationUsable);
+  const activationLink = account.activationToken && activationUsable
+    ? `${config.PORTAL_ORIGIN}/activate?token=${encodeURIComponent(account.activationToken)}`
+    : null;
+
+  return {
+    name: account.name,
+    email: authUser?.email || account.email,
+    username: authUser?.username || account.email,
+    role: authUser?.role || account.role,
+    status: authUser?.isActive ? 'active' : account.status,
+    isActive: Boolean(authUser?.isActive),
+    activationUsedAt: authUser?.activationUsedAt || null,
+    activationExpiresAt: authUser?.activationExpiresAt || null,
+    portalUrl: config.PORTAL_ORIGIN,
+    activationLink,
+    passwordHint: activationLink
+      ? 'Chủ cửa hàng tự đặt mật khẩu qua link kích hoạt.'
+      : 'Dùng mật khẩu đã đặt khi kích hoạt tài khoản Portal.',
+  };
+}
+
+async function getInternalOwnerByPlatformAccount(platformAccountId) {
+  try {
+    const response = await fetch(`${config.AUTH_SERVICE_URL}/internal/auth/platform-accounts/${encodeURIComponent(platformAccountId)}/owner`, {
+      headers: {
+        'X-Internal-Token': config.INTERNAL_SERVICE_TOKEN,
+      },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
 function createPublicOrder(payload) {
+  const signupError = verifyMarketingSignup(payload);
+  if (signupError) return signupError;
+
   const customerName = String(payload?.customerName || payload?.contactName || '').trim();
   const companyName = String(payload?.companyName || payload?.businessName || payload?.restaurantName || '').trim();
   const email = String(payload?.email || '').trim();
@@ -294,6 +489,8 @@ function createPublicOrder(payload) {
     data: {
       orderCode: order.orderCode,
       status: order.status,
+      nextStep: publicOrderNextStep(String(order.status || 'PENDING').toUpperCase()),
+      message: publicOrderMessage(String(order.status || 'PENDING').toUpperCase()),
       createdAt: order.createdAt,
     },
   };
@@ -302,6 +499,7 @@ function createPublicOrder(payload) {
 function getPublicOrderStatus(orderCode) {
   const order = repo.findOrderById(String(orderCode || '').trim());
   if (!order) return { error: 'Order not found', status: 404 };
+  const status = String(order.status || 'PENDING').toUpperCase();
   return {
     data: {
       orderCode: order.orderCode,
@@ -309,13 +507,41 @@ function getPublicOrderStatus(orderCode) {
       paymentStatus: order.paymentStatus,
       packageTier: order.packageTier,
       requestedStoreCount: order.requestedStoreCount,
+      nextStep: publicOrderNextStep(status),
+      message: publicOrderMessage(status),
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
     },
   };
 }
 
+function publicOrderNextStep(status) {
+  const steps = {
+    PENDING: 'Admin review',
+    CONTACTED: 'Sales qualification',
+    QUOTED: 'Quote confirmation',
+    WAITING_PAYMENT: 'Payment confirmation',
+    PAID: 'Platform approval',
+    APPROVED: 'Tenant provisioning',
+    PROVISIONING: 'Tenant provisioning',
+    ACTIVE: 'Ready to activate',
+    REJECTED: 'Request closed',
+    CANCELLED: 'Request cancelled',
+  };
+  return steps[status] || 'Admin review';
+}
+
+function publicOrderMessage(status) {
+  if (status === 'ACTIVE') return 'Your POS workspace is ready. Please check the activation instructions from our team.';
+  if (['REJECTED', 'CANCELLED'].includes(status)) return 'This request is closed. Contact sales if you need help reopening it.';
+  if (['WAITING_PAYMENT', 'PAID'].includes(status)) return 'We are validating payment and preparing the next activation step.';
+  return 'We have received your request and will contact you with the next step.';
+}
+
 function createPublicSalesLead(payload) {
+  const signupError = verifyMarketingSignup(payload);
+  if (signupError) return signupError;
+
   const name = String(payload?.name || '').trim();
   const phone = String(payload?.phone || '').trim();
   const email = String(payload?.email || '').trim();
@@ -417,6 +643,9 @@ function approveOrder(user, orderId) {
 }
 
 function rejectOrder(user, orderId, payload) {
+  if (!String(payload?.reason || '').trim()) {
+    return { error: 'Rejection reason required', status: 400 };
+  }
   return transitionOrder(user, orderId, 'REJECTED', payload);
 }
 
@@ -483,6 +712,9 @@ module.exports = {
   listOrders,
   getOrder,
   createPublicOrder,
+  createPublicMarketingSignup,
+  loginPublicMarketingSignup,
+  getPublicMarketingSession,
   getPublicOrderStatus,
   createPublicSalesLead,
   updateSalesLeadStatus,

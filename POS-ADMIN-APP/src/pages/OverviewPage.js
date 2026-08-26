@@ -2,6 +2,8 @@ import { renderMetricCard } from '../components/MetricCard.js';
 import { esc, money } from '../utils/format.js';
 
 const packageTones = ['green', 'blue', 'gold', 'red'];
+const actionableOrderStatuses = new Set(['PENDING', 'CONTACTED', 'QUOTED', 'WAITING_PAYMENT', 'PAID', 'APPROVED', 'PROVISIONING', 'PROVISIONING_FAILED', 'ON_HOLD']);
+const actionableLeadStatuses = new Set(['NEW', 'CONTACTED']);
 
 export function renderOverviewPage(state) {
   const summary = state.summary || {};
@@ -14,7 +16,7 @@ export function renderOverviewPage(state) {
   const paidOrders = Number(summary.paidOrders ?? countPaidOrders(orders));
   const pendingTrials = Number(summary.pendingTrials ?? countPendingTrials(trialRequests));
   const subscriptions = normalizeDistribution(summary.packageDistribution) || buildSubscriptionDistribution(tenants, state.packages || []);
-  const actions = normalizeActions(summary.actionRequired) || buildActions({ orders, tenants, trialRequests, salesLeads });
+  const actions = normalizeOpenActions(summary.actionRequired) || buildActions({ orders, tenants, trialRequests, salesLeads });
   const recentOrders = normalizeRecentOrders(summary.recentOrders) || buildRecentOrders(orders, tenants);
   const health = normalizeTenantHealth(summary.tenantHealth) || buildTenantHealth(tenants);
   const mrrTrend = normalizeMrrTrend(summary.mrrTrend) || buildMrrTrend(activeMrr);
@@ -24,27 +26,27 @@ export function renderOverviewPage(state) {
   return `
     <section class="platform-overview">
       <div class="overview-heading">
-        <h1>Platform Overview</h1>
-        <p>Monitor customers, revenue, onboarding and platform operations.</p>
+        <h1>Tổng quan nền tảng</h1>
+        <p>Theo dõi khách hàng, doanh thu, onboarding và vận hành nền tảng.</p>
       </div>
 
       <section class="metric-grid overview-metrics">
-        ${renderMetricCard('Total Tenants', tenantCount.toLocaleString('en-US'))}
+        ${renderMetricCard('Total Tenants', tenantCount.toLocaleString('vi-VN'))}
         ${renderMetricCard('Active MRR', money(activeMrr))}
-        ${renderMetricCard('Paid Orders', paidOrders.toLocaleString('en-US'))}
-        ${renderMetricCard('Pending Trials', pendingTrials.toLocaleString('en-US'))}
+        ${renderMetricCard('Paid Orders', paidOrders.toLocaleString('vi-VN'))}
+        ${renderMetricCard('Pending Trials', pendingTrials.toLocaleString('vi-VN'))}
       </section>
 
       <div class="overview-dashboard-grid">
         <section class="panel overview-panel mrr-panel">
-          <h2>MRR Trend</h2>
+          <h2>Xu hướng MRR</h2>
           ${renderMrrTrend(mrrPoints, mrrMonths, activeMrr)}
         </section>
 
         <aside class="panel overview-panel action-panel">
           <div class="action-panel-title">
             <span class="alert-dot"></span>
-            <h2>Action Required</h2>
+            <h2>Cần xử lý</h2>
           </div>
           <div class="action-list">
             ${actions.map((item) => `
@@ -52,26 +54,26 @@ export function renderOverviewPage(state) {
                 <strong>${esc(item.title)}</strong>
                 <span>${esc(item.detail)}</span>
               </button>
-            `).join('') || '<div class="empty">No operational actions right now</div>'}
+            `).join('') || '<div class="empty">Hiện chưa có việc vận hành cần xử lý</div>'}
           </div>
         </aside>
 
         <section class="panel overview-panel subscription-panel">
-          <h2>Subscription Distribution</h2>
+          <h2>Phân bổ gói thuê bao</h2>
           ${renderSubscriptionChart(subscriptions)}
         </section>
 
         <section class="panel overview-panel recent-orders-panel">
           <div class="panel-title-row">
-            <h2>Recent Orders</h2>
-            <button type="button" data-action="view" data-view="orders">View All</button>
+            <h2>Đơn đăng ký gần đây</h2>
+            <button type="button" data-action="view" data-view="orders">Xem tất cả</button>
           </div>
           <div class="mini-table">
             <div class="mini-table-head">
-              <span>Order ID</span>
+              <span>Mã đơn</span>
               <span>Tenant</span>
-              <span>Amount</span>
-              <span>Status</span>
+              <span>Số tiền</span>
+              <span>Trạng thái</span>
             </div>
             ${recentOrders.map((order) => `
               <div class="mini-table-row">
@@ -80,23 +82,23 @@ export function renderOverviewPage(state) {
                 <span>${esc(order.amount)}</span>
                 <span class="status-pill ${esc(statusTone(order.status))}">${esc(statusLabel(order.status))}</span>
               </div>
-            `).join('') || '<div class="empty">No recent orders yet</div>'}
+            `).join('') || '<div class="empty">Chưa có đơn đăng ký gần đây</div>'}
           </div>
         </section>
 
         <section class="panel overview-panel health-panel">
-          <h2>Tenant Health Summary</h2>
+          <h2>Sức khỏe tenant</h2>
           <div class="health-item active">
-            <div><span>Active</span><strong>${health.active.toLocaleString('en-US')}</strong></div>
+            <div><span>Đang hoạt động</span><strong>${health.active.toLocaleString('vi-VN')}</strong></div>
             <b><i style="width: ${health.activePct}%"></i></b>
           </div>
           <div class="health-item suspended">
-            <div><span>Suspended</span><strong>${health.suspended.toLocaleString('en-US')}</strong></div>
+            <div><span>Tạm ngưng</span><strong>${health.suspended.toLocaleString('vi-VN')}</strong></div>
             <b><i style="width: ${health.suspendedPct}%"></i></b>
           </div>
           <div class="tier-grid">
-            <div><span>Pro Tier</span><strong>${health.pro.toLocaleString('en-US')}</strong></div>
-            <div><span>Plus Tier</span><strong>${health.plus.toLocaleString('en-US')}</strong></div>
+            <div><span>Gói Pro</span><strong>${health.pro.toLocaleString('vi-VN')}</strong></div>
+            <div><span>Gói Plus</span><strong>${health.plus.toLocaleString('vi-VN')}</strong></div>
           </div>
         </section>
       </div>
@@ -134,22 +136,23 @@ function normalizeDistribution(items) {
   if (!Array.isArray(items)) return null;
   return items.map((item, index) => ({
     tier: item.tier || 'unknown',
-    label: item.label || item.tier || 'Unknown',
+    label: item.label || item.tier || 'Không xác định',
     value: Number(item.value || 0),
     tone: packageTones[index % packageTones.length],
   }));
 }
 
-function normalizeActions(items) {
+function normalizeOpenActions(items) {
   if (!Array.isArray(items)) return null;
   return items.map((item) => ({
     type: item.type || '',
     id: item.id || '',
-    title: item.title || 'Action required',
+    title: item.title || 'Cần xử lý',
     detail: item.detail || '',
     tone: item.tone || '',
-    view: item.view || 'overview',
-  }));
+    view: item.view === 'requests' ? 'orders' : item.view || 'overview',
+    status: item.status || item.orderStatus || item.paymentStatus || '',
+  })).filter(isActionOpen);
 }
 
 function normalizeRecentOrders(items) {
@@ -189,14 +192,16 @@ function buildActions({ orders, tenants, trialRequests, salesLeads }) {
   const actions = [];
 
   orders
-    .filter((order) => ['WAITING_PAYMENT', 'PAID', 'PROVISIONING_FAILED', 'ON_HOLD'].includes(String(order.status || '').toUpperCase()))
-    .slice(0, 3)
+    .filter((order) => actionableOrderStatuses.has(String(order.status || '').toUpperCase()))
     .forEach((order) => {
       const status = String(order.status || '').toUpperCase();
       const tenant = tenantById.get(String(order.tenantId));
       actions.push({
+        type: 'order',
+        id: order.id || order.orderCode || '',
+        status,
         title: `${order.orderCode || order.id} - ${statusLabel(status)}`,
-        detail: order.companyName || tenant?.name || order.customerName || 'Subscription order',
+        detail: order.companyName || tenant?.name || order.customerName || 'Đơn thuê bao',
         tone: status === 'PROVISIONING_FAILED' ? 'danger' : '',
         view: 'orders',
       });
@@ -205,24 +210,41 @@ function buildActions({ orders, tenants, trialRequests, salesLeads }) {
   const pendingTrial = trialRequests.find((request) => String(request.status || '').toLowerCase() === 'pending');
   if (pendingTrial) {
     actions.push({
-      title: `Pending Trial Request - ${pendingTrial.id}`,
-      detail: pendingTrial.restaurantName || pendingTrial.contactName || 'Trial request',
+      type: 'trial',
+      id: pendingTrial.id,
+      status: pendingTrial.status || 'pending',
+      title: `PLUS-Trial đang chờ - ${pendingTrial.id}`,
+      detail: pendingTrial.restaurantName || pendingTrial.contactName || 'PLUS-Trial',
       tone: '',
-      view: 'requests',
+      view: 'orders',
     });
   }
 
-  const newLead = salesLeads.find((lead) => String(lead.status || '').toUpperCase() === 'NEW');
-  if (newLead) {
-    actions.push({
-      title: `New Sales Lead - ${newLead.id}`,
-      detail: newLead.name || newLead.phone || 'Sales lead',
-      tone: '',
-      view: 'requests',
+  salesLeads
+    .filter((lead) => actionableLeadStatuses.has(String(lead.status || '').toUpperCase()))
+    .forEach((newLead) => {
+      actions.push({
+        type: 'lead',
+        id: newLead.id,
+        status: newLead.status || 'NEW',
+        title: `Lead bán hàng mới - ${newLead.id}`,
+        detail: newLead.name || newLead.phone || 'Lead bán hàng',
+        tone: '',
+        view: 'orders',
+      });
     });
-  }
 
-  return actions.slice(0, 5);
+  return actions.filter(isActionOpen);
+}
+
+function isActionOpen(item) {
+  const type = String(item?.type || '').toLowerCase();
+  const status = String(item?.status || '').toUpperCase();
+  if (!status) return true;
+  if (type === 'order') return actionableOrderStatuses.has(status);
+  if (type === 'trial') return String(item.status || '').toLowerCase() === 'pending';
+  if (type === 'lead') return actionableLeadStatuses.has(status);
+  return !['ACTIVE', 'COMPLETED', 'REJECTED', 'CANCELLED', 'FAILED', 'LOST', 'QUALIFIED', 'DONE'].includes(status);
 }
 
 function buildRecentOrders(orders, tenants) {
@@ -255,10 +277,16 @@ function buildTenantHealth(tenants) {
   };
 }
 
-function buildMrrPoints(activeMrr) {
+function buildMrrTrend(activeMrr) {
   const current = Number(activeMrr || 0);
-  if (!current) return Array.from({ length: 12 }, () => 0);
-  return Array.from({ length: 12 }, (_, index) => Math.round(current * (0.72 + index * 0.028)));
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  if (!current) {
+    return months.map((month) => ({ month, value: 0 }));
+  }
+  return months.map((month, index) => ({
+    month,
+    value: Math.round(current * (0.72 + index * 0.028)),
+  }));
 }
 
 function renderMrrTrend(mrrPoints, months, activeMrr) {
@@ -285,11 +313,11 @@ function renderMrrTrend(mrrPoints, months, activeMrr) {
     <div class="mrr-stage modern">
       <div class="modern-chart-head">
         <div>
-          <span>Monthly Recurring Revenue</span>
+          <span>Doanh thu định kỳ hàng tháng</span>
           <strong>${esc(money(activeMrr))} VND</strong>
-          <small>Calculated from active tenants and assigned packages</small>
+          <small>Tính từ tenant đang hoạt động và gói đã gán</small>
         </div>
-        <b>${growth >= 0 ? '+' : ''}${growth}% YoY</b>
+        <b>${growth >= 0 ? '+' : ''}${growth}% theo năm</b>
       </div>
       <div class="mrr-modern-body">
         <div class="mrr-axis">
@@ -318,9 +346,9 @@ function renderMrrTrend(mrrPoints, months, activeMrr) {
           ${months.map((month) => `<span>${esc(month)}</span>`).join('')}
       </div>
       <div class="mrr-modern-footer">
-        <span><i></i>Derived MRR</span>
-        <span><i></i>Current run rate</span>
-        <strong>Current: ${esc(money(activeMrr))} VND</strong>
+        <span><i></i>MRR ước tính</span>
+        <span><i></i>Tốc độ hiện tại</span>
+        <strong>Hiện tại: ${esc(money(activeMrr))} VND</strong>
       </div>
     </div>
   `;
@@ -334,13 +362,13 @@ function renderSubscriptionChart(subscriptions) {
     <div class="subscription-stage modern">
       <div class="subscription-summary">
         <div class="subscription-ring" aria-hidden="true">
-          <strong>${total.toLocaleString('en-US')}</strong>
-          <span>tenants</span>
+          <strong>${total.toLocaleString('vi-VN')}</strong>
+          <span>tenant</span>
         </div>
         <div>
-          <span>Package Mix</span>
-          <strong>${leading ? `${pct(leading.value, total)}% ${leading.label}` : 'No tenants'}</strong>
-          <small>Distribution is calculated from the tenant package tier returned by the platform API.</small>
+          <span>Cơ cấu gói</span>
+          <strong>${leading ? `${pct(leading.value, total)}% ${leading.label}` : 'Chưa có tenant'}</strong>
+          <small>Phân bổ được tính từ gói tenant do API nền tảng trả về.</small>
         </div>
       </div>
       <div class="subscription-modern-list">
@@ -350,13 +378,13 @@ function renderSubscriptionChart(subscriptions) {
             <div class="subscription-modern-item ${esc(item.tone)}">
               <div>
                 <span>${esc(item.label)}</span>
-                <strong>${item.value.toLocaleString('en-US')}</strong>
+                <strong>${item.value.toLocaleString('vi-VN')}</strong>
               </div>
               <b><i style="width: ${percent}%"></i></b>
-              <small>${percent}% of tenants</small>
+              <small>${percent}% tenant</small>
             </div>
           `;
-        }).join('') || '<div class="empty">No subscription data yet</div>'}
+        }).join('') || '<div class="empty">Chưa có dữ liệu thuê bao</div>'}
       </div>
       <div class="subscription-modern-cards">
         ${subscriptions.slice(0, 3).map((item) => `
@@ -380,7 +408,22 @@ function pct(value, total) {
 }
 
 function statusLabel(value) {
-  return String(value || 'PENDING').replaceAll('_', ' ');
+  const status = String(value || 'PENDING').toUpperCase();
+  const map = {
+    PENDING: 'Đang chờ',
+    CONTACTED: 'Đã liên hệ',
+    QUOTED: 'Đã báo giá',
+    WAITING_PAYMENT: 'Chờ thanh toán',
+    PAID: 'Đã thanh toán',
+    APPROVED: 'Đã duyệt',
+    ACTIVE: 'Đang hoạt động',
+    COMPLETED: 'Hoàn tất',
+    PROVISIONING_FAILED: 'Khởi tạo lỗi',
+    REJECTED: 'Từ chối',
+    CANCELLED: 'Đã hủy',
+    ON_HOLD: 'Tạm giữ',
+  };
+  return map[status] || status.replaceAll('_', ' ');
 }
 
 function statusTone(value) {

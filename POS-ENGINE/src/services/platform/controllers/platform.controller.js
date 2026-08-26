@@ -89,6 +89,18 @@ function createPublicOrder(req, res) {
   return send(res, service.createPublicOrder(req.body), true);
 }
 
+function createPublicMarketingSignup(req, res) {
+  return send(res, service.createPublicMarketingSignup(req.body), true);
+}
+
+function loginPublicMarketingSignup(req, res) {
+  return send(res, service.loginPublicMarketingSignup(req.body));
+}
+
+async function getPublicMarketingSession(req, res) {
+  return send(res, await service.getPublicMarketingSession(req.headers.authorization));
+}
+
 function getPublicOrderStatus(req, res) {
   return send(res, service.getPublicOrderStatus(req.params.orderCode));
 }
@@ -169,6 +181,9 @@ module.exports = {
   getOrders,
   getOrder,
   createPublicOrder,
+  createPublicMarketingSignup,
+  loginPublicMarketingSignup,
+  getPublicMarketingSession,
   getPublicOrderStatus,
   createPublicSalesLead,
   updateSalesLeadStatus,

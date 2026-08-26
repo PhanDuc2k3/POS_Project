@@ -90,7 +90,38 @@ function activate(activationToken, newPassword, ip) {
   return { data: activated };
 }
 
+function getOwnerByPlatformAccount(platformAccountId) {
+  const id = Number(platformAccountId || 0);
+  if (!id) return { error: 'platformAccountId required', status: 400 };
+
+  const user = userRepo.findByPlatformAccountId(id);
+  if (!user) return { error: 'Owner not found', status: 404 };
+
+  const activationExpiresAt = user.activationExpiresAt || null;
+  const activationUsable = !user.activationUsedAt
+    && !user.isActive
+    && activationExpiresAt
+    && new Date(activationExpiresAt).getTime() >= Date.now();
+
+  return {
+    data: {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      email: user.email,
+      role: user.role,
+      isActive: Boolean(user.isActive),
+      tenantId: user.tenantId,
+      platformAccountId: user.platformAccountId,
+      activationExpiresAt,
+      activationUsedAt: user.activationUsedAt,
+      activationUsable: Boolean(activationUsable),
+    },
+  };
+}
+
 module.exports = {
   provisionOwner,
   activate,
+  getOwnerByPlatformAccount,
 };

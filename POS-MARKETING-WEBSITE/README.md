@@ -27,22 +27,19 @@ http://localhost:4000/api
 Current public purchase/contact APIs:
 
 ```text
+POST /api/public/marketing-signups
+POST /api/public/marketing-signups/login
+GET  /api/public/marketing-signups/session
 POST /api/public/orders
 GET  /api/public/orders/:orderCode/status
 POST /api/public/sales-leads
-```
-
-Optional auth modal APIs:
-
-```text
-POST /api/auth/login
-GET  /api/auth/me
 ```
 
 ## Purchase Flow
 
 ```text
 Marketing Website
+  -> customer registers or signs in with a marketing account
   -> customer selects Trial/PLUS/PRO and store/device count
   -> POST /api/public/orders
   -> Platform Admin sees the order in Orders
@@ -54,6 +51,6 @@ The website only creates an order. It never creates tenants, owner accounts, sto
 
 ## Notes
 
-- API base is currently hard-coded in `src/shared/api.js`.
+- API base can be overridden with `window.POS_API_URL`; otherwise it uses `http://localhost:4000/api`.
 - The latest submitted order is stored in browser `localStorage` and refreshed through the public status endpoint.
 - Contact-sales requests go to Platform Admin as sales leads.

@@ -139,7 +139,7 @@ async function provisionOrder(orderId, actor) {
         portalStore: storeProvision.store,
         activationEmail: {
           status: authProvision.activationLink ? 'READY' : 'ALREADY_EXISTS',
-          portalUrl: 'http://localhost:3000',
+          portalUrl: config.PORTAL_ORIGIN,
           activationLink: authProvision.activationLink,
           sentBy: actor?.username || 'platform',
         },

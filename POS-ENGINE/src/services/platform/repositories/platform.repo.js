@@ -1,5 +1,8 @@
 const { getDatabase, saveDatabase } = require('../database');
 
+const ACTIONABLE_ORDER_STATUSES = new Set(['PENDING', 'CONTACTED', 'QUOTED', 'WAITING_PAYMENT', 'PAID', 'APPROVED', 'PROVISIONING', 'PROVISIONING_FAILED', 'ON_HOLD']);
+const ACTIONABLE_LEAD_STATUSES = new Set(['NEW', 'CONTACTED']);
+
 function rowToTenant(row) {
   return {
     id: row[0],
@@ -117,6 +120,17 @@ function rowToSalesLead(row) {
     status: row[5],
     createdAt: row[6],
     updatedAt: row[7],
+  };
+}
+
+function rowToMarketingSignup(row) {
+  return {
+    id: row[0],
+    name: row[1],
+    email: row[2],
+    status: row[3],
+    createdAt: row[4],
+    updatedAt: row[5],
   };
 }
 
@@ -258,6 +272,66 @@ function listSalesLeads() {
      ORDER BY created_at DESC`
   );
   return result[0]?.values?.map(rowToSalesLead) || [];
+}
+
+function listMarketingSignups() {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, name, email, status, created_at, updated_at
+     FROM platform_marketing_signups
+     ORDER BY created_at DESC`
+  );
+  return result[0]?.values?.map(rowToMarketingSignup) || [];
+}
+
+function findMarketingSignupByEmail(email) {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, name, email, status, created_at, updated_at
+     FROM platform_marketing_signups
+     WHERE lower(email) = lower(?)`,
+    [email]
+  );
+  return result[0]?.values?.[0] ? rowToMarketingSignup(result[0].values[0]) : null;
+}
+
+function findMarketingSignupCredentialsByEmail(email) {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, name, email, status, created_at, updated_at, password_hash
+     FROM platform_marketing_signups
+     WHERE lower(email) = lower(?)`,
+    [email]
+  );
+  const row = result[0]?.values?.[0];
+  if (!row) return null;
+  return {
+    ...rowToMarketingSignup(row),
+    passwordHash: row[6],
+  };
+}
+
+function findMarketingSignupById(id) {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, name, email, status, created_at, updated_at
+     FROM platform_marketing_signups
+     WHERE id = ?`,
+    [id]
+  );
+  return result[0]?.values?.[0] ? rowToMarketingSignup(result[0].values[0]) : null;
+}
+
+function createMarketingSignup({ name, email, passwordHash }) {
+  const id = createId('MSU');
+  const db = getDatabase();
+  db.run(
+    `INSERT INTO platform_marketing_signups (id, name, email, password_hash, status)
+     VALUES (?, ?, ?, ?, 'REGISTERED')`,
+    [id, name, email, passwordHash]
+  );
+  saveDatabase();
+  return findMarketingSignupByEmail(email);
 }
 
 function createSalesLead({ name, phone, email, message }) {
@@ -624,8 +698,7 @@ function buildRecentOrders(orders, tenantById) {
 function buildActionRequired({ orders, trialRequests, salesLeads, tenantById }) {
   const actions = [];
   orders
-    .filter((order) => ['WAITING_PAYMENT', 'PAID', 'PROVISIONING_FAILED', 'ON_HOLD'].includes(String(order.status || '').toUpperCase()))
-    .slice(0, 3)
+    .filter((order) => ACTIONABLE_ORDER_STATUSES.has(String(order.status || '').toUpperCase()))
     .forEach((order) => {
       const status = String(order.status || '').toUpperCase();
       const tenant = tenantById.get(String(order.tenantId));
@@ -633,6 +706,7 @@ function buildActionRequired({ orders, trialRequests, salesLeads, tenantById }) 
         type: 'order',
         id: order.id,
         view: 'orders',
+        status,
         title: `${order.orderCode || order.id} - ${status.replaceAll('_', ' ')}`,
         detail: order.companyName || tenant?.name || order.customerName || 'Subscription order',
         tone: status === 'PROVISIONING_FAILED' ? 'danger' : '',
@@ -645,25 +719,28 @@ function buildActionRequired({ orders, trialRequests, salesLeads, tenantById }) 
       type: 'trial',
       id: pendingTrial.id,
       view: 'requests',
+      status: pendingTrial.status || 'pending',
       title: `Pending Trial Request - ${pendingTrial.id}`,
       detail: pendingTrial.restaurantName || pendingTrial.contactName || 'Trial request',
       tone: '',
     });
   }
 
-  const newLead = salesLeads.find((lead) => String(lead.status || '').toUpperCase() === 'NEW');
-  if (newLead) {
-    actions.push({
-      type: 'lead',
-      id: newLead.id,
-      view: 'requests',
-      title: `New Sales Lead - ${newLead.id}`,
-      detail: newLead.name || newLead.phone || 'Sales lead',
-      tone: '',
+  salesLeads
+    .filter((lead) => ACTIONABLE_LEAD_STATUSES.has(String(lead.status || '').toUpperCase()))
+    .forEach((newLead) => {
+      actions.push({
+        type: 'lead',
+        id: newLead.id,
+        view: 'requests',
+        status: newLead.status || 'NEW',
+        title: `New Sales Lead - ${newLead.id}`,
+        detail: newLead.name || newLead.phone || 'Sales lead',
+        tone: '',
+      });
     });
-  }
 
-  return actions.slice(0, 5);
+  return actions;
 }
 
 function buildMrrTrend(activeMrr) {
@@ -685,6 +762,7 @@ function bootstrap() {
   const accounts = listAccounts();
   const trialRequests = listTrialRequests();
   const salesLeads = listSalesLeads();
+  const marketingSignups = listMarketingSignups();
   const permissions = ['platform_admin', 'store_owner', 'chain_admin', 'manager', 'cashier', 'kitchen'].map((role) => getPermissionRole(role));
   return {
     summary: getSummary(),
@@ -694,6 +772,7 @@ function bootstrap() {
     accounts,
     trialRequests,
     salesLeads,
+    marketingSignups,
     permissions,
   };
 }
@@ -715,6 +794,11 @@ module.exports = {
   updateAccountActivation,
   listTrialRequests,
   listSalesLeads,
+  listMarketingSignups,
+  findMarketingSignupByEmail,
+  findMarketingSignupCredentialsByEmail,
+  findMarketingSignupById,
+  createMarketingSignup,
   createSalesLead,
   findSalesLeadById,
   updateSalesLeadStatus,
