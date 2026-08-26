@@ -44,6 +44,13 @@ export async function createOrder(tenantId, packageTier) {
   }));
 }
 
+export async function updatePackage(id, payload) {
+  return readJson(await apiFetch(`/platform/packages/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }));
+}
+
 export async function getPublicOrderStatus(orderCode) {
   return readJson(await apiFetch(`/public/orders/${encodeURIComponent(orderCode)}/status`));
 }
@@ -101,6 +108,13 @@ export async function inviteAccount(tenantId, email, role) {
 export async function resendAccountInvite(accountId) {
   return readJson(await apiFetch(`/platform/accounts/${accountId}/resend-invite`, {
     method: 'POST',
+  }));
+}
+
+export async function banAccount(accountId, reason) {
+  return readJson(await apiFetch(`/platform/accounts/${accountId}/ban`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
   }));
 }
 

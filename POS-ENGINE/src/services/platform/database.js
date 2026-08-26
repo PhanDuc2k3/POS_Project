@@ -21,7 +21,9 @@ async function initDatabase() {
       name TEXT NOT NULL,
       level TEXT NOT NULL,
       price REAL NOT NULL,
+      description TEXT DEFAULT '',
       modules TEXT NOT NULL,
+      permissions TEXT NOT NULL DEFAULT '[]',
       sort_order INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -58,6 +60,9 @@ async function initDatabase() {
       status TEXT NOT NULL DEFAULT 'active',
       activation_token TEXT,
       activation_sent_at DATETIME,
+      ban_reason TEXT,
+      banned_at DATETIME,
+      banned_by TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -192,8 +197,13 @@ async function initDatabase() {
   [
     `ALTER TABLE platform_accounts ADD COLUMN activation_token TEXT`,
     `ALTER TABLE platform_accounts ADD COLUMN activation_sent_at DATETIME`,
+    `ALTER TABLE platform_accounts ADD COLUMN ban_reason TEXT`,
+    `ALTER TABLE platform_accounts ADD COLUMN banned_at DATETIME`,
+    `ALTER TABLE platform_accounts ADD COLUMN banned_by TEXT`,
     `ALTER TABLE platform_tenants ADD COLUMN beta_analytics INTEGER DEFAULT 0`,
     `ALTER TABLE platform_tenants ADD COLUMN waive_setup_fee INTEGER DEFAULT 1`,
+    `ALTER TABLE platform_packages ADD COLUMN description TEXT DEFAULT ''`,
+    `ALTER TABLE platform_packages ADD COLUMN permissions TEXT NOT NULL DEFAULT '[]'`,
     `ALTER TABLE platform_subscription_orders ADD COLUMN order_code TEXT`,
     `ALTER TABLE platform_subscription_orders ADD COLUMN customer_name TEXT`,
     `ALTER TABLE platform_subscription_orders ADD COLUMN company_name TEXT`,
@@ -233,16 +243,16 @@ function seedIfEmpty() {
   const packageCount = db.exec('SELECT COUNT(*) FROM platform_packages')[0]?.values[0]?.[0] || 0;
   if (packageCount === 0) {
     const packages = [
-      ['trial', 'Trial Plus', '2 cap', 0, '["Portal","Staff POS","Demo Menu","Sales Report"]', 0],
-      ['plus', 'PLUS', '2 cap', 290000, '["POS Electron","Portal","Products","Transactions","Receipt"]', 1],
-      ['pro', 'PRO', '4 cap', 1900000, '["Customer Order App","Kitchen App","Staff POS","Portal","Dining session"]', 2],
-      ['starter', 'Starter', '2 cap', 290000, '["POS direct sale","Basic portal","Receipt"]', 3],
-      ['restaurant', 'Restaurant', '4 cap', 1900000, '["Customer order","Kitchen display","Table session","Staff billing"]', 4],
-      ['chain', 'Chain', '4 cap+', 5900000, '["Multi-branch","Chain dashboard","Central menu","Advanced roles"]', 5],
+      ['trial', 'Trial Plus', '2 cap', 0, 'Dùng thử để onboarding và demo hệ thống.', '["Portal","Staff POS","Demo Menu","Sales Report"]', 0],
+      ['plus', 'PLUS', '2 cap', 290000, 'Gói cơ bản cho cửa hàng nhỏ cần POS, Portal và báo cáo bán hàng.', '["POS Electron","Portal","Products","Transactions","Receipt"]', 1],
+      ['pro', 'PRO', '4 cap', 1900000, 'Gói nâng cao cho nhà hàng có đặt món, bếp và phiên ăn uống.', '["Customer Order App","Kitchen App","Staff POS","Portal","Dining session"]', 2],
+      ['starter', 'Starter', '2 cap', 290000, 'Gói bán hàng trực tiếp với portal và in hóa đơn cơ bản.', '["POS direct sale","Basic portal","Receipt"]', 3],
+      ['restaurant', 'Restaurant', '4 cap', 1900000, 'Gói vận hành nhà hàng với order khách, bếp và quản lý bàn.', '["Customer order","Kitchen display","Table session","Staff billing"]', 4],
+      ['chain', 'Chain', '4 cap+', 5900000, 'Gói chuỗi nhiều chi nhánh với dashboard tập trung và phân quyền nâng cao.', '["Multi-branch","Chain dashboard","Central menu","Advanced roles"]', 5],
     ];
     packages.forEach((row) => {
       db.run(
-        `INSERT INTO platform_packages (id, name, level, price, modules, sort_order) VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO platform_packages (id, name, level, price, description, modules, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         row
       );
     });
@@ -251,23 +261,46 @@ function seedIfEmpty() {
   const plusExists = db.exec('SELECT id FROM platform_packages WHERE id = ?', ['plus']);
   if (!plusExists.length || !plusExists[0].values.length) {
     db.run(
-      `INSERT INTO platform_packages (id, name, level, price, modules, sort_order) VALUES (?, ?, ?, ?, ?, ?)`,
-      ['plus', 'PLUS', '2 cap', 290000, '["POS Electron","Portal","Products","Transactions","Receipt"]', 1]
+      `INSERT INTO platform_packages (id, name, level, price, description, modules, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ['plus', 'PLUS', '2 cap', 290000, 'Gói cơ bản cho cửa hàng nhỏ cần POS, Portal và báo cáo bán hàng.', '["POS Electron","Portal","Products","Transactions","Receipt"]', 1]
     );
   }
 
   const trialExists = db.exec('SELECT id FROM platform_packages WHERE id = ?', ['trial']);
   if (!trialExists.length || !trialExists[0].values.length) {
     db.run(
-      `INSERT INTO platform_packages (id, name, level, price, modules, sort_order) VALUES (?, ?, ?, ?, ?, ?)`,
-      ['trial', 'Trial Plus', '2 cap', 0, '["Portal","Staff POS","Demo Menu","Sales Report"]', 0]
+      `INSERT INTO platform_packages (id, name, level, price, description, modules, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ['trial', 'Trial Plus', '2 cap', 0, 'Dùng thử để onboarding và demo hệ thống.', '["Portal","Staff POS","Demo Menu","Sales Report"]', 0]
     );
   }
 
-  db.run(
-    `UPDATE platform_packages SET name = ?, level = ?, price = ?, modules = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    ['PRO', '4 cap', 1900000, '["Customer Order App","Kitchen App","Staff POS","Portal","Dining session"]', 2, 'pro']
-  );
+  [
+    ['trial', 'Dùng thử để onboarding và demo hệ thống.'],
+    ['plus', 'Gói cơ bản cho cửa hàng nhỏ cần POS, Portal và báo cáo bán hàng.'],
+    ['pro', 'Gói nâng cao cho nhà hàng có đặt món, bếp và phiên ăn uống.'],
+    ['starter', 'Gói bán hàng trực tiếp với portal và in hóa đơn cơ bản.'],
+    ['restaurant', 'Gói vận hành nhà hàng với order khách, bếp và quản lý bàn.'],
+    ['chain', 'Gói chuỗi nhiều chi nhánh với dashboard tập trung và phân quyền nâng cao.'],
+  ].forEach(([id, description]) => {
+    db.run(
+      `UPDATE platform_packages SET description = ? WHERE id = ? AND (description IS NULL OR description = '')`,
+      [description, id]
+    );
+  });
+
+  [
+    ['trial', ['store.manage', 'menu.manage', 'transaction.view', 'pos.sell', 'payment.collect']],
+    ['plus', ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect']],
+    ['pro', ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.manage', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect', 'kitchen.view', 'kitchen.update']],
+    ['starter', ['store.manage', 'menu.manage', 'transaction.view', 'billing.view', 'pos.sell', 'payment.collect']],
+    ['restaurant', ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.manage', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect', 'kitchen.view', 'kitchen.update']],
+    ['chain', ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.manage', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect', 'kitchen.view', 'kitchen.update']],
+  ].forEach(([id, permissions]) => {
+    db.run(
+      `UPDATE platform_packages SET permissions = ? WHERE id = ? AND (permissions IS NULL OR permissions = '' OR permissions = '[]')`,
+      [JSON.stringify(permissions), id]
+    );
+  });
 
   const tenantCount = db.exec('SELECT COUNT(*) FROM platform_tenants')[0]?.values[0]?.[0] || 0;
   if (tenantCount === 0) {

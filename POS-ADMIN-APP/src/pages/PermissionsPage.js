@@ -1,100 +1,102 @@
 import { esc } from '../utils/format.js';
-import { permissionCatalog } from '../data/platform.js';
+import { packageCatalog, permissionCatalog } from '../data/platform.js';
 
-const roles = [
-  ['store_owner', 'Chủ sở hữu', 'Toàn quyền'],
-  ['chain_admin', 'Quản trị', 'Cấu hình'],
-  ['manager', 'Quản lý', 'Vận hành'],
-  ['cashier', 'Nhân viên', 'Thực thi'],
-  ['kitchen', 'Theo dõi', 'Chỉ đọc'],
-];
-
-const baseGroups = [
+const groupDefinitions = [
   {
-    title: 'Quản lý cửa hàng',
+    title: 'Quản trị nền tảng',
     icon: 'store',
-    permissions: [
-      ['store.manage', 'Quản lý hồ sơ cửa hàng', 'store.profile.write'],
-      ['branch.manage', 'Cấu hình giờ hoạt động', 'store.hours.write'],
-    ],
+    permissions: ['tenant.manage', 'package.assign', 'order.manage', 'account.manage', 'permission.manage', 'audit.view'],
   },
   {
-    title: 'Danh mục sản phẩm',
+    title: 'Cửa hàng & danh mục',
     icon: 'catalog',
-    permissions: [
-      ['product.manage', 'Tạo/sửa sản phẩm', 'catalog.product.write'],
-      ['topping.manage', 'Nhập/xuất hàng loạt', 'catalog.bulk.execute', 'GÓI PRO'],
-    ],
+    permissions: ['store.manage', 'branch.manage', 'menu.manage', 'staff.manage', 'staff.view'],
   },
   {
-    title: 'Đơn hàng & tài chính',
+    title: 'Bán hàng & vận hành',
     icon: 'finance',
-    permissions: [
-      ['transaction.view', 'Xử lý hoàn tiền', 'finance.refund.execute'],
-    ],
+    permissions: ['transaction.view', 'billing.view', 'pos.sell', 'payment.collect', 'kitchen.view', 'kitchen.update'],
   },
 ];
+
+const defaultPackagePermissions = {
+  trial: ['store.manage', 'menu.manage', 'transaction.view', 'pos.sell', 'payment.collect'],
+  plus: ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect'],
+  pro: ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.manage', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect', 'kitchen.view', 'kitchen.update'],
+  starter: ['store.manage', 'menu.manage', 'transaction.view', 'billing.view', 'pos.sell', 'payment.collect'],
+  restaurant: ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.manage', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect', 'kitchen.view', 'kitchen.update'],
+  chain: ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.manage', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect', 'kitchen.view', 'kitchen.update'],
+};
 
 export function renderPermissionsPage(state) {
-  const groups = buildPermissionGroups();
-  const visibleGroups = filterGroups(groups, state.permissionSearch);
+  const packages = preferredPackages(state.packages?.length ? state.packages : packageCatalog);
+  const groups = filterGroups(buildPermissionGroups(), state.permissionSearch);
+  const dirty = Boolean(state.packagePermissionDirty || state.permissionDirty);
+
   return `
-    <section class="permissions-page">
+    <section class="permissions-page package-permissions-page">
       <header class="permissions-topline">
-        <div class="permissions-breadcrumb">Quản trị <span></span> <strong>Phân quyền</strong></div>
+        <div class="permissions-breadcrumb">Quản trị <span></span> <strong>Quyền theo gói</strong></div>
         <label class="permissions-search">
           <i></i>
-          <input data-field="permissionSearch" value="${esc(state.permissionSearch || '')}" aria-label="Tìm quyền" placeholder="Tìm quyền..." />
+          <input data-field="permissionSearch" value="${esc(state.permissionSearch || '')}" aria-label="Tìm quyền" placeholder="Tìm quyền hoặc gói..." />
         </label>
       </header>
 
       <section class="permissions-heading">
         <div>
-          <h1>Ma trận phân quyền</h1>
-          <p>Cấu hình quyền chi tiết cho từng vai trò trên nền tảng. Một số miền có thể bị giới hạn theo gói thuê bao đang hoạt động. Thay đổi sẽ áp dụng toàn cục cho mọi phiên sau khi lưu.</p>
+          <h1>Setup quyền cho từng gói</h1>
+          <p>Cấu hình quyền/tính năng mà tenant được sử dụng theo gói dịch vụ. Thay đổi ở đây áp dụng ở cấp package, tách riêng với phân quyền vai trò nhân sự.</p>
         </div>
         <div class="permissions-actions">
-          <button type="button" class="permission-discard-btn" data-action="discard-permissions" ${state.permissionDirty ? '' : 'disabled'}>Bỏ thay đổi</button>
-          <button type="button" class="permission-save-btn" data-action="save-permissions" ${state.permissionDirty ? '' : 'disabled'}>Lưu cấu hình</button>
+          <button type="button" class="permission-discard-btn" data-action="discard-permissions" ${dirty ? '' : 'disabled'}>Bỏ thay đổi</button>
+          <button type="button" class="permission-save-btn" data-action="save-permissions" ${dirty ? '' : 'disabled'}>Lưu cấu hình</button>
         </div>
       </section>
 
-      <section class="permission-matrix-card">
+      <section class="package-permission-summary">
+        ${packages.map((pkg) => renderPackageSummary(pkg, state)).join('')}
+      </section>
+
+      <section class="permission-matrix-card package-permission-matrix" style="--package-count: ${esc(packages.length)}">
         <div class="permission-matrix-head">
-          <span>Miền / Quyền</span>
-          ${roles.map(([, label, note]) => `
+          <span>Quyền / Tính năng</span>
+          ${packages.map((pkg) => `
             <span>
-              <strong>${esc(label)}</strong>
-              <small>${esc(note)}</small>
+              <strong>${esc(packageName(pkg))}</strong>
+              <small>${esc(pkg.level || pkg.id)}</small>
             </span>
           `).join('')}
         </div>
-        ${visibleGroups.map((group) => renderGroup(group, state)).join('') || '<div class="empty">Không có quyền phù hợp tìm kiếm</div>'}
+        ${groups.map((group) => renderGroup(group, packages, state)).join('') || '<div class="empty">Không có quyền phù hợp tìm kiếm</div>'}
       </section>
     </section>
   `;
 }
 
+function renderPackageSummary(pkg, state) {
+  const enabled = packagePermissions(pkg.id, state, pkg).length;
+  return `
+    <article class="package-permission-card ${esc(pkg.id)}">
+      <span>${esc(pkg.level || 'Gói')}</span>
+      <strong>${esc(packageName(pkg))}</strong>
+      <small>${enabled}/${permissionCatalog.length} quyền đang bật</small>
+    </article>
+  `;
+}
+
 function buildPermissionGroups() {
-  const described = new Set(baseGroups.flatMap((group) => group.permissions.map(([id]) => id)));
-  const extras = permissionCatalog.filter((permission) => !described.has(permission.id));
-  const accessGroups = [
-    {
-      title: 'Quản trị nền tảng',
-      icon: 'store',
-      permissions: extras
-        .filter((permission) => ['tenant.manage', 'package.assign', 'order.manage', 'account.manage', 'permission.manage', 'audit.view'].includes(permission.id))
-        .map((permission) => [permission.id, permission.label, permission.id]),
-    },
-    {
-      title: 'Vận hành',
-      icon: 'catalog',
-      permissions: extras
-        .filter((permission) => !['tenant.manage', 'package.assign', 'order.manage', 'account.manage', 'permission.manage', 'audit.view'].includes(permission.id))
-        .map((permission) => [permission.id, permission.label, permission.id]),
-    },
-  ].filter((group) => group.permissions.length);
-  return [...baseGroups, ...accessGroups];
+  const described = new Set(groupDefinitions.flatMap((group) => group.permissions));
+  const extras = permissionCatalog.filter((permission) => !described.has(permission.id)).map((permission) => permission.id);
+  return [
+    ...groupDefinitions,
+    ...(extras.length ? [{ title: 'Khác', icon: 'catalog', permissions: extras }] : []),
+  ].map((group) => ({
+    ...group,
+    permissions: group.permissions
+      .map((id) => permissionCatalog.find((permission) => permission.id === id))
+      .filter(Boolean),
+  })).filter((group) => group.permissions.length);
 }
 
 function filterGroups(items, queryValue) {
@@ -103,46 +105,64 @@ function filterGroups(items, queryValue) {
   return items
     .map((group) => ({
       ...group,
-      permissions: group.permissions.filter((permission) => [group.title, ...permission].join(' ').toLowerCase().includes(query)),
+      permissions: group.permissions.filter((permission) => [group.title, permission.id, permission.label].join(' ').toLowerCase().includes(query)),
     }))
     .filter((group) => group.permissions.length);
 }
 
-function renderGroup(group, state) {
+function renderGroup(group, packages, state) {
   return `
     <div class="permission-group-row">
       <strong><i class="${esc(group.icon)}"></i>${esc(group.title)}</strong>
     </div>
-    ${group.permissions.map((permission) => renderPermissionRow(permission, state)).join('')}
+    ${group.permissions.map((permission) => renderPermissionRow(permission, packages, state)).join('')}
   `;
 }
 
-function renderPermissionRow(permission, state) {
-  const [id, label, code, badge] = permission;
+function renderPermissionRow(permission, packages, state) {
   return `
     <div class="permission-matrix-row">
       <span class="permission-capability">
-        <strong>${esc(label)}</strong>
-        <small>${esc(code)}${badge ? `<b>${esc(badge)}</b>` : ''}</small>
+        <strong>${esc(permission.label)}</strong>
+        <small>${esc(permission.id)}</small>
       </span>
-      ${roles.map(([role]) => renderPermissionCell(role, id, state)).join('')}
+      ${packages.map((pkg) => renderPermissionCell(pkg, permission.id, state)).join('')}
     </div>
   `;
 }
 
-function renderPermissionCell(role, permission, state) {
-  const permissions = state.permissionDraft || state.permissions || {};
-  const enabled = new Set(permissions?.[role] || []);
+function renderPermissionCell(pkg, permission, state) {
+  const enabled = new Set(packagePermissions(pkg.id, state, pkg));
   const checked = enabled.has(permission);
   return `
-    <label class="permission-check-cell">
+    <label class="permission-check-cell" title="${esc(packageName(pkg))} / ${esc(permission)}">
       <input
         type="checkbox"
         data-action="toggle-permission-draft"
-        data-role="${esc(role)}"
+        data-package="${esc(pkg.id)}"
         data-permission="${esc(permission)}"
         ${checked ? 'checked' : ''}
       />
     </label>
   `;
+}
+
+function packagePermissions(packageId, state, pkg) {
+  const draft = state.packagePermissionDraft || buildPackagePermissionMap(state.packages?.length ? state.packages : packageCatalog);
+  return draft[packageId] || pkg.permissions || [];
+}
+
+function buildPackagePermissionMap(packages) {
+  return Object.fromEntries((packages || []).map((pkg) => [pkg.id, [...(pkg.permissions?.length ? pkg.permissions : defaultPackagePermissions[pkg.id] || [])]]));
+}
+
+function preferredPackages(packages) {
+  const order = ['trial', 'plus', 'pro', 'starter', 'restaurant', 'chain'];
+  const selected = order.map((id) => packages.find((pkg) => pkg.id === id)).filter(Boolean);
+  const extra = packages.filter((pkg) => !order.includes(pkg.id));
+  return selected.length ? [...selected, ...extra] : packages;
+}
+
+function packageName(pkg) {
+  return pkg.name || String(pkg.id || '').toUpperCase();
 }

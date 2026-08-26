@@ -53,6 +53,10 @@ function getPackages(req, res) {
   return send(res, service.listPackages(getUser(req)));
 }
 
+function updatePackage(req, res) {
+  return send(res, service.updatePackage(getUser(req), req.params.id, req.body));
+}
+
 function getAccounts(req, res) {
   return send(res, service.listAccounts(getUser(req)));
 }
@@ -63,6 +67,10 @@ function inviteAccount(req, res) {
 
 function resendAccountInvite(req, res) {
   return send(res, service.resendAccountInvite(getUser(req), req.params.id), true);
+}
+
+function banAccount(req, res) {
+  return send(res, service.banAccount(getUser(req), req.params.id, req.body), true);
 }
 
 function submitTrialRequest(req, res) {
@@ -172,9 +180,11 @@ module.exports = {
   toggleTenantStatus,
   updateTenantStatus,
   getPackages,
+  updatePackage,
   getAccounts,
   inviteAccount,
   resendAccountInvite,
+  banAccount,
   submitTrialRequest,
   approveTrialRequest,
   rejectTrialRequest,

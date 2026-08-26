@@ -41,6 +41,7 @@ export function renderAccountsPage(state) {
   const selected = sourceAccounts.find((account) => String(account.id) === String(state.selectedAccountId)) || null;
   const showInvite = Boolean(state.showInviteAccount);
   const showFilters = Boolean(state.showAccountFilters);
+  const showBanDialog = Boolean(state.showBanAccount);
 
   return `
     <section class="accounts-page">
@@ -63,7 +64,7 @@ export function renderAccountsPage(state) {
         ` : ''}
         <div class="accounts-toolbar">
           <label class="accounts-tenant-filter"><i></i>
-            <select data-field="accountTenantFilter" aria-label="Filter account tenant">
+            <select data-field="accountTenantFilter" aria-label="Lọc tenant của tài khoản">
               <option value="all">Tất cả tenant</option>
               ${tenantOptions(state).map((tenant) => `<option value="${esc(tenant.id)}" ${String(state.accountTenantFilter) === String(tenant.id) ? 'selected' : ''}>${esc(tenant.name)}</option>`).join('')}
             </select>
@@ -110,6 +111,7 @@ export function renderAccountsPage(state) {
 
       ${selected ? renderAccountDetail(selected, state) : ''}
       ${showInvite ? renderInviteModal(state) : ''}
+      ${showBanDialog ? renderBanAccountDialog(state) : ''}
     </section>
   `;
 }
@@ -135,6 +137,7 @@ function renderAccountRow(account, state, selectedAccounts) {
 }
 
 function renderAccountDetail(account, state) {
+  const isBanned = normalizeStatus(account.status) === 'banned';
   return `
     <div class="account-detail-backdrop" data-action="close-account-detail"></div>
     <aside class="account-detail-drawer" role="dialog" aria-modal="true" aria-label="Chi tiết tài khoản">
@@ -156,6 +159,7 @@ function renderAccountDetail(account, state) {
       <section class="account-info-list">
         ${infoRow('Tenant', account.tenantName || tenantLabel(account.tenantId, state))}
         ${infoRow('Email', account.email)}
+        ${isBanned ? infoRow('Lý do ban', account.banReason || 'Chưa ghi nhận') : ''}
         ${infoRow('Vai trò', roleLabels[account.role] || account.role)}
         ${infoRow('Mã kích hoạt', account.activationToken || 'Chờ gửi')}
         ${infoRow('Thời điểm mời', formatDate(account.activationSentAt || account.createdAt))}
@@ -163,6 +167,7 @@ function renderAccountDetail(account, state) {
 
       <div class="account-detail-actions">
         <button type="button" class="account-secondary-btn" data-action="resend-account-invite" data-id="${esc(account.id)}">Gửi lại lời mời</button>
+        ${isBanned ? '' : `<button type="button" class="account-danger-btn" data-action="open-ban-account" data-id="${esc(account.id)}">Ban tài khoản</button>`}
         <button type="button" class="account-primary-btn" data-action="close-account-detail">Xong</button>
       </div>
     </aside>
@@ -174,7 +179,7 @@ function filterAccounts(accounts, state) {
   return accounts.filter((account) => {
     const tenantMatch = state.accountTenantFilter === 'all' || !state.accountTenantFilter || String(account.tenantId) === String(state.accountTenantFilter);
     const roleMatch = state.accountRoleFilter === 'all' || !state.accountRoleFilter || account.role === state.accountRoleFilter;
-    const statusMatch = state.accountStatusFilter === 'all' || !state.accountStatusFilter || String(account.status || '').toLowerCase() === state.accountStatusFilter;
+    const statusMatch = state.accountStatusFilter === 'all' || !state.accountStatusFilter || normalizeStatus(account.status) === normalizeStatus(state.accountStatusFilter);
     const haystack = [account.id, account.name, account.email, account.role, tenantLabel(account.tenantId, state)].join(' ').toLowerCase();
     return tenantMatch && roleMatch && statusMatch && (!query || haystack.includes(query));
   });
@@ -246,6 +251,37 @@ function renderInviteModal(state) {
   `;
 }
 
+function renderBanAccountDialog(state) {
+  const account = (state.accounts || []).find((item) => String(item.id) === String(state.banAccountId));
+  return `
+    <div class="ban-account-backdrop" data-action="close-ban-account"></div>
+    <aside class="ban-account-modal" role="dialog" aria-modal="true" aria-label="Ban tài khoản">
+      <header class="ban-account-head">
+        <div>
+          <h2>Ban tài khoản</h2>
+          <p>${esc(account?.email || 'Tài khoản đã chọn')}</p>
+        </div>
+        <button type="button" data-action="close-ban-account" aria-label="Đóng popup ban tài khoản"></button>
+      </header>
+
+      <label class="ban-account-field">
+        <span>Lý do ban</span>
+        <textarea data-field="accountBanReason" rows="5" placeholder="Nhập lý do ban tài khoản...">${esc(state.accountBanReason || '')}</textarea>
+      </label>
+
+      <div class="ban-account-note">
+        <strong>Lưu ý</strong>
+        <p>Tài khoản sẽ được chuyển sang trạng thái bị ban để đội vận hành dễ theo dõi.</p>
+      </div>
+
+      <div class="ban-account-actions">
+        <button type="button" class="account-secondary-btn" data-action="close-ban-account">Hủy</button>
+        <button type="button" class="account-danger-btn" data-action="confirm-ban-account">Xác nhận ban</button>
+      </div>
+    </aside>
+  `;
+}
+
 function tableHeader(items) {
   return `<div class="accounts-table-head">${items.map((item, index) => `<span>${index === 0 ? '<input type="checkbox" data-action="toggle-all-accounts" aria-label="Chọn tài khoản đang hiển thị" />' : esc(item)}</span>`).join('')}</div>`;
 }
@@ -273,16 +309,30 @@ function initials(value) {
 }
 
 function statusTone(value) {
-  const status = String(value || '').toLowerCase();
+  const status = normalizeStatus(value);
   if (status === 'active') return 'active';
-  if (status === 'pending' || status === 'invited') return 'pending';
+  if (['pending', 'pending_activation', 'invited'].includes(status)) return 'pending';
+  if (status === 'banned') return 'banned';
   return 'suspended';
 }
 
 function statusLabel(value) {
-  const status = String(value || 'pending').toLowerCase();
-  const map = { active: 'Đang hoạt động', pending: 'Đang chờ', invited: 'Đã mời', suspended: 'Tạm ngưng' };
+  const status = normalizeStatus(value);
+  const map = {
+    active: 'Đang hoạt động',
+    pending: 'Đang chờ',
+    pending_activation: 'Chờ kích hoạt',
+    invited: 'Đã mời',
+    suspended: 'Tạm ngưng',
+    inactive: 'Chưa hoạt động',
+    disabled: 'Đã vô hiệu',
+    banned: 'Đã ban',
+  };
   return map[status] || (status ? status[0].toUpperCase() + status.slice(1) : 'Đang chờ');
+}
+
+function normalizeStatus(value) {
+  return String(value || 'pending').trim().toLowerCase().replace(/[\s-]+/g, '_');
 }
 
 function formatDate(value) {

@@ -1,4 +1,4 @@
-import { apiFetch } from './api.js';
+import { API_URL, apiFetch } from './api.js';
 import { clearSession, getRefreshToken, setSession } from './session.js';
 
 async function readJson(response) {
@@ -8,7 +8,7 @@ async function readJson(response) {
 }
 
 export async function login(username, password, rememberMe = true) {
-  const response = await fetch('http://localhost:4000/api/auth/login', {
+  const response = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password, rememberMe }),

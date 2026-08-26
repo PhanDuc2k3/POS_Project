@@ -48,8 +48,8 @@ export function renderTenantsPage(state) {
   const page = clampPage(state.tenantPage, tenants.length, pageSize);
   const visibleTenants = tenants.slice((page - 1) * pageSize, page * pageSize);
   const selected = new Set((state.selectedTenantIds || []).map(String));
-  const active = sourceTenants.filter((tenant) => statusOf(tenant) === 'active').length;
-  const trial = sourceTenants.filter((tenant) => statusOf(tenant) === 'trial').length;
+  const active = sourceTenants.filter((tenant) => statusOf(tenant) === 'active' && !isTrialTenant(tenant)).length;
+  const trial = sourceTenants.filter(isTrialTenant).length;
   const suspended = sourceTenants.filter((tenant) => statusOf(tenant) === 'suspended').length;
   const totalStores = sourceTenants.reduce((sum, tenant) => sum + Number(tenant.branches || 0), 0);
 
@@ -127,7 +127,7 @@ function filterTenants(tenants, state) {
   return tenants.filter((tenant) => {
     const packageMatch = packageFilter === 'all' || normalizePackageTier(tenant.packageTier) === packageFilter;
     const modeMatch = state.tenantModeFilter === 'all' || !state.tenantModeFilter || tenant.operatingMode === state.tenantModeFilter;
-    const statusMatch = state.tenantStatusFilter === 'all' || !state.tenantStatusFilter || statusOf(tenant) === state.tenantStatusFilter;
+    const statusMatch = state.tenantStatusFilter === 'all' || !state.tenantStatusFilter || tenantMatchesStatusFilter(tenant, state.tenantStatusFilter);
     const haystack = [tenant.id, tenant.name, tenant.ownerName, tenant.ownerEmail, tenant.packageTier, tenant.operatingMode].join(' ').toLowerCase();
     return packageMatch && modeMatch && statusMatch && (!query || haystack.includes(query));
   });
@@ -232,7 +232,7 @@ function renderTenantRow(tenant, selected) {
       <span><b class="tenant-status ${esc(status)}">${esc(statusLabel(status))}</b></span>
       <span class="tenant-renewal ${String(tenant.renewalDate || '').toLowerCase() === 'overdue' ? 'overdue' : ''}">${esc(formatRenewal(tenant.renewalDate))}</span>
       <span class="tenant-actions">
-        <button type="button" class="${status === 'active' ? 'danger' : 'success'}" data-action="toggle-status" data-id="${esc(tenant.id)}" aria-label="${esc(nextActionLabel)} tenant">${esc(nextActionLabel)}</button>
+        <b class="tenant-next-action ${status === 'active' ? 'danger' : 'success'}">${esc(nextActionLabel)}</b>
       </span>
     </div>
   `;
@@ -368,6 +368,17 @@ function tenantInitials(value) {
 
 function statusOf(tenant) {
   return String(tenant.status || 'active').toLowerCase();
+}
+
+function isTrialTenant(tenant) {
+  return statusOf(tenant) === 'trial' || normalizePackageTier(tenant.packageTier) === 'trial';
+}
+
+function tenantMatchesStatusFilter(tenant, filter) {
+  const status = String(filter || '').toLowerCase();
+  if (status === 'trial') return isTrialTenant(tenant);
+  if (status === 'active') return statusOf(tenant) === 'active' && !isTrialTenant(tenant);
+  return statusOf(tenant) === status;
 }
 
 function statusLabel(value) {

@@ -4,6 +4,18 @@ import { esc, money } from '../utils/format.js';
 const packageTones = ['green', 'blue', 'gold', 'red'];
 const actionableOrderStatuses = new Set(['PENDING', 'CONTACTED', 'QUOTED', 'WAITING_PAYMENT', 'PAID', 'APPROVED', 'PROVISIONING', 'PROVISIONING_FAILED', 'ON_HOLD']);
 const actionableLeadStatuses = new Set(['NEW', 'CONTACTED']);
+const mrrRangeOptions = [
+  { value: '1d', label: '1 ngày', points: 24, unit: 'hour' },
+  { value: '7d', label: '7 ngày', points: 7, unit: 'day' },
+  { value: '30d', label: '1 tháng', points: 30, unit: 'day' },
+  { value: '90d', label: '3 tháng', points: 13, unit: 'week' },
+  { value: '180d', label: '6 tháng', points: 6, unit: 'month' },
+  { value: '365d', label: '1 năm', points: 12, unit: 'month' },
+];
+
+Object.assign(mrrRangeOptions.find((item) => item.value === '1d'), { points: 12, unit: 'hour', step: 2 });
+Object.assign(mrrRangeOptions.find((item) => item.value === '30d'), { points: 4, unit: 'week' });
+Object.assign(mrrRangeOptions.find((item) => item.value === '90d'), { points: 3, unit: 'month' });
 
 export function renderOverviewPage(state) {
   const summary = state.summary || {};
@@ -19,9 +31,9 @@ export function renderOverviewPage(state) {
   const actions = normalizeOpenActions(summary.actionRequired) || buildActions({ orders, tenants, trialRequests, salesLeads });
   const recentOrders = normalizeRecentOrders(summary.recentOrders) || buildRecentOrders(orders, tenants);
   const health = normalizeTenantHealth(summary.tenantHealth) || buildTenantHealth(tenants);
-  const mrrTrend = normalizeMrrTrend(summary.mrrTrend) || buildMrrTrend(activeMrr);
-  const mrrPoints = mrrTrend.map((item) => item.value);
-  const mrrMonths = mrrTrend.map((item) => item.month);
+  const mrrRange = normalizeMrrRange(state.mrrRange);
+  const mrrTrend = normalizeMrrTrend(summary.mrrTrend, mrrRange) || buildMrrTrend(activeMrr, mrrRange);
+  const mrrBars = buildMrrBars(mrrTrend, activeMrr, mrrRange);
 
   return `
     <section class="platform-overview">
@@ -39,8 +51,15 @@ export function renderOverviewPage(state) {
 
       <div class="overview-dashboard-grid">
         <section class="panel overview-panel mrr-panel">
-          <h2>Xu hướng MRR</h2>
-          ${renderMrrTrend(mrrPoints, mrrMonths, activeMrr)}
+          <div class="panel-title-row mrr-title-row">
+            <h2>Xu hướng MRR</h2>
+            <div class="mrr-range-tabs" role="tablist" aria-label="Chọn thời gian xu hướng MRR">
+              ${mrrRangeOptions.map((item) => `
+                <button type="button" class="${item.value === mrrRange ? 'active' : ''}" data-action="set-mrr-range" data-range="${esc(item.value)}">${esc(item.label)}</button>
+              `).join('')}
+            </div>
+          </div>
+          ${renderMrrBarTrend(mrrBars, activeMrr, mrrRange)}
         </section>
 
         <aside class="panel overview-panel action-panel">
@@ -179,10 +198,14 @@ function normalizeTenantHealth(value) {
   };
 }
 
-function normalizeMrrTrend(items) {
+function normalizeMrrTrend(source, selectedRange) {
+  const items = Array.isArray(source) ? source : source?.ranges?.[selectedRange];
   if (!Array.isArray(items) || !items.length) return null;
   return items.map((item, index) => ({
-    month: item.month || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][index] || '',
+    label: item.label || item.month || item.at || String(index + 1),
+    at: item.at || '',
+    start: item.start || '',
+    end: item.end || '',
     value: Number(item.value || 0),
   }));
 }
@@ -277,16 +300,114 @@ function buildTenantHealth(tenants) {
   };
 }
 
-function buildMrrTrend(activeMrr) {
+function buildMrrTrend(activeMrr, selectedRange) {
   const current = Number(activeMrr || 0);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  if (!current) {
-    return months.map((month) => ({ month, value: 0 }));
-  }
-  return months.map((month, index) => ({
-    month,
-    value: Math.round(current * (0.72 + index * 0.028)),
+  const option = mrrRangeOptions.find((item) => item.value === selectedRange) || mrrRangeOptions[2];
+  return Array.from({ length: option.points }, (_, index) => ({
+    label: mrrBarLabel(index, option),
+    value: current,
   }));
+}
+
+function normalizeMrrRange(value) {
+  const range = String(value || '30d');
+  return mrrRangeOptions.some((item) => item.value === range) ? range : '30d';
+}
+
+function buildMrrBars(trend, activeMrr, selectedRange) {
+  const option = mrrRangeOptions.find((item) => item.value === selectedRange) || mrrRangeOptions[2];
+  const source = trend?.length ? trend : buildMrrTrend(activeMrr, selectedRange);
+  return source.slice(-option.points).map((item, index) => ({
+    label: item.label || mrrBarLabel(index, option),
+    value: Math.max(0, Math.round(Number(item.value || 0))),
+  }));
+}
+
+function mrrBarLabel(index, option) {
+  if (option.unit === 'hour') {
+    const step = Number(option.step || 1);
+    return String(index * step);
+  }
+  if (option.unit === 'week') return `T${index + 1}`;
+  if (option.unit === 'month') {
+    const month = new Date();
+    month.setMonth(month.getMonth() - (option.points - index - 1));
+    return month.toLocaleDateString('vi-VN', { month: 'short' });
+  }
+  return option.points === 7 ? `Ngày ${index + 1}` : `${index + 1}`;
+}
+
+function rangeGrowthLabel(selectedRange) {
+  const option = mrrRangeOptions.find((item) => item.value === selectedRange) || mrrRangeOptions[2];
+  return option.label.toLowerCase();
+}
+
+function renderMrrBarTrend(bars, activeMrr, selectedRange) {
+  const values = bars.map((item) => Number(item.value || 0));
+  const max = Math.max(...values, 1);
+  const first = values[0] || 0;
+  const last = values.at(-1) || 0;
+  const periodTotal = values.reduce((sum, value) => sum + value, 0);
+  const growth = first ? Math.round(((last - first) / first) * 100) : 0;
+  const wavePath = buildMrrWavePath(values, max);
+
+  return `
+    <div class="mrr-stage modern">
+      <div class="modern-chart-head">
+        <div>
+          <span>Doanh thu định kỳ hằng tháng</span>
+          <strong>${esc(money(periodTotal))} VND</strong>
+          <small>Tính từ tenant đang hoạt động và gói đã gán</small>
+        </div>
+        <b>${growth >= 0 ? '+' : ''}${growth}% / ${esc(rangeGrowthLabel(selectedRange))}</b>
+      </div>
+      <div class="mrr-modern-body mrr-bar-body">
+        <div class="mrr-axis">
+          ${axisLabels(max).map((label) => `<span>${esc(label)}</span>`).join('')}
+        </div>
+        <div class="mrr-bar-chart" style="--bar-count: ${bars.length}">
+          <svg class="mrr-wave-svg" viewBox="0 0 1000 156" preserveAspectRatio="none" aria-hidden="true">
+            <path class="mrr-wave-glow" d="${esc(wavePath)}" />
+            <path class="mrr-wave-line" d="${esc(wavePath)}" />
+          </svg>
+          ${bars.map((item, index) => {
+            const percent = Math.max(4, Math.round((Number(item.value || 0) / max) * 100));
+            const isLast = index === bars.length - 1;
+            return `
+              <div class="mrr-bar-item ${isLast ? 'current' : ''}">
+                <b style="height: ${percent}%" title="${esc(item.label)}: ${esc(money(item.value))} VND"></b>
+                <span>${esc(item.label)}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+      <div class="mrr-modern-footer">
+        <span><i></i>MRR theo cột</span>
+        <span><i></i>Khoảng ${esc(rangeGrowthLabel(selectedRange))}</span>
+        <strong>Hiện tại: ${esc(money(activeMrr))} VND</strong>
+      </div>
+    </div>
+  `;
+}
+
+function buildMrrWavePath(values, max) {
+  const width = 1000;
+  const height = 156;
+  const points = values.map((value, index) => {
+    const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
+    const y = height - Math.max(0.04, Number(value || 0) / max) * height;
+    return { x, y };
+  });
+
+  if (!points.length) return '';
+  if (points.length === 1) return `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+
+  return points.slice(1).reduce((path, point, index) => {
+    const previous = points[index];
+    const distance = (point.x - previous.x) * 0.5;
+    return `${path} C ${(previous.x + distance).toFixed(2)} ${previous.y.toFixed(2)}, ${(point.x - distance).toFixed(2)} ${point.y.toFixed(2)}, ${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+  }, `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`);
 }
 
 function renderMrrTrend(mrrPoints, months, activeMrr) {

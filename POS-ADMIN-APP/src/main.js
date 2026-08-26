@@ -36,6 +36,7 @@ import {
   holdOrderProvisioning,
   approveOrder,
   approveTrialRequest,
+  banAccount,
   cancelOrder,
   confirmOrderPayment,
   inviteAccount,
@@ -48,6 +49,7 @@ import {
   setTenantStatus,
   togglePermission,
   toggleTenantStatus,
+  updatePackage,
   updateSalesLeadStatus,
   updateTenantPackage,
   waitOrderPayment,
@@ -60,6 +62,15 @@ import { connectRealtime, disconnectRealtime } from './services/realtime.js';
 const app = document.getElementById('app');
 let state = loadState(initialState);
 let realtimeRefreshTimer = null;
+
+const defaultPackagePermissions = {
+  trial: ['store.manage', 'menu.manage', 'transaction.view', 'pos.sell', 'payment.collect'],
+  plus: ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect'],
+  pro: ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.manage', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect', 'kitchen.view', 'kitchen.update'],
+  starter: ['store.manage', 'menu.manage', 'transaction.view', 'billing.view', 'pos.sell', 'payment.collect'],
+  restaurant: ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.manage', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect', 'kitchen.view', 'kitchen.update'],
+  chain: ['store.manage', 'branch.manage', 'menu.manage', 'transaction.view', 'staff.manage', 'staff.view', 'billing.view', 'pos.sell', 'payment.collect', 'kitchen.view', 'kitchen.update'],
+};
 
 state.user = state.user || getUser();
 state.authenticated = !!(getAccessToken() || getRefreshToken());
@@ -114,7 +125,10 @@ function applyBackendData(data) {
   state.accounts = data.accounts || [];
   state.permissions = Object.fromEntries((data.permissions || []).map((item) => [item.role, item.permissions]));
   if (!state.permissionDirty) {
-    state.permissionDraft = clonePermissions(state.permissions);
+    state.permissionDraft = buildPackagePermissionMap(state.packages);
+  }
+  if (!state.packagePermissionDirty) {
+    state.packagePermissionDraft = buildPackagePermissionMap(state.packages);
   }
 
   if (!state.tenants.some((tenant) => tenant.id === state.selectedTenantId)) {
@@ -462,6 +476,11 @@ function bindEvents() {
         saveState(state);
         render();
       }
+      if (action === 'set-mrr-range') {
+        state.mrrRange = target.dataset.range || '30d';
+        saveState(state);
+        render();
+      }
       if (action === 'select-package') {
         state.packageDraft = target.dataset.package;
         saveState(state);
@@ -504,6 +523,9 @@ function bindEvents() {
         if (target.dataset.package) state.packageDraft = target.dataset.package;
         await handleApplyPackage();
       }
+      if (action === 'open-package-edit') openPackageEdit(target.dataset.package);
+      if (action === 'close-package-edit') closePackageEdit();
+      if (action === 'save-package-edit') await handleSavePackageEdit();
       if (action === 'toggle-status') await handleToggleStatus(Number(target.dataset.id));
       if (action === 'export-tenants') handleExportTenants();
       if (action === 'set-tenant-page') {
@@ -633,6 +655,21 @@ function bindEvents() {
       }
       if (action === 'invite-account') await handleInviteAccount();
       if (action === 'resend-account-invite') await handleResendAccountInvite(target.dataset.id);
+      if (action === 'open-ban-account') {
+        state.showBanAccount = true;
+        state.banAccountId = target.dataset.id;
+        state.accountBanReason = '';
+        saveState(state);
+        render();
+      }
+      if (action === 'close-ban-account') {
+        state.showBanAccount = false;
+        state.banAccountId = null;
+        state.accountBanReason = '';
+        saveState(state);
+        render();
+      }
+      if (action === 'confirm-ban-account') await handleBanAccount();
       if (action === 'export-accounts') handleExportAccounts();
       if (action === 'set-account-page') {
         state.accountPage = Number(target.dataset.page || 1);
@@ -656,7 +693,7 @@ function bindEvents() {
         if (target.dataset.role) state.permissionRole = target.dataset.role;
         await handleTogglePermission(target.dataset.permission);
       }
-      if (action === 'toggle-permission-draft') handleTogglePermissionDraft(target.dataset.role, target.dataset.permission, target.checked);
+      if (action === 'toggle-permission-draft') handleTogglePermissionDraft(target.dataset.package, target.dataset.permission, target.checked);
       if (action === 'discard-permissions') handleDiscardPermissions();
       if (action === 'save-permissions') await handleSavePermissions();
       if (action === 'toggle-package-comparison') {
@@ -806,6 +843,7 @@ function bindEvents() {
       state.accountPage = 1;
       shouldRender = true;
     }
+    if (field === 'accountBanReason') state.accountBanReason = event.target.value;
     if (field === 'permissionSearch') {
       state.permissionSearch = event.target.value;
       shouldRender = true;
@@ -827,6 +865,12 @@ function bindEvents() {
       state.packageOverrides = { ...(state.packageOverrides || {}), waiveSetupFee: event.target.checked };
       shouldRender = true;
     }
+    if (field === 'packageEditName') state.packageEditDraft = { ...(state.packageEditDraft || {}), name: event.target.value };
+    if (field === 'packageEditLevel') state.packageEditDraft = { ...(state.packageEditDraft || {}), level: event.target.value };
+    if (field === 'packageEditPrice') state.packageEditDraft = { ...(state.packageEditDraft || {}), price: event.target.value };
+    if (field === 'packageEditSortOrder') state.packageEditDraft = { ...(state.packageEditDraft || {}), sortOrder: event.target.value };
+    if (field === 'packageEditDescription') state.packageEditDraft = { ...(state.packageEditDraft || {}), description: event.target.value };
+    if (field === 'packageEditModules') state.packageEditDraft = { ...(state.packageEditDraft || {}), modulesText: event.target.value };
     if (field === 'profileDisplayName') state.profileDraft = { ...(state.profileDraft || {}), displayName: event.target.value };
     if (field === 'profileEmail') state.profileDraft = { ...(state.profileDraft || {}), email: event.target.value };
     if (field === 'securityQuestion') state.securityDraft = { ...(state.securityDraft || {}), question: event.target.value };
@@ -866,6 +910,72 @@ async function handleApplyPackage() {
   if (state.packageOverrides?.waiveSetupFee !== false) overrides.push('miễn phí thiết lập');
   state.packageMessage = overrides.length ? `Đã áp dụng gói với ${overrides.join(' và ')}.` : 'Đã áp dụng gói không kèm ghi đè.';
   await loadPlatformData();
+}
+
+function openPackageEdit(id) {
+  const pkg = (state.packages || []).find((item) => item.id === id);
+  if (!pkg) return;
+  state.packageEditDraft = {
+    id: pkg.id,
+    name: pkg.name || '',
+    level: pkg.level || '',
+    price: pkg.price ?? 0,
+    description: pkg.description || '',
+    sortOrder: pkg.sortOrder ?? 0,
+    modulesText: (pkg.modules || []).join('\n'),
+  };
+  state.error = '';
+  saveState(state);
+  render();
+}
+
+function closePackageEdit() {
+  state.packageEditDraft = null;
+  saveState(state);
+  render();
+}
+
+async function handleSavePackageEdit() {
+  const draft = state.packageEditDraft || {};
+  const price = Number(draft.price);
+  const sortOrder = Number(draft.sortOrder || 0);
+  const modules = String(draft.modulesText || '')
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (!draft.id) return;
+  if (!String(draft.name || '').trim() || !String(draft.level || '').trim()) {
+    state.error = 'Tên gói và cấp / giới hạn là bắt buộc';
+    render();
+    return;
+  }
+  if (!Number.isFinite(price) || price < 0) {
+    state.error = 'Giá gói phải là số không âm';
+    render();
+    return;
+  }
+
+  state.loading = true;
+  state.error = '';
+  render();
+  try {
+    const updated = await updatePackage(draft.id, {
+      name: String(draft.name || '').trim(),
+      level: String(draft.level || '').trim(),
+      price,
+      description: String(draft.description || '').trim(),
+      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+      modules,
+    });
+    state.packageDraft = updated.id;
+    state.packageEditDraft = null;
+    state.packageMessage = `Đã cập nhật gói ${updated.name || updated.id}.`;
+    await loadPlatformData();
+  } catch (err) {
+    state.loading = false;
+    throw err;
+  }
 }
 
 async function handleToggleStatus(id) {
@@ -1131,6 +1241,35 @@ async function handleResendAccountInvite(id) {
   }
 }
 
+async function handleBanAccount() {
+  const id = state.banAccountId;
+  const reason = String(state.accountBanReason || '').trim();
+  if (!id) return;
+  if (!reason) {
+    state.error = 'Vui lòng nhập lý do ban tài khoản';
+    render();
+    return;
+  }
+
+  state.loading = true;
+  state.error = '';
+  render();
+  try {
+    await banAccount(id, reason);
+    state.showBanAccount = false;
+    state.banAccountId = null;
+    state.accountBanReason = '';
+    await loadPlatformData();
+    state.activeView = 'accounts';
+    state.selectedAccountId = id;
+    saveState(state);
+    render();
+  } catch (err) {
+    state.loading = false;
+    throw err;
+  }
+}
+
 async function handleCreateTenant() {
   const draft = normalizeTenantDraft(state.tenantDraft);
   if (!draft.name || !draft.ownerName || !draft.ownerEmail) {
@@ -1183,6 +1322,25 @@ function normalizeTenantPackageTier(value) {
   return 'trial';
 }
 
+function tenantStatusOf(tenant) {
+  return String(tenant?.status || 'active').toLowerCase();
+}
+
+function isTrialTenant(tenant) {
+  return tenantStatusOf(tenant) === 'trial' || normalizeTenantPackageTier(tenant?.packageTier) === 'trial';
+}
+
+function tenantMatchesStatusFilter(tenant, filter) {
+  const status = String(filter || '').toLowerCase();
+  if (status === 'trial') return isTrialTenant(tenant);
+  if (status === 'active') return tenantStatusOf(tenant) === 'active' && !isTrialTenant(tenant);
+  return tenantStatusOf(tenant) === status;
+}
+
+function normalizeAccountStatus(value) {
+  return String(value || 'pending').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
 async function handleTogglePermission(permission) {
   if (!permission) return;
   await togglePermission(state.permissionRole, permission);
@@ -1190,41 +1348,42 @@ async function handleTogglePermission(permission) {
 }
 
 function handleTogglePermissionDraft(role, permission, checked) {
-  if (!role || !permission) return;
-  const draft = clonePermissions(state.permissionDraft || state.permissions || {});
-  const rolePermissions = new Set(draft[role] || []);
-  if (checked) rolePermissions.add(permission);
-  else rolePermissions.delete(permission);
-  draft[role] = [...rolePermissions];
+  const packageId = role;
+  if (!packageId || !permission) return;
+  const draft = clonePermissions(state.packagePermissionDraft || buildPackagePermissionMap(state.packages || []));
+  const packagePermissions = new Set(draft[packageId] || []);
+  if (checked) packagePermissions.add(permission);
+  else packagePermissions.delete(permission);
+  draft[packageId] = [...packagePermissions];
+  state.packagePermissionDraft = draft;
   state.permissionDraft = draft;
+  state.packagePermissionDirty = true;
   state.permissionDirty = true;
   saveState(state);
   render();
 }
 
 function handleDiscardPermissions() {
-  state.permissionDraft = clonePermissions(state.permissions || {});
+  const draft = buildPackagePermissionMap(state.packages || []);
+  state.packagePermissionDraft = draft;
+  state.permissionDraft = draft;
+  state.packagePermissionDirty = false;
   state.permissionDirty = false;
   saveState(state);
   render();
 }
 
 async function handleSavePermissions() {
-  const original = state.permissions || {};
-  const draft = state.permissionDraft || {};
-  const changes = [];
-  Object.keys(draft).forEach((role) => {
-    const before = new Set(original[role] || []);
-    const after = new Set(draft[role] || []);
-    [...before].forEach((permission) => {
-      if (!after.has(permission)) changes.push([role, permission]);
-    });
-    [...after].forEach((permission) => {
-      if (!before.has(permission)) changes.push([role, permission]);
-    });
+  const original = buildPackagePermissionMap(state.packages || []);
+  const draft = state.packagePermissionDraft || state.permissionDraft || {};
+  const changedPackages = (state.packages || []).filter((pkg) => {
+    const before = [...(original[pkg.id] || [])].sort().join('|');
+    const after = [...(draft[pkg.id] || [])].sort().join('|');
+    return before !== after;
   });
 
-  if (!changes.length) {
+  if (!changedPackages.length) {
+    state.packagePermissionDirty = false;
     state.permissionDirty = false;
     saveState(state);
     render();
@@ -1235,9 +1394,18 @@ async function handleSavePermissions() {
   state.error = '';
   render();
   try {
-    for (const [role, permission] of changes) {
-      await togglePermission(role, permission);
+    for (const pkg of changedPackages) {
+      await updatePackage(pkg.id, {
+        name: pkg.name,
+        level: pkg.level,
+        price: pkg.price,
+        description: pkg.description || '',
+        modules: pkg.modules || [],
+        sortOrder: pkg.sortOrder || 0,
+        permissions: draft[pkg.id] || [],
+      });
     }
+    state.packagePermissionDirty = false;
     state.permissionDirty = false;
     await loadPlatformData();
     state.activeView = 'permissions';
@@ -1253,12 +1421,16 @@ function clonePermissions(permissions) {
   return Object.fromEntries(Object.entries(permissions || {}).map(([role, items]) => [role, [...(items || [])]]));
 }
 
+function buildPackagePermissionMap(packages) {
+  return Object.fromEntries((packages || []).map((pkg) => [pkg.id, [...(pkg.permissions?.length ? pkg.permissions : defaultPackagePermissions[pkg.id] || [])]]));
+}
+
 function getFilteredTenants() {
   const query = String(state.tenantSearch || '').trim().toLowerCase();
   return (state.tenants || []).filter((tenant) => {
-    const packageMatch = state.tenantPackageFilter === 'all' || !state.tenantPackageFilter || tenant.packageTier === state.tenantPackageFilter;
+    const packageMatch = state.tenantPackageFilter === 'all' || !state.tenantPackageFilter || normalizeTenantPackageTier(tenant.packageTier) === state.tenantPackageFilter;
     const modeMatch = state.tenantModeFilter === 'all' || !state.tenantModeFilter || tenant.operatingMode === state.tenantModeFilter;
-    const statusMatch = state.tenantStatusFilter === 'all' || !state.tenantStatusFilter || String(tenant.status || '').toLowerCase() === state.tenantStatusFilter;
+    const statusMatch = state.tenantStatusFilter === 'all' || !state.tenantStatusFilter || tenantMatchesStatusFilter(tenant, state.tenantStatusFilter);
     const haystack = [tenant.id, tenant.name, tenant.ownerName, tenant.ownerEmail, tenant.packageTier, tenant.operatingMode].join(' ').toLowerCase();
     return packageMatch && modeMatch && statusMatch && (!query || haystack.includes(query));
   });
@@ -1269,7 +1441,7 @@ function getFilteredAccounts() {
   return (state.accounts || []).filter((account) => {
     const tenantMatch = state.accountTenantFilter === 'all' || !state.accountTenantFilter || String(account.tenantId) === String(state.accountTenantFilter);
     const roleMatch = state.accountRoleFilter === 'all' || !state.accountRoleFilter || account.role === state.accountRoleFilter;
-    const statusMatch = state.accountStatusFilter === 'all' || !state.accountStatusFilter || String(account.status || '').toLowerCase() === state.accountStatusFilter;
+    const statusMatch = state.accountStatusFilter === 'all' || !state.accountStatusFilter || normalizeAccountStatus(account.status) === normalizeAccountStatus(state.accountStatusFilter);
     const haystack = [account.id, account.name, account.email, account.role, tenantName(account.tenantId)].join(' ').toLowerCase();
     return tenantMatch && roleMatch && statusMatch && (!query || haystack.includes(query));
   });

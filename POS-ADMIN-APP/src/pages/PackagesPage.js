@@ -44,27 +44,14 @@ const packageUi = {
   },
 };
 
-const fallbackTenants = [
-  { id: 'demo-plus', name: 'Công ty bán lẻ Global', packageTier: 'plus', operatingMode: 'simple' },
-  { id: 'demo-pro', name: 'Cafe Metro', packageTier: 'pro', operatingMode: 'restaurant' },
-];
-
 export function renderPackagesPage(state, helpers) {
-  const tenants = state.tenants?.length ? state.tenants : fallbackTenants;
-  const tenant = helpers.selectedTenant() || tenants[0];
   const displayPackages = preferredPackages(state.packages?.length ? state.packages : packageCatalog);
-  const selectedPackageIdRaw = state.packageDraft || tenant?.packageTier || 'plus';
-  const selectedPackageId = displayPackages.some((pkg) => pkg.id === selectedPackageIdRaw)
-    ? selectedPackageIdRaw
-    : displayPackages[0]?.id || selectedPackageIdRaw;
-  const selectedPackage = findPackage(selectedPackageId);
-  const monthly = selectedPackage?.id === 'pro' ? '$499.00' : selectedPackage?.id === 'trial' ? '$0.00' : '$199.00';
 
   return `
     <section class="packages-page">
       <header class="packages-heading">
         <h1>Gói dịch vụ</h1>
-        <p>Quản lý các hạng dịch vụ và gán gói cho tenant.</p>
+        <p>Quản lý giá, mô tả và module của từng gói dịch vụ.</p>
       </header>
 
       <div class="packages-layout">
@@ -75,7 +62,7 @@ export function renderPackagesPage(state, helpers) {
           </div>
 
           <div class="package-catalog-grid">
-            ${displayPackages.map((pkg) => renderPackageCard(pkg, selectedPackageId)).join('')}
+            ${displayPackages.map((pkg) => renderPackageCard(pkg)).join('')}
           </div>
 
           <button type="button" class="comparison-toggle" data-action="toggle-package-comparison">
@@ -86,65 +73,15 @@ export function renderPackagesPage(state, helpers) {
           ${state.showPackageComparison ? renderPackageComparison(displayPackages) : ''}
         </section>
 
-        <aside class="assign-package-panel">
-          <div class="assign-title">
-            <i class="section-icon assign"></i>
-            <h2>Gán gói</h2>
-          </div>
-
-          <label class="assign-field">
-            <span>Chọn tenant</span>
-            <select data-field="selectedTenantId">
-              <option value="">Tìm hoặc chọn tenant...</option>
-              ${tenants.map((item) => `
-                <option value="${esc(item.id)}" ${String(tenant?.id) === String(item.id) ? 'selected' : ''}>${esc(item.name)}</option>
-              `).join('')}
-            </select>
-          </label>
-
-          <div class="assign-field">
-            <span>Gói mục tiêu</span>
-            <div class="target-package-stack">
-              ${displayPackages.map((pkg) => renderPackageOption(pkg, selectedPackageId)).join('')}
-            </div>
-          </div>
-
-          <div class="assign-field compact">
-            <span>Ghi đè / Tiện ích thêm</span>
-            <label class="check-line">
-              <input type="checkbox" data-field="packageBetaAnalytics" ${state.packageOverrides?.betaAnalytics ? 'checked' : ''} />
-              <span>Bao gồm quyền truy cập Beta Analytics</span>
-            </label>
-            <label class="check-line">
-              <input type="checkbox" data-field="packageWaiveSetupFee" ${state.packageOverrides?.waiveSetupFee !== false ? 'checked' : ''} />
-              <span>Miễn phí thiết lập ban đầu</span>
-            </label>
-          </div>
-
-          <div class="package-override-summary">
-            <span>Tóm tắt ghi đè</span>
-            <strong>${esc(overrideSummary(state.packageOverrides))}</strong>
-          </div>
-          ${state.packageMessage ? `<p class="package-apply-message">${esc(state.packageMessage)}</p>` : ''}
-
-          <div class="mrr-row">
-            <span>Phí định kỳ hàng tháng mới</span>
-            <strong>${esc(monthly)}</strong>
-          </div>
-
-          <button type="button" class="apply-package-btn" data-action="apply-package" data-package="${esc(selectedPackageId)}">
-            <span></span>
-            Áp dụng gói
-          </button>
-        </aside>
       </div>
+      ${state.packageEditDraft ? renderPackageEditModal(state.packageEditDraft) : ''}
     </section>
   `;
 }
 
 function renderPackageComparison(packages) {
   const modules = [...new Set(packages.flatMap((pkg) => {
-    const ui = packageUi[pkg.id] || toPackageUi(pkg);
+    const ui = getPackageUi(pkg);
     return [...ui.included, ...ui.disabled];
   }))];
 
@@ -153,7 +90,7 @@ function renderPackageComparison(packages) {
       <div class="package-comparison-head">
         <span>Module</span>
         ${packages.map((pkg) => {
-          const ui = packageUi[pkg.id] || toPackageUi(pkg);
+          const ui = getPackageUi(pkg);
           return `<span>${esc(ui.label)}</span>`;
         }).join('')}
       </div>
@@ -161,7 +98,7 @@ function renderPackageComparison(packages) {
         <div class="package-comparison-row">
           <strong>${esc(moduleName)}</strong>
           ${packages.map((pkg) => {
-            const ui = packageUi[pkg.id] || toPackageUi(pkg);
+            const ui = getPackageUi(pkg);
             const included = ui.included.includes(moduleName);
             return `<span class="${included ? 'included' : 'excluded'}">${included ? 'Bao gồm' : 'Không bao gồm'}</span>`;
           }).join('')}
@@ -171,14 +108,13 @@ function renderPackageComparison(packages) {
   `;
 }
 
-function renderPackageCard(pkg, selectedPackageId) {
-  const ui = packageUi[pkg.id] || toPackageUi(pkg);
-  const active = selectedPackageId === pkg.id;
+function renderPackageCard(pkg) {
+  const ui = getPackageUi(pkg);
 
   return `
-    <article class="catalog-package-card ${active ? 'active' : ''}">
+    <article class="catalog-package-card">
       ${ui.ribbon ? `<b class="popular-ribbon">${esc(ui.ribbon)}</b>` : ''}
-      <button type="button" class="package-card-picker" data-action="select-package" data-package="${esc(pkg.id)}" aria-label="Chọn gói ${esc(ui.label)}"></button>
+      <button type="button" class="package-card-picker" data-action="open-package-edit" data-package="${esc(pkg.id)}" aria-label="Chỉnh sửa gói ${esc(ui.label)}"></button>
       <div class="package-card-head">
         <div>
           <span class="tier-badge">${esc(ui.badge)}</span>
@@ -186,6 +122,8 @@ function renderPackageCard(pkg, selectedPackageId) {
         </div>
         <strong>${esc(ui.price)}<small>${esc(ui.unit)}</small></strong>
       </div>
+
+      <p class="package-description">${esc(ui.summary)}</p>
 
       <dl class="package-limits">
         ${ui.limits.map(([label, value]) => `
@@ -207,19 +145,48 @@ function renderPackageCard(pkg, selectedPackageId) {
   `;
 }
 
-function renderPackageOption(pkg, selectedPackageId) {
-  const ui = packageUi[pkg.id] || toPackageUi(pkg);
-  const active = selectedPackageId === pkg.id;
-
+function renderPackageEditModal(draft) {
   return `
-    <label class="target-package-option ${active ? 'active' : ''}">
-      <input type="radio" name="packageDraft" data-field="packageDraft" value="${esc(pkg.id)}" ${active ? 'checked' : ''} />
-      <span>
-        <strong>Gói ${esc(ui.label)}</strong>
-        <small>${esc(ui.summary)}</small>
-      </span>
-      ${pkg.id === 'pro' ? '<b>NÂNG CẤP</b>' : ''}
-    </label>
+    <div class="package-edit-backdrop" data-action="close-package-edit"></div>
+    <aside class="package-edit-modal" role="dialog" aria-modal="true" aria-label="Chỉnh sửa gói dịch vụ">
+      <header class="package-edit-head">
+        <div>
+          <h2>Chỉnh sửa gói dịch vụ</h2>
+          <p>${esc(draft.id || '')}</p>
+        </div>
+        <button type="button" data-action="close-package-edit" aria-label="Đóng"></button>
+      </header>
+      <div class="package-edit-form">
+        <label class="package-edit-field">
+          <span>Tên gói</span>
+          <input data-field="packageEditName" value="${esc(draft.name || '')}" />
+        </label>
+        <label class="package-edit-field">
+          <span>Cấp / giới hạn</span>
+          <input data-field="packageEditLevel" value="${esc(draft.level || '')}" />
+        </label>
+        <label class="package-edit-field">
+          <span>Giá hàng tháng</span>
+          <input data-field="packageEditPrice" type="number" min="0" step="1000" value="${esc(draft.price ?? 0)}" />
+        </label>
+        <label class="package-edit-field">
+          <span>Thứ tự hiển thị</span>
+          <input data-field="packageEditSortOrder" type="number" step="1" value="${esc(draft.sortOrder ?? 0)}" />
+        </label>
+        <label class="package-edit-field package-edit-wide">
+          <span>Mô tả</span>
+          <textarea data-field="packageEditDescription" rows="3">${esc(draft.description || '')}</textarea>
+        </label>
+        <label class="package-edit-field package-edit-wide">
+          <span>Modules</span>
+          <textarea data-field="packageEditModules" rows="6">${esc(draft.modulesText || '')}</textarea>
+        </label>
+      </div>
+      <div class="package-edit-actions">
+        <button type="button" class="tenant-create-secondary" data-action="close-package-edit">Hủy</button>
+        <button type="button" class="tenant-create-primary" data-action="save-package-edit">Lưu thay đổi</button>
+      </div>
+    </aside>
   `;
 }
 
@@ -230,15 +197,25 @@ function preferredPackages(packages) {
   return selected.length ? [...selected, ...extra] : packages;
 }
 
-function overrideSummary(overrides = {}) {
-  const items = [];
-  if (overrides.betaAnalytics) items.push('Beta Analytics');
-  if (overrides.waiveSetupFee !== false) items.push('Miễn phí thiết lập');
-  return items.length ? items.join(' + ') : 'Chưa chọn ghi đè';
-}
-
-function findPackage(id) {
-  return packageCatalog.find((pkg) => pkg.id === id) || packageCatalog[0];
+function getPackageUi(pkg) {
+  const preset = packageUi[pkg.id] || {};
+  const fallback = toPackageUi(pkg);
+  const modules = Array.isArray(pkg.modules) ? pkg.modules : [];
+  return {
+    ...fallback,
+    ...preset,
+    label: pkg.name || preset.label || fallback.label,
+    badge: pkg.level || preset.badge || fallback.badge,
+    price: money(pkg.price || 0),
+    unit: ' VND/tháng',
+    summary: pkg.description || preset.summary || fallback.summary,
+    limits: [
+      ['Cấp / giới hạn', pkg.level || preset.badge || fallback.badge],
+      ...(preset.limits || []).slice(1),
+    ],
+    included: modules.length ? modules : (preset.included || fallback.included),
+    disabled: preset.disabled || fallback.disabled,
+  };
 }
 
 function toPackageUi(pkg) {

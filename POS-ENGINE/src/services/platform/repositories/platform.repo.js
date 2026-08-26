@@ -18,6 +18,8 @@ function rowToTenant(row) {
     renewalDate: row[10],
     betaAnalytics: Boolean(row[11]),
     waiveSetupFee: row[12] !== 0,
+    createdAt: row[13],
+    updatedAt: row[14],
   };
 }
 
@@ -31,6 +33,9 @@ function rowToAccount(row) {
     status: row[5],
     activationToken: row[6],
     activationSentAt: row[7],
+    banReason: row[8],
+    bannedAt: row[9],
+    bannedBy: row[10],
   };
 }
 
@@ -74,8 +79,25 @@ function rowToPackage(row) {
     name: row[1],
     level: row[2],
     price: row[3],
-    modules: JSON.parse(row[4] || '[]'),
-    sortOrder: row[5],
+    description: row[4] || '',
+    modules: JSON.parse(row[5] || '[]'),
+    permissions: JSON.parse(row[6] || '[]'),
+    sortOrder: row[7],
+  };
+}
+
+function rowToSubscription(row) {
+  return {
+    id: row[0],
+    tenantId: row[1],
+    packageTier: row[2],
+    status: row[3],
+    maxStore: row[4],
+    billingCycle: row[5],
+    startDate: row[6],
+    endDate: row[7],
+    createdAt: row[8],
+    updatedAt: row[9],
   };
 }
 
@@ -151,25 +173,49 @@ function createPassword() {
 
 function listPackages() {
   const db = getDatabase();
-  const result = db.exec('SELECT id, name, level, price, modules, sort_order FROM platform_packages ORDER BY sort_order ASC, price ASC');
+  const result = db.exec('SELECT id, name, level, price, description, modules, permissions, sort_order FROM platform_packages ORDER BY sort_order ASC, price ASC');
   return result[0]?.values?.map(rowToPackage) || [];
 }
 
 function findPackageById(id) {
   const db = getDatabase();
-  const result = db.exec('SELECT id, name, level, price, modules, sort_order FROM platform_packages WHERE id = ?', [id]);
+  const result = db.exec('SELECT id, name, level, price, description, modules, permissions, sort_order FROM platform_packages WHERE id = ?', [id]);
   return result[0]?.values?.[0] ? rowToPackage(result[0].values[0]) : null;
+}
+
+function updatePackage(id, updates) {
+  const current = findPackageById(id);
+  if (!current) return null;
+  const next = { ...current, ...updates };
+  const db = getDatabase();
+  db.run(
+    `UPDATE platform_packages
+     SET name = ?, level = ?, price = ?, description = ?, modules = ?, permissions = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [
+      next.name,
+      next.level,
+      Number(next.price || 0),
+      next.description || '',
+      JSON.stringify(next.modules || []),
+      JSON.stringify(next.permissions || []),
+      Number(next.sortOrder || 0),
+      id,
+    ]
+  );
+  saveDatabase();
+  return findPackageById(id);
 }
 
 function listTenants() {
   const db = getDatabase();
-  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date, beta_analytics, waive_setup_fee FROM platform_tenants ORDER BY id ASC');
+  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date, beta_analytics, waive_setup_fee, created_at, updated_at FROM platform_tenants ORDER BY id ASC');
   return result[0]?.values?.map(rowToTenant) || [];
 }
 
 function findTenantById(id) {
   const db = getDatabase();
-  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date, beta_analytics, waive_setup_fee FROM platform_tenants WHERE id = ?', [id]);
+  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date, beta_analytics, waive_setup_fee, created_at, updated_at FROM platform_tenants WHERE id = ?', [id]);
   return result[0]?.values?.[0] ? rowToTenant(result[0].values[0]) : null;
 }
 
@@ -181,7 +227,7 @@ function createTenant({ name, ownerName, ownerEmail, packageTier, operatingMode,
     [name, ownerName, ownerEmail, packageTier, operatingMode, status, renewalDate]
   );
   saveDatabase();
-  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date, beta_analytics, waive_setup_fee FROM platform_tenants ORDER BY id DESC LIMIT 1');
+  const result = db.exec('SELECT id, name, owner_name, owner_email, package_tier, operating_mode, status, branches, users, monthly_revenue, renewal_date, beta_analytics, waive_setup_fee, created_at, updated_at FROM platform_tenants ORDER BY id DESC LIMIT 1');
   return result[0]?.values?.[0] ? rowToTenant(result[0].values[0]) : null;
 }
 
@@ -222,13 +268,13 @@ function updateTenantStatus(id, status) {
 
 function listAccounts() {
   const db = getDatabase();
-  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at FROM platform_accounts ORDER BY id DESC');
+  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at, ban_reason, banned_at, banned_by FROM platform_accounts ORDER BY id DESC');
   return result[0]?.values?.map(rowToAccount) || [];
 }
 
 function findAccountById(id) {
   const db = getDatabase();
-  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at FROM platform_accounts WHERE id = ?', [id]);
+  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at, ban_reason, banned_at, banned_by FROM platform_accounts WHERE id = ?', [id]);
   return result[0]?.values?.[0] ? rowToAccount(result[0].values[0]) : null;
 }
 
@@ -239,7 +285,7 @@ function createAccount({ tenantId, name, email, role, status = 'invited' }) {
     [tenantId, name, email, role, status]
   );
   saveDatabase();
-  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at FROM platform_accounts ORDER BY id DESC LIMIT 1');
+  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at, ban_reason, banned_at, banned_by FROM platform_accounts ORDER BY id DESC LIMIT 1');
   return result[0]?.values?.[0] ? rowToAccount(result[0].values[0]) : null;
 }
 
@@ -250,8 +296,24 @@ function updateAccountActivation(accountId, activationToken) {
     [activationToken, accountId]
   );
   saveDatabase();
-  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at FROM platform_accounts WHERE id = ?', [accountId]);
+  const result = db.exec('SELECT id, tenant_id, name, email, role, status, activation_token, activation_sent_at, ban_reason, banned_at, banned_by FROM platform_accounts WHERE id = ?', [accountId]);
   return result[0]?.values?.[0] ? rowToAccount(result[0].values[0]) : null;
+}
+
+function banAccount(accountId, reason, bannedBy) {
+  const db = getDatabase();
+  db.run(
+    `UPDATE platform_accounts
+     SET status = 'banned',
+         ban_reason = ?,
+         banned_by = ?,
+         banned_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [reason, bannedBy || null, accountId]
+  );
+  saveDatabase();
+  return findAccountById(accountId);
 }
 
 function listTrialRequests() {
@@ -560,6 +622,14 @@ function createSubscription({ tenantId, packageTier, maxStore }) {
   };
 }
 
+function listSubscriptions() {
+  const db = getDatabase();
+  const result = db.exec(
+    'SELECT id, tenant_id, package_tier, status, max_store, billing_cycle, start_date, end_date, created_at, updated_at FROM platform_subscriptions ORDER BY id ASC'
+  );
+  return result[0]?.values?.map(rowToSubscription) || [];
+}
+
 function createTenantStore({ tenantId, ownerAccountId, name }) {
   const db = getDatabase();
   db.run(
@@ -611,11 +681,8 @@ function getSummary() {
   const trialRequests = listTrialRequests();
   const salesLeads = listSalesLeads();
   const packages = listPackages();
-  const activeMrr = tenants.reduce((sum, tenant) => {
-    if (tenant.status !== 'active') return sum;
-    const pkg = packages.find((item) => item.id === tenant.packageTier);
-    return sum + (pkg?.price || 0);
-  }, 0);
+  const subscriptions = listSubscriptions();
+  const activeMrr = calculateMrrAt(new Date(), { tenants, packages, subscriptions });
   const packageLabels = Object.fromEntries(packages.map((pkg) => [pkg.id, pkg.name || pkg.id]));
   const tenantById = new Map(tenants.map((tenant) => [String(tenant.id), tenant]));
 
@@ -629,7 +696,7 @@ function getSummary() {
     packageDistribution: buildPackageDistribution(tenants, packageLabels),
     recentOrders: buildRecentOrders(orders, tenantById),
     actionRequired: buildActionRequired({ orders, trialRequests, salesLeads, tenantById }),
-    mrrTrend: buildMrrTrend(activeMrr),
+    mrrTrend: buildMrrTrend({ orders, tenants, packages, subscriptions }),
   };
 }
 
@@ -639,10 +706,23 @@ function isPaidOrder(order) {
   return paymentStatus === 'PAID' || ['PAID', 'APPROVED', 'ACTIVE', 'COMPLETED'].includes(status);
 }
 
+function normalizeTenantPackageTier(value) {
+  const tier = String(value || '').toLowerCase();
+  if (['trial', 'trial-plus', 'plus-trial'].includes(tier)) return 'trial';
+  if (['plus', 'starter'].includes(tier)) return 'plus';
+  if (['pro', 'restaurant', 'chain'].includes(tier)) return 'pro';
+  return tier || 'trial';
+}
+
+function isTrialTenant(tenant) {
+  return String(tenant.status || 'active').toLowerCase() === 'trial' || normalizeTenantPackageTier(tenant.packageTier) === 'trial';
+}
+
 function buildTenantHealth(tenants) {
   const countByStatus = tenants.reduce((items, tenant) => {
     const status = String(tenant.status || 'active').toLowerCase();
-    items[status] = (items[status] || 0) + 1;
+    const key = isTrialTenant(tenant) ? 'trial' : status;
+    items[key] = (items[key] || 0) + 1;
     return items;
   }, {});
   const countByTier = tenants.reduce((items, tenant) => {
@@ -743,16 +823,151 @@ function buildActionRequired({ orders, trialRequests, salesLeads, tenantById }) 
   return actions;
 }
 
-function buildMrrTrend(activeMrr) {
-  const current = Number(activeMrr || 0);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  if (!current) {
-    return months.map((month) => ({ month, value: 0 }));
+const MRR_RANGE_OPTIONS = {
+  '1d': { points: 12, unit: 'hour', step: 2 },
+  '7d': { points: 7, unit: 'day' },
+  '30d': { points: 4, unit: 'week' },
+  '90d': { points: 3, unit: 'month' },
+  '180d': { points: 6, unit: 'month' },
+  '365d': { points: 12, unit: 'month' },
+};
+
+function buildMrrTrend({ orders, tenants, packages, subscriptions }) {
+  return {
+    generatedAt: new Date().toISOString(),
+    source: 'paid_subscription_orders',
+    ranges: Object.fromEntries(Object.entries(MRR_RANGE_OPTIONS).map(([range, option]) => [
+      range,
+      buildMrrSeries(option, { orders, tenants, packages, subscriptions }),
+    ])),
+  };
+}
+
+function buildMrrSeries(option, data) {
+  return Array.from({ length: option.points }, (_, index) => {
+    const { start, end } = mrrBucketBounds(index, option);
+    return {
+      label: mrrBucketLabel(start, end, index, option),
+      start: start.toISOString(),
+      end: end.toISOString(),
+      value: calculateRecurringRevenueInBucket(start, end, data),
+    };
+  });
+}
+
+function calculateRecurringRevenueInBucket(start, end, { orders, subscriptions, packages }) {
+  const paidOrderTenantIds = new Set();
+  const orderRevenue = orders.reduce((sum, order) => {
+    if (!isPaidOrder(order)) return sum;
+    const paidAt = orderRevenueDate(order);
+    if (!paidAt || paidAt < start || paidAt > end) return sum;
+    if (order.tenantId) paidOrderTenantIds.add(String(order.tenantId));
+    return sum + Number(order.amount || 0);
+  }, 0);
+
+  const packageById = new Map(packages.map((pkg) => [pkg.id, pkg]));
+  const subscriptionRevenue = subscriptions.reduce((sum, subscription) => {
+    if (paidOrderTenantIds.has(String(subscription.tenantId))) return sum;
+    const startDate = parseDate(subscription.startDate || subscription.createdAt);
+    if (!startDate || startDate < start || startDate > end) return sum;
+    return sum + monthlyPackagePrice(packageById.get(subscription.packageTier), subscription.billingCycle);
+  }, 0);
+
+  return Math.round(orderRevenue + subscriptionRevenue);
+}
+
+function orderRevenueDate(order) {
+  return parseDate(order.paidAt || order.approvedAt || order.provisionedAt || order.createdAt);
+}
+
+function calculateMrrAt(at, { tenants, packages, subscriptions }) {
+  const packageById = new Map(packages.map((pkg) => [pkg.id, pkg]));
+  const tenantById = new Map(tenants.map((tenant) => [String(tenant.id), tenant]));
+  const subscribedTenantIds = new Set();
+  const subscriptionMrr = subscriptions.reduce((sum, subscription) => {
+    if (!isSubscriptionActiveAt(subscription, at)) return sum;
+    subscribedTenantIds.add(String(subscription.tenantId));
+    const tenant = tenantById.get(String(subscription.tenantId));
+    if (tenant && !isTenantActiveAt(tenant, at)) return sum;
+    return sum + monthlyPackagePrice(packageById.get(subscription.packageTier), subscription.billingCycle);
+  }, 0);
+
+  const tenantMrr = tenants.reduce((sum, tenant) => {
+    if (subscribedTenantIds.has(String(tenant.id)) || !isTenantActiveAt(tenant, at) || isTrialTenant(tenant)) return sum;
+    return sum + monthlyPackagePrice(packageById.get(tenant.packageTier), 'monthly');
+  }, 0);
+
+  return Math.round(subscriptionMrr + tenantMrr);
+}
+
+function isSubscriptionActiveAt(subscription, at) {
+  const status = String(subscription.status || '').toUpperCase();
+  if (!['ACTIVE', 'TRIALING'].includes(status)) return false;
+  const start = parseDate(subscription.startDate || subscription.createdAt);
+  const end = parseDate(subscription.endDate);
+  if (start && start > at) return false;
+  if (end && end < at) return false;
+  return true;
+}
+
+function isTenantActiveAt(tenant, at) {
+  if (String(tenant.status || '').toLowerCase() !== 'active') return false;
+  const created = parseDate(tenant.createdAt);
+  return !created || created <= at;
+}
+
+function monthlyPackagePrice(pkg, billingCycle) {
+  const price = Number(pkg?.price || 0);
+  const cycle = String(billingCycle || 'monthly').toLowerCase();
+  if (cycle === 'yearly' || cycle === 'annual') return price / 12;
+  if (cycle === 'quarterly') return price / 3;
+  return price;
+}
+
+function parseDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function mrrBucketBounds(index, option) {
+  const end = new Date();
+  const distance = option.points - index - 1;
+  if (option.unit === 'hour') {
+    const step = Number(option.step || 1);
+    const start = new Date(end);
+    start.setHours(index * step, 0, 0, 0);
+    end.setTime(start.getTime());
+    end.setHours(start.getHours() + step, 0, 0, -1);
+    return { start, end };
+  } else if (option.unit === 'day') {
+    end.setHours(23, 59, 59, 999);
+    end.setDate(end.getDate() - distance);
+    const start = new Date(end);
+    start.setHours(0, 0, 0, 0);
+    return { start, end };
+  } else if (option.unit === 'week') {
+    end.setHours(23, 59, 59, 999);
+    end.setDate(end.getDate() - distance * 7);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+    return { start, end };
+  } else {
+    end.setHours(23, 59, 59, 999);
+    end.setMonth(end.getMonth() - distance);
+    const start = new Date(end);
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    return { start, end };
   }
-  return months.map((month, index) => ({
-    month,
-    value: Math.round(current * (0.72 + index * 0.028)),
-  }));
+}
+
+function mrrBucketLabel(start, end, index, option) {
+  if (option.unit === 'hour') return String(start.getHours());
+  if (option.unit === 'week') return `T${index + 1}`;
+  if (option.unit === 'month') return end.toLocaleDateString('vi-VN', { month: 'short' });
+  return end.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
 }
 
 function bootstrap() {
@@ -788,10 +1003,12 @@ module.exports = {
   updateTenantStatus,
   listPackages,
   findPackageById,
+  updatePackage,
   listAccounts,
   findAccountById,
   createAccount,
   updateAccountActivation,
+  banAccount,
   listTrialRequests,
   listSalesLeads,
   listMarketingSignups,
@@ -813,6 +1030,7 @@ module.exports = {
   findOrderById,
   createPurchaseOrder,
   updateOrder,
+  listSubscriptions,
   createSubscription,
   createTenantStore,
   getPermissionRole,

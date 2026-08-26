@@ -112,6 +112,47 @@ function listPackages(user) {
   return { data: repo.listPackages() };
 }
 
+function updatePackage(user, packageId, payload) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+
+  const name = String(payload?.name || '').trim();
+  const level = String(payload?.level || '').trim();
+  const description = String(payload?.description || '').trim();
+  const price = Number(payload?.price);
+  const sortOrder = Number(payload?.sortOrder ?? 0);
+  const modules = Array.isArray(payload?.modules)
+    ? payload.modules.map((item) => String(item || '').trim()).filter(Boolean)
+    : String(payload?.modules || '').split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
+  const permissions = Object.prototype.hasOwnProperty.call(payload || {}, 'permissions')
+    ? (Array.isArray(payload?.permissions)
+        ? payload.permissions.map((item) => String(item || '').trim()).filter(Boolean)
+        : String(payload?.permissions || '').split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean))
+    : undefined;
+
+  if (!repo.findPackageById(packageId)) {
+    return { error: 'Package not found', status: 404 };
+  }
+  if (!name || !level) {
+    return { error: 'name and level required', status: 400 };
+  }
+  if (!Number.isFinite(price) || price < 0) {
+    return { error: 'price must be a non-negative number', status: 400 };
+  }
+
+  return {
+    data: repo.updatePackage(packageId, {
+      name,
+      level,
+      price,
+      description,
+      modules,
+      ...(permissions ? { permissions } : {}),
+      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+    }),
+  };
+}
+
 function listAccounts(user) {
   const access = requirePlatformAdmin(user);
   if (access) return access;
@@ -136,6 +177,17 @@ function resendAccountInvite(user, accountId) {
   if (!account) return { error: 'Account not found', status: 404 };
   const token = repo.createPassword();
   return { data: repo.updateAccountActivation(account.id, token) };
+}
+
+function banAccount(user, accountId, payload) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const account = repo.findAccountById(accountId);
+  if (!account) return { error: 'Account not found', status: 404 };
+  const reason = String(payload?.reason || '').trim();
+  if (!reason) return { error: 'Ban reason required', status: 400 };
+  const bannedBy = user?.username || user?.email || user?.id || 'platform_admin';
+  return { data: repo.banAccount(account.id, reason, String(bannedBy)) };
 }
 
 function submitTrialRequest(payload) {
@@ -703,9 +755,11 @@ module.exports = {
   toggleTenantStatus,
   updateTenantStatus,
   listPackages,
+  updatePackage,
   listAccounts,
   inviteAccount,
   resendAccountInvite,
+  banAccount,
   submitTrialRequest,
   approveTrialRequest,
   rejectTrialRequest,
