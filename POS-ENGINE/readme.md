@@ -22,7 +22,7 @@ npm.cmd run dev
 | Transaction Service | `4003` | Order, payment, dashboard, dining session, SePay webhook |
 | Product Service | `4004` | Category, product, topping, menu |
 | Print Service | `4005` | Printer config, template, print job, auto-print |
-| Platform Service | `4006` | Tenant, package, account, permission, trial request |
+| Platform Service | `4006` | Tenant, package, account, permission, trial request, order, email va support ticket |
 | Customer Service | `4007` | API facade cho Customer App |
 | Kitchen Service | `4008` | API facade cho Kitchen App |
 
@@ -74,6 +74,10 @@ npx.cmd nodemon src/services/print/index.js
 | `/api/platform/trial-requests` | Platform | JWT |
 | `/api/platform/trial-requests/me` | Platform | JWT |
 | `/api/platform/*` | Platform | `platform_admin` |
+| `/api/public/marketing-signups*` | Platform public | Khong |
+| `/api/public/orders*` | Platform public | Khong |
+| `/api/public/sales-leads` | Platform public | Khong |
+| `/api/public/support-tickets` | Platform public | Khong |
 | `/api/customer/*` | Customer | Khong |
 | `/api/kitchen/*` | Kitchen | Khong |
 | `/api/public/menu` | Product public menu | Khong |
@@ -107,7 +111,7 @@ Mac dinh nam trong `src/shared/config.js`.
 
 ## Email / SMTP
 
-Backend gui email tap trung tu POS-ENGINE. Admin App `localhost:8000` va Marketing Website `localhost:8001` van goi API qua Gateway `http://localhost:4000/api`; cac email ve dang ky marketing, don hang, thay doi trang thai don, trial va password reset duoc gui tu service tuong ung.
+Backend gui email tap trung tu POS-ENGINE. Admin App `localhost:8000` va Marketing Website `localhost:8001` van goi API qua Gateway `http://localhost:4000/api`; cac email ve dang ky marketing, don hang, thay doi trang thai don, trial, support ticket va password reset duoc gui tu service tuong ung.
 
 Neu chua cau hinh SMTP, email se duoc ghi ra outbox local:
 
@@ -129,7 +133,7 @@ Cau hinh SMTP bang bien moi truong:
 | `SMTP_FROM` | `POS Platform <no-reply@pos.local>` | Nguoi gui |
 | `MAIL_DRY_RUN` | `true` | Neu SMTP loi thi ghi outbox thay vi lam fail request |
 | `MAIL_OUTBOX_DIR` | `data/mail-outbox` | Thu muc luu file `.eml` local |
-| `ADMIN_NOTIFY_EMAIL` | rong | Email admin nhan don hang/lead/trial moi |
+| `ADMIN_NOTIFY_EMAIL` | rong | Email admin nhan don hang/lead/trial/ticket moi |
 
 Vi du dung MailHog/Mailpit local:
 
@@ -140,6 +144,21 @@ $env:SMTP_PORT="1025"
 $env:ADMIN_NOTIFY_EMAIL="admin@pos.local"
 npm.cmd run dev
 ```
+
+## Support ticket
+
+Ticket ho tro duoc luu trong Platform Service va email chi la kenh thong bao/phan hoi.
+
+Luong chinh:
+
+1. Khach dang ky/dang nhap marketing tai `localhost:8001`.
+2. Khach gui form support ticket.
+3. Gateway forward `POST /api/public/support-tickets` den Platform Service.
+4. Platform Service tao ticket va message dau tien, gui email xac nhan cho khach.
+5. Admin mo `localhost:8000` -> `Tickets` de xem hoi thoai, doi trang thai va reply.
+6. Reply cua admin duoc luu vao ticket va gui email cho khach.
+
+Inbound email tu khach reply truc tiep vao hop thu chua tu dong append vao ticket; buoc do can them IMAP hoac webhook tu provider nhu Gmail, SendGrid hoac Mailgun.
 
 ## Realtime va in hoa don
 

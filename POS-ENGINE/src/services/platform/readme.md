@@ -1,6 +1,6 @@
 # Platform Service
 
-Service cho lop platform owner: quan ly tenant, package, account, order nen tang, permission va trial request tu Marketing Website.
+Service cho lop platform owner: quan ly tenant, package, account, order nen tang, permission, email, support ticket va trial request tu Marketing Website.
 
 ## Port va route
 
@@ -38,6 +38,18 @@ npm.cmd run dev:platform
 | `POST` | `/platform/trial-requests` | `/api/platform/trial-requests` | Gui trial request |
 | `POST` | `/platform/trial-requests/:id/approve` | `/api/platform/trial-requests/:id/approve` | Duyet trial request |
 | `POST` | `/platform/trial-requests/:id/reject` | `/api/platform/trial-requests/:id/reject` | Tu choi trial request |
+| `POST` | `/public/marketing-signups` | `/api/public/marketing-signups` | Dang ky tai khoan marketing |
+| `POST` | `/public/orders` | `/api/public/orders` | Tao don dang ky tu Marketing Website |
+| `GET` | `/public/orders/:orderCode/status` | `/api/public/orders/:orderCode/status` | Tra cuu trang thai don public |
+| `POST` | `/public/sales-leads` | `/api/public/sales-leads` | Tao lead ban hang public |
+| `POST` | `/public/support-tickets` | `/api/public/support-tickets` | Khach tao ticket ho tro |
+| `GET` | `/platform/support-tickets` | `/api/platform/support-tickets` | Danh sach ticket ho tro |
+| `GET` | `/platform/support-tickets/:id` | `/api/platform/support-tickets/:id` | Chi tiet ticket va messages |
+| `POST` | `/platform/support-tickets/:id/reply` | `/api/platform/support-tickets/:id/reply` | Admin reply ticket va gui email |
+| `PATCH` | `/platform/support-tickets/:id/status` | `/api/platform/support-tickets/:id/status` | Doi trang thai ticket |
+| `GET` | `/platform/email/status` | `/api/platform/email/status` | Xem cau hinh SMTP runtime |
+| `GET` | `/platform/email/outbox` | `/api/platform/email/outbox` | Xem outbox email local |
+| `POST` | `/platform/email/test` | `/api/platform/email/test` | Gui email test |
 
 ## Auth
 
@@ -50,3 +62,5 @@ npm.cmd run dev:platform
 - Marketing Website gui trial request vao service nay.
 - POS Admin App doc bootstrap/summary va duyet request.
 - Khi approve request, service tao tenant/account demo va luu username/password portal cho request.
+- Support ticket duoc quan ly trong Admin App; email chi dung de xac nhan va gui phan hoi ra ngoai.
+- SMTP cau hinh trong `src/shared/config.js`; neu chua bat SMTP, mail duoc ghi vao `POS-ENGINE/data/mail-outbox`.

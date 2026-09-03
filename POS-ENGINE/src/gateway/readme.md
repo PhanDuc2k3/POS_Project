@@ -49,6 +49,10 @@ GET /api/health
 | `/api/platform/trial-requests` | Platform Service | JWT |
 | `/api/platform/trial-requests/me` | Platform Service | JWT |
 | `/api/platform/*` | Platform Service | `platform_admin` |
+| `/api/public/marketing-signups*` | Platform Service public | Khong |
+| `/api/public/orders*` | Platform Service public | Khong |
+| `/api/public/sales-leads` | Platform Service public | Khong |
+| `/api/public/support-tickets` | Platform Service public | Khong |
 | `/api/customer/*` | Customer Service | Khong |
 | `/api/kitchen/*` | Kitchen Service | Khong |
 | `/api/public/menu` | Product Service public menu | Khong |
@@ -82,6 +86,7 @@ product:created
 product:updated
 product:toppingUpdated
 product:categoryCreated
+platform:changed
 ```
 
 ## Internal endpoint

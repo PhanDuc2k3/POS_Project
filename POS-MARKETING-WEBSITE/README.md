@@ -1,6 +1,6 @@
 # POS Marketing Website
 
-Static marketing site for the POS SaaS product. It presents product pages, pricing, trial/PLUS/PRO purchase entry, and contact-sales intake.
+Static marketing site for the POS SaaS product. It presents product pages, pricing, trial/PLUS/PRO purchase entry, contact-sales intake, public order tracking, and support ticket submission.
 
 ## Run
 
@@ -24,7 +24,7 @@ Requires POS Engine gateway:
 http://localhost:4000/api
 ```
 
-Current public purchase/contact APIs:
+Current public purchase/contact/support APIs:
 
 ```text
 POST /api/public/marketing-signups
@@ -33,6 +33,7 @@ GET  /api/public/marketing-signups/session
 POST /api/public/orders
 GET  /api/public/orders/:orderCode/status
 POST /api/public/sales-leads
+POST /api/public/support-tickets
 ```
 
 ## Purchase Flow
@@ -54,3 +55,5 @@ The website only creates an order. It never creates tenants, owner accounts, sto
 - API base can be overridden with `window.POS_API_URL`; otherwise it uses `http://localhost:4000/api`.
 - The latest submitted order is stored in browser `localStorage` and refreshed through the public status endpoint.
 - Contact-sales requests go to Platform Admin as sales leads.
+- Support tickets require a marketing account, are stored in Platform Service, show in the customer profile, and are handled by Admin App `Tickets`.
+- Ticket confirmations and admin replies are sent by POS Engine email; without SMTP they are written to `POS-ENGINE/data/mail-outbox`.

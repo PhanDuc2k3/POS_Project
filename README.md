@@ -9,10 +9,10 @@ Monorepo POS local cho mo hinh ban le, cafe, nha hang va restaurant mode. Repo g
 | `POS-ENGINE` | Backend, API Gateway, WebSocket va cac service noi bo | Gateway `http://localhost:4000` |
 | `POS-PORTAL` | Portal cho chu cua hang quan ly san pham, don hang, doanh thu, store config | `http://localhost:3000` |
 | `POS-ELECTRON` | Ung dung POS tai quay va device agent de in hoa don | Electron desktop |
-| `POS-ADMIN-APP` | Platform admin quan ly tenant, package, account, permission, trial request | `http://localhost:8000` |
+| `POS-ADMIN-APP` | Platform admin quan ly tenant, package, account, permission, trial request, ticket va email | `http://localhost:8000` |
 | `POS-CUSTOMER-APP` | Man hinh khach tu goi mon theo ban/phien an | `http://localhost:3001` |
 | `POS-KITCHEN-APP` | Man hinh bep/bar theo doi dining session va order | `http://localhost:3002` |
-| `POS-MARKETING-WEBSITE` | Website marketing va form dang ky trial | `http://localhost:8001` |
+| `POS-MARKETING-WEBSITE` | Website marketing, form dang ky trial/order, lead va support ticket | `http://localhost:8001` |
 
 ## Cach chay nhanh
 
@@ -97,7 +97,16 @@ npm.cmd --prefix POS-MARKETING-WEBSITE install
 3. Electron ket noi Socket.IO den `http://localhost:4000` sau khi dang nhap.
 4. Khi giao dich thanh toan thanh cong, Transaction Service publish event, Print Service tao job, Gateway day `print:job` den Electron de in hoa don.
 5. Customer App tao dining session va order; Kitchen App doc session/order de bep xu ly.
-6. Marketing Website gui trial request; Platform Admin duyet va tao tenant/account.
+6. Marketing Website gui trial/order; Platform Admin duyet, tao tenant/account va gui email cap nhat trang thai.
+7. Khach gui support ticket tu Marketing; Admin xu ly hoi thoai trong app va email duoc dung lam kenh thong bao/phan hoi.
+
+## Email va support ticket
+
+- Email duoc gui tap trung tu `POS-ENGINE` qua SMTP neu da cau hinh.
+- Neu chua bat SMTP, email duoc ghi thanh file `.eml` trong `POS-ENGINE/data/mail-outbox`.
+- Admin `localhost:8000` co trang `Email` de xem cau hinh runtime, outbox va gui mail test.
+- Admin `localhost:8000` co trang `Tickets` de quan ly ticket ho tro, doi trang thai va reply cho khach.
+- Marketing `localhost:8001` co form support ticket trong khu lien he; khach phai dang ky/dang nhap marketing truoc khi gui.
 
 ## Tai lieu chi tiet
 

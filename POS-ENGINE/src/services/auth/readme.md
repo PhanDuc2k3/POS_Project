@@ -66,3 +66,4 @@ database.js
 - Access/refresh token dung JWT secret trong `src/shared/config.js`.
 - Gateway verify JWT va forward user context qua header `X-User-*`.
 - Login va forgot-password co strict rate limit o Gateway.
+- Khi reset mat khau thanh cong, Auth Service goi shared mailer de gui email canh bao cho user. Neu SMTP chua cau hinh, email vao `POS-ENGINE/data/mail-outbox`.

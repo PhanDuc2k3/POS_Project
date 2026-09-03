@@ -1,6 +1,6 @@
 # POS Admin App
 
-Ung dung web tinh cho chu nen tang quan ly goi dich vu, tenant, order, account, permission va trial request.
+Ung dung web tinh cho chu nen tang quan ly goi dich vu, tenant, order, account, permission, trial request, email va support ticket.
 
 ## Chay app
 
@@ -47,6 +47,10 @@ Admin app goi cac nhom API:
 /api/platform/orders
 /api/platform/permissions/:role
 /api/platform/trial-requests
+/api/platform/support-tickets
+/api/platform/email/status
+/api/platform/email/outbox
+/api/platform/email/test
 ```
 
 Cac route `/api/platform/*` yeu cau user co role `platform_admin`.
@@ -68,16 +72,32 @@ role: platform_admin
 - Quan ly order cua nen tang.
 - Quan ly permission theo role.
 - Duyet trial request tu Marketing Website.
+- Quan ly SMTP/email runtime, outbox local va gui email test.
+- Quan ly support ticket: loc/tim ticket, doi trang thai va reply cho khach qua email.
 
-## Trial request flow
+## Trial/order flow
 
 1. Khach dang nhap tren `POS-MARKETING-WEBSITE`.
 2. Khach gui form trial request.
 3. Platform Service luu request o trang thai pending.
-4. Admin vao `Requests`.
+4. Admin vao `Orders`.
 5. Admin approve hoac reject.
 6. Khi approve, Platform Service tao tenant va account owner cho Portal.
-7. Admin gui username/password duoc tao cho khach.
+7. He thong gui email cap nhat trang thai don/activation cho khach.
+
+## Support ticket flow
+
+1. Khach dang ky/dang nhap tren Marketing Website `localhost:8001`.
+2. Khach gui support ticket tu form lien he.
+3. Admin vao `Tickets` tren `localhost:8000`.
+4. Admin reply trong app; backend luu message va gui email cho khach.
+5. Admin co the doi trang thai `OPEN`, `IN_PROGRESS`, `WAITING_CUSTOMER`, `RESOLVED`, `CLOSED`.
+
+## Email management
+
+- Trang `Email` hien thi cau hinh SMTP runtime, outbox local va nut gui email test.
+- Khong luu SMTP password tu browser. Cau hinh SMTP bang bien moi truong trong `POS-ENGINE`.
+- Neu `SMTP_ENABLED=false`, email se vao `POS-ENGINE/data/mail-outbox`.
 
 ## Cau truc
 
