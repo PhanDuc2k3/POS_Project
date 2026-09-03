@@ -14,8 +14,6 @@ const mrrRangeOptions = [
 ];
 
 Object.assign(mrrRangeOptions.find((item) => item.value === '1d'), { points: 12, unit: 'hour', step: 2 });
-Object.assign(mrrRangeOptions.find((item) => item.value === '30d'), { points: 4, unit: 'week' });
-Object.assign(mrrRangeOptions.find((item) => item.value === '90d'), { points: 3, unit: 'month' });
 
 export function renderOverviewPage(state) {
   const summary = state.summary || {};
@@ -32,8 +30,8 @@ export function renderOverviewPage(state) {
   const recentOrders = normalizeRecentOrders(summary.recentOrders) || buildRecentOrders(orders, tenants);
   const health = normalizeTenantHealth(summary.tenantHealth) || buildTenantHealth(tenants);
   const mrrRange = normalizeMrrRange(state.mrrRange);
-  const mrrTrend = normalizeMrrTrend(summary.mrrTrend, mrrRange) || buildMrrTrend(activeMrr, mrrRange);
-  const mrrBars = buildMrrBars(mrrTrend, activeMrr, mrrRange);
+  const mrrTrend = normalizeMrrTrend(summary.mrrTrend, mrrRange) || buildMrrTrend(mrrRange);
+  const mrrBars = buildMrrBars(mrrTrend, mrrRange);
 
   return `
     <section class="platform-overview">
@@ -52,14 +50,14 @@ export function renderOverviewPage(state) {
       <div class="overview-dashboard-grid">
         <section class="panel overview-panel mrr-panel">
           <div class="panel-title-row mrr-title-row">
-            <h2>Xu hướng MRR</h2>
-            <div class="mrr-range-tabs" role="tablist" aria-label="Chọn thời gian xu hướng MRR">
+            <h2>Doanh thu theo thời gian</h2>
+            <div class="mrr-range-tabs" role="tablist" aria-label="Chọn thời gian doanh thu">
               ${mrrRangeOptions.map((item) => `
                 <button type="button" class="${item.value === mrrRange ? 'active' : ''}" data-action="set-mrr-range" data-range="${esc(item.value)}">${esc(item.label)}</button>
               `).join('')}
             </div>
           </div>
-          ${renderMrrBarTrend(mrrBars, activeMrr, mrrRange)}
+          ${renderMrrBarTrend(mrrBars, mrrRange)}
         </section>
 
         <aside class="panel overview-panel action-panel">
@@ -300,12 +298,11 @@ function buildTenantHealth(tenants) {
   };
 }
 
-function buildMrrTrend(activeMrr, selectedRange) {
-  const current = Number(activeMrr || 0);
+function buildMrrTrend(selectedRange) {
   const option = mrrRangeOptions.find((item) => item.value === selectedRange) || mrrRangeOptions[2];
   return Array.from({ length: option.points }, (_, index) => ({
     label: mrrBarLabel(index, option),
-    value: current,
+    value: 0,
   }));
 }
 
@@ -314,9 +311,9 @@ function normalizeMrrRange(value) {
   return mrrRangeOptions.some((item) => item.value === range) ? range : '30d';
 }
 
-function buildMrrBars(trend, activeMrr, selectedRange) {
+function buildMrrBars(trend, selectedRange) {
   const option = mrrRangeOptions.find((item) => item.value === selectedRange) || mrrRangeOptions[2];
-  const source = trend?.length ? trend : buildMrrTrend(activeMrr, selectedRange);
+  const source = trend?.length ? trend : buildMrrTrend(selectedRange);
   return source.slice(-option.points).map((item, index) => ({
     label: item.label || mrrBarLabel(index, option),
     value: Math.max(0, Math.round(Number(item.value || 0))),
@@ -342,22 +339,34 @@ function rangeGrowthLabel(selectedRange) {
   return option.label.toLowerCase();
 }
 
-function renderMrrBarTrend(bars, activeMrr, selectedRange) {
+function rangeUnitLabel(selectedRange) {
+  const option = mrrRangeOptions.find((item) => item.value === selectedRange) || mrrRangeOptions[2];
+  const labels = {
+    hour: 'khung giờ',
+    day: 'ngày',
+    week: 'tuần',
+    month: 'tháng',
+  };
+  return labels[option.unit] || 'mốc';
+}
+
+function renderMrrBarTrend(bars, selectedRange) {
   const values = bars.map((item) => Number(item.value || 0));
   const max = Math.max(...values, 1);
   const first = values[0] || 0;
   const last = values.at(-1) || 0;
   const periodTotal = values.reduce((sum, value) => sum + value, 0);
   const growth = first ? Math.round(((last - first) / first) * 100) : 0;
+  const unitLabel = rangeUnitLabel(selectedRange);
   const wavePath = buildMrrWavePath(values, max);
 
   return `
     <div class="mrr-stage modern">
       <div class="modern-chart-head">
         <div>
-          <span>Doanh thu định kỳ hằng tháng</span>
+          <span>Doanh thu phát sinh theo ${esc(unitLabel)}</span>
           <strong>${esc(money(periodTotal))} VND</strong>
-          <small>Tính từ tenant đang hoạt động và gói đã gán</small>
+          <small>Mỗi điểm là số tiền kiếm được trong từng ${esc(unitLabel)}</small>
         </div>
         <b>${growth >= 0 ? '+' : ''}${growth}% / ${esc(rangeGrowthLabel(selectedRange))}</b>
       </div>
@@ -383,9 +392,9 @@ function renderMrrBarTrend(bars, activeMrr, selectedRange) {
         </div>
       </div>
       <div class="mrr-modern-footer">
-        <span><i></i>MRR theo cột</span>
+        <span><i></i>Doanh thu từng ${esc(unitLabel)}</span>
         <span><i></i>Khoảng ${esc(rangeGrowthLabel(selectedRange))}</span>
-        <strong>Hiện tại: ${esc(money(activeMrr))} VND</strong>
+        <strong>Điểm gần nhất: ${esc(money(last))} VND</strong>
       </div>
     </div>
   `;

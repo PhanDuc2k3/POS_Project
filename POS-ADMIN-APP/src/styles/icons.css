@@ -125,3 +125,42 @@
   display: none !important;
   content: "" !important;
 }
+
+.order-detail-backdrop,
+.tenant-detail-backdrop,
+.account-detail-backdrop,
+.invite-account-backdrop,
+.trial-detail-backdrop,
+.package-edit-backdrop,
+.settings-modal-backdrop,
+.tenant-create-backdrop,
+.order-reject-backdrop,
+.ban-account-backdrop {
+  position: fixed;
+  inset: 0 !important;
+  z-index: 80;
+  background: rgba(15, 18, 34, 0.42);
+  backdrop-filter: blur(2px);
+}
+
+.order-detail-drawer,
+.tenant-detail-drawer,
+.account-detail-drawer,
+.invite-account-modal,
+.trial-detail-drawer {
+  position: fixed;
+  top: 0 !important;
+  right: 0;
+  bottom: 0 !important;
+  z-index: 81;
+  height: 100vh;
+  max-height: 100vh;
+}
+
+.package-edit-modal,
+.settings-modal,
+.tenant-create-modal,
+.order-reject-modal,
+.ban-account-modal {
+  z-index: 81;
+}

@@ -826,8 +826,8 @@ function buildActionRequired({ orders, trialRequests, salesLeads, tenantById }) 
 const MRR_RANGE_OPTIONS = {
   '1d': { points: 12, unit: 'hour', step: 2 },
   '7d': { points: 7, unit: 'day' },
-  '30d': { points: 4, unit: 'week' },
-  '90d': { points: 3, unit: 'month' },
+  '30d': { points: 30, unit: 'day' },
+  '90d': { points: 13, unit: 'week' },
   '180d': { points: 6, unit: 'month' },
   '365d': { points: 12, unit: 'month' },
 };
@@ -835,7 +835,7 @@ const MRR_RANGE_OPTIONS = {
 function buildMrrTrend({ orders, tenants, packages, subscriptions }) {
   return {
     generatedAt: new Date().toISOString(),
-    source: 'paid_subscription_orders',
+    source: 'earned_revenue_by_bucket',
     ranges: Object.fromEntries(Object.entries(MRR_RANGE_OPTIONS).map(([range, option]) => [
       range,
       buildMrrSeries(option, { orders, tenants, packages, subscriptions }),
@@ -850,12 +850,12 @@ function buildMrrSeries(option, data) {
       label: mrrBucketLabel(start, end, index, option),
       start: start.toISOString(),
       end: end.toISOString(),
-      value: calculateRecurringRevenueInBucket(start, end, data),
+      value: calculateRevenueInBucket(start, end, data),
     };
   });
 }
 
-function calculateRecurringRevenueInBucket(start, end, { orders, subscriptions, packages }) {
+function calculateRevenueInBucket(start, end, { orders, packages, subscriptions }) {
   const paidOrderTenantIds = new Set();
   const orderRevenue = orders.reduce((sum, order) => {
     if (!isPaidOrder(order)) return sum;
@@ -868,8 +868,8 @@ function calculateRecurringRevenueInBucket(start, end, { orders, subscriptions, 
   const packageById = new Map(packages.map((pkg) => [pkg.id, pkg]));
   const subscriptionRevenue = subscriptions.reduce((sum, subscription) => {
     if (paidOrderTenantIds.has(String(subscription.tenantId))) return sum;
-    const startDate = parseDate(subscription.startDate || subscription.createdAt);
-    if (!startDate || startDate < start || startDate > end) return sum;
+    const startedAt = parseDate(subscription.startDate || subscription.createdAt);
+    if (!startedAt || startedAt < start || startedAt > end) return sum;
     return sum + monthlyPackagePrice(packageById.get(subscription.packageTier), subscription.billingCycle);
   }, 0);
 
@@ -959,6 +959,10 @@ function mrrBucketBounds(index, option) {
     const start = new Date(end);
     start.setDate(1);
     start.setHours(0, 0, 0, 0);
+    if (distance > 0) {
+      end.setMonth(start.getMonth() + 1, 0);
+      end.setHours(23, 59, 59, 999);
+    }
     return { start, end };
   }
 }
