@@ -1,10 +1,13 @@
 import { workflowSteps } from '../shared/data.js';
+import { renderIcon } from '../shared/icons.js';
+
+const workflowIcons = ['package-check', 'store', 'send', 'settings'];
 
 export function renderWorkflowSection() {
   const steps = workflowSteps
     .map((item, index) => `
       <article>
-        <span>${index + 1}</span>
+        <span>${renderIcon(workflowIcons[index] || 'circle-check')}</span>
         <h3>${item.title}</h3>
         <p>${item.text}</p>
       </article>

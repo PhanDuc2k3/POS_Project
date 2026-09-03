@@ -1,0 +1,1330 @@
+﻿@media (max-width: 900px) {
+  .mrr-stage.modern,
+  .subscription-stage.modern {
+    min-height: auto;
+    padding: 14px;
+  }
+
+  .mrr-modern-body {
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .mrr-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mrr-range-tabs {
+    justify-content: flex-start;
+  }
+
+  .mrr-bar-chart {
+    grid-template-columns: repeat(var(--bar-count), minmax(16px, 1fr));
+    gap: 4px;
+  }
+
+  .mrr-bar-item span {
+    font-size: 8px;
+  }
+
+  .chart-months.modern-months {
+    margin-left: 52px;
+    font-size: 8px;
+  }
+
+  .mrr-modern-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mrr-modern-footer strong {
+    margin-left: 0;
+  }
+
+  .subscription-stage.modern,
+  .subscription-summary,
+  .subscription-modern-item,
+  .subscription-modern-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .subscription-ring {
+    margin: 0 auto;
+  }
+
+  .subscription-modern-item small {
+    text-align: left;
+  }
+
+  .admin-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100vh;
+  }
+
+  .sidebar {
+    min-height: auto;
+    height: auto;
+    max-height: 116px;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .sidebar-nav,
+  .sidebar-footer {
+    flex-direction: row;
+    border-top: 0;
+    padding-top: 0;
+    margin-top: 0;
+  }
+
+  .brand-block {
+    min-width: 158px;
+  }
+
+  .topbar {
+    overflow-x: auto;
+  }
+
+  .content {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .top-search {
+    width: 160px;
+  }
+
+  .metric-grid.overview-metrics,
+  .overview-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-dashboard-grid {
+    grid-template-areas:
+      "mrr"
+      "actions"
+      "subs"
+      "orders"
+      "health";
+  }
+
+  .packages-page {
+    padding: 18px 14px 28px;
+  }
+
+  .packages-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .package-catalog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .package-edit-backdrop {
+    inset: 0;
+  }
+
+  .package-edit-modal {
+    left: 50%;
+    width: min(480px, calc(100vw - 28px));
+    max-height: calc(100vh - 28px);
+  }
+
+  .package-edit-form {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .package-edit-head,
+  .package-edit-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .orders-page {
+    padding: 18px 14px 28px;
+  }
+
+  .public-order-lookup,
+  .public-order-search,
+  .public-order-result {
+    grid-template-columns: 1fr;
+  }
+
+  .public-order-search button {
+    width: 100%;
+  }
+
+  .order-detail-backdrop {
+    inset: 0;
+  }
+
+  .order-detail-drawer {
+    top: 0;
+    width: min(420px, 100vw);
+  }
+
+  .order-reject-backdrop {
+    inset: 0;
+  }
+
+  .order-reject-modal {
+    left: 50%;
+    width: min(420px, calc(100vw - 28px));
+  }
+
+  .tenants-page {
+    padding: 18px 14px 28px;
+  }
+
+  .tenants-heading,
+  .tenants-toolbar,
+  .tenant-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tenant-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tenant-search {
+    width: 100%;
+  }
+
+  .tenant-create-modal {
+    width: min(440px, calc(100vw - 28px));
+    max-height: calc(100vh - 28px);
+  }
+
+  .tenant-create-head,
+  .tenant-create-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .tenant-create-form {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .tenant-create-actions {
+    justify-content: stretch;
+  }
+
+  .tenant-create-secondary,
+  .tenant-create-primary {
+    flex: 1;
+  }
+
+  .tenant-detail-drawer {
+    width: min(420px, 100vw);
+    padding: 18px;
+  }
+
+  .tenant-detail-head,
+  .tenant-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tenant-detail-head .tenant-status {
+    justify-self: start;
+  }
+
+  .accounts-page {
+    padding: 18px 14px 28px;
+  }
+
+  .accounts-heading,
+  .accounts-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .accounts-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .accounts-search {
+    width: 100%;
+  }
+
+  .account-detail-backdrop,
+  .invite-account-backdrop {
+    inset: 0;
+  }
+
+  .account-detail-drawer,
+  .invite-account-modal {
+    top: 0;
+    width: min(420px, 100vw);
+  }
+
+  .permissions-page {
+    padding: 18px 14px 28px;
+  }
+
+  .permissions-topline,
+  .permissions-heading {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .permissions-search {
+    width: 100%;
+  }
+
+  .permissions-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .settings-page {
+    padding: 18px 14px 28px;
+  }
+
+  .settings-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .settings-layout,
+  .settings-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-profile-main {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .admin-profile-badges {
+    justify-content: center;
+  }
+
+  .admin-profile-details {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-action-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-modal-backdrop {
+    inset: 0;
+  }
+
+  .settings-modal {
+    top: 50%;
+    left: 50%;
+    width: min(440px, calc(100vw - 28px));
+    max-height: calc(100vh - 28px);
+  }
+
+  .sessions-card,
+  .activity-card {
+    grid-column: auto;
+  }
+
+  .settings-list-item {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-page {
+    padding: 18px 14px 28px;
+  }
+
+  .audit-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .audit-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trial-page {
+    padding: 18px 14px 28px;
+  }
+
+  .trial-heading,
+  .trial-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .trial-metrics,
+  .trial-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .trial-search {
+    width: 100%;
+  }
+
+  .trial-detail-backdrop {
+    inset: 0;
+  }
+
+  .trial-detail-drawer {
+    top: 0;
+    width: min(430px, 100vw);
+  }
+}
+
+/* Readability bump for the admin workspace. */
+body {
+  font-size: 16px;
+}
+
+.nav-button,
+.top-search input,
+.tenant-search input,
+.accounts-search input,
+.orders-search input,
+.trial-search input,
+select,
+input,
+textarea,
+button {
+  font-size: 16px;
+}
+
+.metric-card small,
+.tenant-metric small,
+.trial-metric small,
+.modern-chart-head small,
+.subscription-summary small,
+.subscription-modern-item small,
+.notification-panel button,
+.global-search-panel small,
+.realtime-events small {
+  font-size: 14px;
+}
+
+.tenant-table-row,
+.accounts-table-row,
+.orders-list-row,
+.trial-table-row,
+.mini-table-row,
+.session-table-row,
+.audit-table-row {
+  font-size: 16px;
+}
+
+.tenant-table-head,
+.accounts-table-head,
+.orders-list-head,
+.trial-table-head,
+.mini-table-head,
+.session-table-head,
+.audit-table-head {
+  font-size: 13px;
+}
+
+.tenant-name-cell strong,
+.tenant-owner strong,
+.tenant-scale strong,
+.account-user-cell strong,
+.account-tenant,
+.account-role,
+.order-code strong,
+.order-customer strong,
+.order-package strong,
+.trial-request-cell strong,
+.trial-contact strong {
+  font-size: 16px;
+}
+
+.tenant-name-cell small,
+.tenant-owner small,
+.tenant-scale small,
+.account-user-cell small,
+.order-code small,
+.order-customer small,
+.order-package small,
+.trial-request-cell small,
+.trial-contact small,
+.mrr-bar-item span,
+.chart-months span {
+  font-size: 13px;
+}
+
+.tenant-package,
+.tenant-status,
+.account-status,
+.status-pill,
+.trial-package,
+.trial-status {
+  font-size: 14px;
+}
+
+.admin-shell,
+.admin-shell * {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.brand-block strong,
+.nav-button,
+.sidebar-footer .nav-button {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.brand-block span {
+  font-size: 9px;
+  line-height: 1.25;
+}
+
+.new-tenant-btn {
+  min-height: 38px;
+  font-size: 14px;
+}
+
+.overview-heading h1,
+.tenants-heading h1,
+.accounts-heading h1,
+.packages-heading h1,
+.orders-heading h1,
+.permissions-heading h1,
+.audit-heading h1,
+.trial-heading h1 {
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.overview-heading p,
+.tenants-heading p,
+.accounts-heading p,
+.packages-heading p,
+.orders-heading p,
+.permissions-heading p,
+.audit-heading p,
+.trial-heading p {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.metric-card span,
+.tenant-metric span,
+.trial-metric span,
+.modern-chart-head span,
+.subscription-summary span,
+.subscription-modern-item span,
+.subscription-modern-cards span,
+.action-panel-title h2,
+.overview-panel h2 {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.metric-card strong,
+.tenant-metric strong,
+.trial-metric strong {
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.modern-chart-head strong {
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.action-item strong,
+.notification-panel strong,
+.global-search-panel strong,
+.mini-table-row strong,
+.session-table-row strong,
+.audit-table-row strong {
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.action-item span,
+.notification-panel small,
+.global-search-panel small,
+.realtime-events small,
+.mini-table-row small,
+.session-table-row small,
+.audit-table-row small {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.mrr-axis,
+.mrr-bar-item span,
+.chart-months span,
+.subscription-ring span {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+@media (min-width: 1101px) {
+  .admin-shell {
+    grid-template-columns: 248px minmax(0, 1fr);
+  }
+
+  .overview-dashboard-grid {
+    grid-template-columns: minmax(0, 8fr) minmax(260px, 2fr);
+  }
+}
+
+.mrr-stage.modern,
+.mrr-modern-body,
+.mrr-bar-chart {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.mrr-bar-chart {
+  grid-template-columns: repeat(var(--bar-count), minmax(0, 1fr));
+}
+
+.mrr-bar-item {
+  min-width: 0;
+}
+
+/* Overview dashboard polish */
+.platform-overview {
+  min-height: 100%;
+  padding: 26px 26px 30px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(20, 184, 166, .08), transparent 28%),
+    radial-gradient(circle at 88% 8%, rgba(79, 70, 229, .10), transparent 30%),
+    #f4f6fb;
+}
+
+.overview-heading {
+  margin: 0 0 20px;
+}
+
+.overview-heading h1 {
+  color: #070936;
+  font-size: 30px;
+  line-height: 1.12;
+  font-weight: 900;
+}
+
+.overview-heading p {
+  max-width: 720px;
+  margin: 8px 0 0;
+  color: #5f6985;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.metric-grid.overview-metrics {
+  grid-template-columns: repeat(4, minmax(170px, 1fr));
+  gap: 14px;
+  margin: 0 0 18px;
+}
+
+.overview-metrics .metric-card {
+  min-height: 116px;
+  padding: 18px;
+  border: 1px solid #dce2f0;
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .95), rgba(248, 250, 255, .9));
+  box-shadow: 0 18px 40px rgba(20, 27, 72, .07);
+  position: relative;
+  overflow: hidden;
+}
+
+.overview-metrics .metric-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: #4f46e5;
+}
+
+.overview-metrics .metric-card:nth-child(2)::before {
+  background: #10b981;
+}
+
+.overview-metrics .metric-card:nth-child(3)::before {
+  background: #3b82f6;
+}
+
+.overview-metrics .metric-card:nth-child(4)::before {
+  background: #f59e0b;
+}
+
+.overview-metrics .metric-card span {
+  color: #66708c;
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.overview-metrics .metric-card strong {
+  margin-top: 8px;
+  color: #080b35;
+  font-size: 27px;
+  line-height: 1.08;
+}
+
+.overview-metrics .metric-card small {
+  color: #68728d;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.overview-dashboard-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  grid-template-areas:
+    "mrr actions"
+    "subs actions"
+    "orders health";
+  gap: 16px;
+}
+
+.overview-panel {
+  padding: 18px;
+  border: 1px solid #dce2f0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 18px 42px rgba(20, 27, 72, .07);
+}
+
+.overview-panel h2,
+.action-panel-title h2 {
+  color: #080b35;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.panel-title-row button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #d8def0;
+  border-radius: 6px;
+  background: #fff;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.mrr-panel {
+  min-height: 400px;
+}
+
+.mrr-panel .mrr-stage.modern {
+  min-height: 330px;
+}
+
+.mrr-stage.modern,
+.subscription-stage.modern {
+  margin-top: 16px;
+  padding: 22px;
+  border-color: #d9e0ef;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(99, 102, 241, .12), transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.mrr-stage.modern::before,
+.subscription-stage.modern::before {
+  background-image:
+    linear-gradient(#edf1f7 1px, transparent 1px),
+    linear-gradient(90deg, #edf1f7 1px, transparent 1px);
+  background-size: 64px 44px;
+  opacity: .42;
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, .78) 55%, transparent 100%);
+}
+
+.modern-chart-head {
+  align-items: flex-start;
+}
+
+.modern-chart-head span,
+.subscription-summary span,
+.subscription-modern-item span,
+.subscription-modern-cards span {
+  color: #66708c;
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.modern-chart-head strong {
+  margin-top: 8px;
+  color: #080b35;
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.modern-chart-head small,
+.subscription-summary small,
+.subscription-modern-item small {
+  color: #6d7691;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.modern-chart-head b {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mrr-range-tabs {
+  gap: 6px;
+}
+
+.mrr-range-tabs button {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #59637d;
+  font-size: 12px;
+}
+
+.mrr-range-tabs button:hover {
+  border-color: #bfc7e6;
+  background: #eef2ff;
+}
+
+.mrr-range-tabs button.active {
+  border-color: #4f46e5;
+  background: #4f46e5;
+  color: #fff;
+  box-shadow: 0 10px 18px rgba(79, 70, 229, .22);
+}
+
+.mrr-modern-body {
+  grid-template-columns: 70px minmax(0, 1fr);
+  margin-top: 24px;
+}
+
+.mrr-axis {
+  color: #6c7692;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.mrr-bar-chart {
+  min-height: 190px;
+  border-bottom-color: #cfd7ec;
+}
+
+.mrr-wave-svg {
+  top: 4px;
+  height: 170px;
+}
+
+.mrr-wave-glow {
+  stroke: rgba(79, 70, 229, .14);
+  stroke-width: 16;
+}
+
+.mrr-wave-line {
+  stroke-width: 4;
+}
+
+.mrr-bar-item {
+  height: 190px;
+  grid-template-rows: minmax(0, 1fr) 28px;
+}
+
+.mrr-bar-item span {
+  color: #5f6985;
+  font-size: 12px;
+}
+
+.mrr-modern-footer {
+  margin-top: 18px;
+  color: #5f6985;
+  font-size: 12px;
+}
+
+.mrr-modern-footer strong {
+  color: #080b35;
+}
+
+.action-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.action-panel-title {
+  min-height: 32px;
+}
+
+.alert-dot {
+  width: 18px;
+  height: 18px;
+  border-color: #ef4444;
+  background: #fff1f2;
+}
+
+.alert-dot::before {
+  inset: -1px 0 0;
+  color: #dc2626;
+  font-size: 12px;
+}
+
+.action-list {
+  margin-top: 16px;
+  gap: 10px;
+}
+
+.action-item {
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 1px solid #e1e6f2;
+  border-radius: 8px;
+  background: #f8fafc;
+  text-align: left;
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+
+.action-item:hover {
+  border-color: #c7d2fe;
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.action-item strong {
+  color: #080b35;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.action-item span {
+  margin-top: 4px;
+  color: #6b728f;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.action-item.danger {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.subscription-panel {
+  min-height: 330px;
+}
+
+.subscription-stage.modern {
+  min-height: 280px;
+  grid-template-columns: minmax(300px, .9fr) minmax(280px, 1fr);
+  gap: 26px;
+}
+
+.subscription-ring {
+  width: 154px;
+  box-shadow: 0 22px 42px rgba(31, 41, 80, .14);
+}
+
+.subscription-ring::before {
+  inset: 18px;
+  background: #fff;
+}
+
+.subscription-ring strong {
+  font-size: 24px;
+}
+
+.subscription-summary strong {
+  margin-top: 9px;
+  color: #080b35;
+  font-size: 25px;
+  line-height: 1.1;
+}
+
+.subscription-modern-item {
+  grid-template-columns: 112px minmax(120px, 1fr) 94px;
+  gap: 16px;
+}
+
+.subscription-modern-item div strong {
+  color: #080b35;
+  font-size: 19px;
+}
+
+.subscription-modern-item b {
+  height: 10px;
+  background: #e8edf6;
+}
+
+.subscription-modern-item small {
+  color: #68728d;
+  font-size: 12px;
+}
+
+.subscription-modern-cards {
+  gap: 12px;
+}
+
+.subscription-modern-cards article {
+  min-height: 76px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .88);
+}
+
+.subscription-modern-cards strong {
+  color: #1d18d6;
+  font-size: 26px;
+}
+
+.recent-orders-panel {
+  min-height: 190px;
+}
+
+.mini-table {
+  margin-top: 14px;
+  border: 1px solid #dde4f0;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.mini-table-head,
+.mini-table-row {
+  grid-template-columns: .9fr 1.65fr 1fr .85fr;
+  min-height: 38px;
+  padding: 0 14px;
+  border-bottom-color: #e5eaf4;
+}
+
+.mini-table-head {
+  min-height: 42px;
+  background: #f8fafc;
+  color: #4b5572;
+  font-size: 12px;
+}
+
+.mini-table-row {
+  color: #111342;
+  font-size: 14px;
+}
+
+.mini-table-row:hover {
+  background: #fbfcff;
+}
+
+.status-pill {
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.status-pill.paid {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.status-pill.pending {
+  background: #eef2ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+}
+
+.status-pill.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.health-panel {
+  gap: 16px;
+  min-height: 190px;
+}
+
+.health-item {
+  gap: 9px;
+}
+
+.health-item div {
+  color: #080b35;
+  font-size: 13px;
+}
+
+.health-item span {
+  color: #5f6985;
+}
+
+.health-item span::before {
+  width: 8px;
+  height: 8px;
+}
+
+.health-item strong {
+  font-size: 14px;
+}
+
+.health-item b {
+  height: 7px;
+  background: #e7edf6;
+}
+
+.tier-grid {
+  gap: 12px;
+}
+
+.tier-grid div {
+  min-height: 62px;
+  border-color: #dce2f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.tier-grid span {
+  color: #5f6985;
+  font-size: 11px;
+}
+
+.tier-grid strong {
+  color: #1d18d6;
+  font-size: 20px;
+}
+
+@media (max-width: 1100px) {
+  .platform-overview {
+    padding: 20px 16px 28px;
+  }
+
+  .overview-dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "mrr"
+      "actions"
+      "subs"
+      "orders"
+      "health";
+  }
+
+  .metric-grid.overview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .subscription-stage.modern {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .overview-heading h1 {
+    font-size: 24px;
+  }
+
+  .metric-grid.overview-metrics,
+  .subscription-summary,
+  .subscription-modern-item,
+  .subscription-modern-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .modern-chart-head,
+  .mrr-modern-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mrr-modern-body {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .mrr-modern-footer strong {
+    margin-left: 0;
+  }
+
+  .mini-table {
+    overflow-x: auto;
+  }
+
+  .mini-table-head,
+  .mini-table-row {
+    min-width: 620px;
+  }
+}
+
+/* Account ban action */
+.account-detail-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.account-detail-actions .account-secondary-btn {
+  grid-column: 1 / -1;
+}
+
+.account-danger-btn {
+  min-height: 40px;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.account-danger-btn:hover {
+  background: #fecaca;
+}
+
+.account-status.banned {
+  background: #111827;
+  color: #fff;
+}
+
+.ban-account-backdrop {
+  position: fixed;
+  inset: 38px 0 0 248px;
+  z-index: 40;
+  background: rgba(24, 28, 48, .38);
+  backdrop-filter: blur(1.5px);
+}
+
+.ban-account-modal {
+  position: fixed;
+  top: 50%;
+  left: calc(248px + (100vw - 248px) / 2);
+  z-index: 41;
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  padding: 20px;
+  overflow-y: auto;
+  transform: translate(-50%, -50%);
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fbfbff;
+  box-shadow: 0 24px 70px rgba(127, 29, 29, .18);
+}
+
+.ban-account-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.ban-account-head h2 {
+  margin: 0;
+  color: #111342;
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.ban-account-head p {
+  margin: 6px 0 0;
+  color: #7b829b;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ban-account-head button {
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  position: relative;
+}
+
+.ban-account-head button::before,
+.ban-account-head button::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 11px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: #27304f;
+}
+
+.ban-account-head button::before {
+  transform: rotate(45deg);
+}
+
+.ban-account-head button::after {
+  transform: rotate(-45deg);
+}
+
+.ban-account-field {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.ban-account-field span {
+  color: #3d445f;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.ban-account-field textarea {
+  width: 100%;
+  min-height: 126px;
+  padding: 11px 12px;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  background: #fff;
+  color: #111342;
+  font-size: 13px;
+  line-height: 1.45;
+  resize: vertical;
+  outline: 0;
+}
+
+.ban-account-field textarea:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, .12);
+}
+
+.ban-account-note {
+  padding: 12px;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #fff7f7;
+  margin-bottom: 18px;
+}
+
+.ban-account-note strong {
+  color: #991b1b;
+  font-size: 12px;
+}
+
+.ban-account-note p {
+  margin: 5px 0 0;
+  color: #7f1d1d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ban-account-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .account-detail-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .ban-account-backdrop {
+    inset: 0;
+  }
+
+  .ban-account-modal {
+    left: 50%;
+    width: min(460px, calc(100vw - 28px));
+  }
+}
+

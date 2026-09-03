@@ -1,4 +1,5 @@
 import { news } from '../shared/data.js';
+import { renderIcon } from '../shared/icons.js';
 
 function getSelectedArticle() {
   const [, slug] = window.location.hash.split('/');
@@ -64,7 +65,7 @@ function renderNewsDetail(article) {
     .map((item) => `<a href="#news/${item.slug}">${item.title}</a>`)
     .join('');
 
-  const takeaways = article.takeaways.map((item) => `<li>${item}</li>`).join('');
+  const takeaways = article.takeaways.map((item) => `<li>${renderIcon('check', 'list-icon')}${item}</li>`).join('');
   const sections = article.sections
     .map((section) => `
       <section>

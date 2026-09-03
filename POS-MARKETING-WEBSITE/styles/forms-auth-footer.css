@@ -1,0 +1,374 @@
+﻿.forms {
+  width: 100%;
+  max-width: none;
+  padding-right: max(40px, calc((100% - 1280px) / 2));
+  padding-left: max(40px, calc((100% - 1280px) / 2));
+  background: #131b2e;
+}
+
+.request-status {
+  display: grid;
+  gap: 10px;
+  padding: 24px;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-large);
+}
+
+.request-status strong,
+.request-status span {
+  display: block;
+}
+
+.request-status span {
+  color: var(--muted);
+}
+
+.request-status ol {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.request-status li {
+  position: relative;
+  padding-left: 22px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.request-status li::before {
+  position: absolute;
+  top: 7px;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  background: var(--outline);
+  border-radius: 50%;
+  content: "";
+}
+
+.request-status li.active {
+  color: var(--success);
+}
+
+.request-status li.active::before {
+  background: var(--success);
+}
+
+.trial-panel {
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  gap: 48px;
+  align-items: center;
+  color: #fff;
+}
+
+.trial-form-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.trial-panel p:not(.eyebrow) {
+  color: #d8e2ff;
+}
+
+.form-card,
+.contact-card {
+  display: grid;
+  gap: 16px;
+  padding: 28px;
+  background: #fff;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow);
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
+  outline: none;
+}
+
+textarea {
+  resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  background: #fff;
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px rgba(0, 88, 190, 0.12);
+}
+
+.form-message {
+  min-height: 22px;
+  margin: 0;
+  color: var(--success);
+  font-weight: 700;
+}
+
+.account-block {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
+}
+
+.account-block span {
+  color: var(--muted);
+}
+
+.contact-signin {
+  display: grid;
+  grid-template-columns: 1fr 0.72fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.contact-signin.contact-only {
+  grid-template-columns: minmax(0, 780px);
+  justify-content: center;
+}
+
+.two-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 48px 40px;
+  background: #fff;
+  border-top: 1px solid var(--outline);
+}
+
+.footer > div {
+  max-width: 520px;
+}
+
+.footer p {
+  color: var(--muted);
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(21, 12, 20, 0.36);
+}
+
+.auth-modal {
+  position: relative;
+  width: min(100%, 433px);
+  max-height: min(760px, calc(100vh - 40px));
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #eadfe7;
+  border-radius: 14px;
+  box-shadow: 0 28px 80px rgba(49, 16, 40, 0.18);
+}
+
+.modal-close {
+  position: absolute;
+  top: 19px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: #341326;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-close .lucide-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.auth-panel {
+  display: grid;
+  gap: 16px;
+  padding: 34px 26px 31px;
+}
+
+.auth-panel h2 {
+  margin: 0 36px 11px;
+  color: #35142a;
+  font-family: Geist, Inter, sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.social-auth {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.social-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 47px;
+  padding: 0 12px;
+  border: 1px solid #ded8df;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.social-button span {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 7px;
+  border-radius: 50%;
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.social-button.google {
+  color: #3d2637;
+  background: #fff;
+}
+
+.social-button.google span {
+  color: #ea4335;
+}
+
+.social-button.facebook {
+  color: #fff;
+  background: #287eea;
+  border-color: #287eea;
+}
+
+.social-button.facebook span {
+  color: #287eea;
+  background: #fff;
+  font-family: Arial, sans-serif;
+}
+
+.auth-divider {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  margin: 5px 0 8px;
+  color: #9b8d99;
+  font-size: 13px;
+}
+
+.auth-divider::after {
+  height: 1px;
+  background: #e2d9e1;
+  content: "";
+}
+
+.auth-panel input {
+  min-height: 48px;
+  padding: 0 16px;
+  color: #35142a;
+  background: #fbfbfb;
+  border: 1px solid #ded8df;
+  border-radius: 7px;
+  font-weight: 700;
+}
+
+.auth-panel input::placeholder {
+  color: #b6a8b3;
+}
+
+.auth-panel input:focus {
+  background: #fff;
+  border-color: #35142a;
+  box-shadow: 0 0 0 3px rgba(53, 20, 42, 0.1);
+}
+
+.forgot-link {
+  justify-self: start;
+  padding: 2px 0 4px;
+  color: #776777;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.auth-submit {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 2px;
+  color: #fff;
+  background: #35102a;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.auth-switch {
+  justify-self: center;
+  margin-top: 2px;
+  padding: 6px;
+  color: #5d4a5b;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.auth-panel .form-message {
+  min-height: 18px;
+  margin: -4px 0 0;
+  color: #35102a;
+  font-size: 12px;
+  text-align: center;
+}
+

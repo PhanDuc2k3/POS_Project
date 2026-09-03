@@ -1,0 +1,186 @@
+﻿.metric-card,
+.panel,
+.package-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.metric-card {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metric-card span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.metric-card strong {
+  font-size: 20px;
+}
+
+.two-column {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.panel-head {
+  min-height: 58px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel-body {
+  padding: 16px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.detail-grid div,
+.flow-list div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-grid span,
+.flow-list span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.flow-list {
+  display: grid;
+  gap: 10px;
+}
+
+.table {
+  display: grid;
+  overflow-x: auto;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1.1fr 0.8fr 0.8fr 0.8fr 1.2fr 1.2fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  min-width: 900px;
+}
+
+.table.compact .table-row {
+  grid-template-columns: 1fr 1.4fr 0.9fr 0.8fr;
+  min-width: 620px;
+}
+
+.table-head {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: var(--panel-soft);
+}
+
+.row-actions,
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 700;
+}
+
+.btn.soft {
+  background: #e8eef8;
+  color: var(--text);
+}
+
+.btn.danger {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.badge.active,
+.badge.paid {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.badge.trial,
+.badge.pending,
+.badge.invited {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.badge.suspended {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.badge.rejected {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.badge.PENDING,
+.badge.CONTACTED,
+.badge.QUOTED,
+.badge.WAITING_PAYMENT,
+.badge.UNPAID {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.badge.PAID,
+.badge.APPROVED,
+.badge.ACTIVE {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.badge.REJECTED,
+.badge.CANCELLED,
+.badge.PROVISIONING_FAILED,
+.badge.FAILED {
+  background: var(--red-soft);
+  color: var(--red);
+}
+

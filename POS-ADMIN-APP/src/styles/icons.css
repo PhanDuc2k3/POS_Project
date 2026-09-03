@@ -1,0 +1,127 @@
+﻿.lucide-icon,
+.nav-icon,
+.metric-icon,
+.section-icon,
+.plus-mark,
+.permission-group-row .lucide,
+.top-icon > .lucide-icon,
+.top-avatar > .lucide-icon,
+.accounts-icon-btn > .lucide-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  stroke-width: 2.2;
+}
+
+.nav-icon,
+.metric-icon,
+.section-icon,
+.plus-mark {
+  position: static;
+  display: inline-block;
+  color: currentColor;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.nav-icon::before,
+.nav-icon::after,
+.top-icon::before,
+.top-icon::after,
+.metric-icon::before,
+.metric-icon::after,
+.section-icon::before,
+.section-icon::after,
+.plus-mark::after,
+.top-search i::after,
+.tenant-search i::after,
+.accounts-search i::after,
+.permissions-search i::after,
+.trial-search i::after,
+.account-invite-open span::after,
+.tenant-add-btn span::after,
+.tenant-filter-icon::before,
+.tenant-filter-icon::after,
+.accounts-icon-btn::before,
+.accounts-icon-btn::after,
+.package-edit-head button::before,
+.package-edit-head button::after,
+.account-detail-head button::before,
+.account-detail-head button::after,
+.invite-account-head button::before,
+.invite-account-head button::after,
+.ban-account-head button::before,
+.ban-account-head button::after,
+.order-detail-close::before,
+.order-detail-close::after,
+.order-reject-head button::before,
+.order-reject-head button::after,
+.tenant-detail-close::before,
+.tenant-detail-close::after,
+.tenant-create-head button::before,
+.tenant-create-head button::after,
+.settings-close-btn::before,
+.settings-close-btn::after,
+.trial-detail-head button::before,
+.trial-detail-head button::after,
+.avatar-dropzone i::before,
+.avatar-dropzone i::after,
+.tenant-export-btn i::before,
+.account-actions button::before,
+.trial-row-actions button::before {
+  display: none !important;
+  content: "" !important;
+}
+
+.top-icon,
+.top-avatar,
+.accounts-icon-btn,
+.package-card-picker,
+.package-edit-head button,
+.account-detail-head button,
+.invite-account-head button,
+.ban-account-head button,
+.order-detail-close,
+.order-reject-head button,
+.tenant-detail-close,
+.tenant-create-head button,
+.settings-close-btn,
+.trial-detail-head button,
+.account-actions button,
+.trial-row-actions button {
+  display: inline-grid;
+  place-items: center;
+}
+
+.top-icon .lucide-icon,
+.top-avatar .lucide-icon,
+.accounts-icon-btn .lucide-icon,
+.package-card-picker .lucide-icon,
+.package-edit-head button .lucide-icon,
+.account-detail-head button .lucide-icon,
+.invite-account-head button .lucide-icon,
+.ban-account-head button .lucide-icon,
+.order-detail-close .lucide-icon,
+.order-reject-head button .lucide-icon,
+.tenant-detail-close .lucide-icon,
+.tenant-create-head button .lucide-icon,
+.settings-close-btn .lucide-icon,
+.trial-detail-head button .lucide-icon,
+.account-actions button .lucide-icon,
+.trial-row-actions button .lucide-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+}
+
+.brand-mark::before,
+.brand-mark::after {
+  display: none !important;
+  content: "" !important;
+}

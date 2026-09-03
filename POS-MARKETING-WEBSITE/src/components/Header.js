@@ -1,5 +1,6 @@
 import { renderBrand } from './Brand.js';
 import { navLinks } from '../shared/data.js';
+import { renderIcon } from '../shared/icons.js';
 
 function esc(value) {
   return String(value ?? '')
@@ -22,7 +23,7 @@ export function renderHeader(activeRoute = '#home', state = {}) {
   const signup = state.marketingSignup || null;
   const actions = signup?.signupToken ? `
           <a class="account-chip ${profileActive ? 'active' : ''}" href="#profile" title="${esc(signup.email || signup.name)}">
-            <span class="account-dot"></span>
+            ${renderIcon('circle-user-round', 'account-icon')}
             <span>${esc(signup.name || signup.email)}</span>
           </a>
           <button class="button secondary small auth-button logout-button" type="button" data-action="logout">Đăng xuất</button>
@@ -38,9 +39,7 @@ export function renderHeader(activeRoute = '#home', state = {}) {
         <nav class="site-nav" aria-label="Main navigation">${links}</nav>
         <div class="header-actions">${actions}</div>
         <button class="menu-button" type="button" aria-label="Open menu" aria-expanded="false">
-          <span></span>
-          <span></span>
-          <span></span>
+          ${renderIcon('menu')}
         </button>
       </div>
     </header>

@@ -1,10 +1,13 @@
 import { features } from '../shared/data.js';
+import { renderIcon } from '../shared/icons.js';
+
+const featureIcons = ['layout-dashboard', 'monitor', 'qr-code', 'chef-hat'];
 
 export function renderFeaturesSection() {
   const cards = features
-    .map((item) => `
+    .map((item, index) => `
       <article class="feature-card ${item.tone || ''}">
-        <span class="icon">${item.number}</span>
+        <span class="icon">${renderIcon(featureIcons[index] || 'sparkles')}</span>
         <h3>${item.title}</h3>
         <p>${item.text}</p>
       </article>
@@ -21,7 +24,7 @@ export function renderFeaturesSection() {
       <div class="feature-grid">
         <article class="feature-card large">
           <div>
-            <span class="icon">01</span>
+            <span class="icon">${renderIcon('zap')}</span>
             <h3>Lightning-fast Staff POS</h3>
             <p>Touch-friendly order entry, modifiers, payment status, and receipt printing for high-volume service.</p>
           </div>

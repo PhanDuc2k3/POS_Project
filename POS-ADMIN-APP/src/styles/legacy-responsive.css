@@ -1,0 +1,31 @@
+﻿@media (max-width: 1100px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .brand-block {
+    min-width: 180px;
+    padding-bottom: 4px;
+  }
+
+  .nav-button {
+    white-space: nowrap;
+  }
+
+  .metric-grid,
+  .two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .identity {
+    text-align: left;
+  }
+}
+
+/* POS Platform overview mockup */

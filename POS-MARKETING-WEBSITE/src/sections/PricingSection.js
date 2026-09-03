@@ -1,6 +1,10 @@
 import { faqs, featureComparison, plans, storeSlotHighlights } from '../shared/data.js';
+import { renderIcon } from '../shared/icons.js';
 
 function renderMark(value) {
+  return value
+    ? `<span class="feature-yes">${renderIcon('check')}</span>`
+    : `<span class="feature-no">${renderIcon('minus')}</span>`;
   return value ? '<span class="feature-yes">✓</span>' : '<span class="feature-no">—</span>';
 }
 
@@ -13,13 +17,13 @@ export function renderPricingSection() {
         <p>${plan.description}</p>
         <div class="price">${plan.price}${plan.suffix ? `<span>${plan.suffix}</span>` : ''}</div>
         <p class="store-included">Bao gồm ${plan.includedStores} cửa hàng</p>
-        <ul>${plan.features.map((feature) => `<li>${feature}</li>`).join('')}</ul>
+        <ul>${plan.features.map((feature) => `<li>${renderIcon('check', 'list-icon')}${feature}</li>`).join('')}</ul>
         <a class="button ${plan.recommended ? 'primary' : 'secondary'}" href="${plan.href}" data-action="select-package" data-package="${plan.packageCode || plan.name.toLowerCase()}">${plan.cta}</a>
       </article>
     `)
     .join('');
 
-  const storeItems = storeSlotHighlights.map((item) => `<li>${item}</li>`).join('');
+  const storeItems = storeSlotHighlights.map((item) => `<li>${renderIcon('circle-check', 'list-icon')}${item}</li>`).join('');
   const comparisonRows = featureComparison
     .map((row) => `
       <tr>

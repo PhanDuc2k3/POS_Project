@@ -1,3 +1,5 @@
+import { renderIcon } from '../utils/icons.js';
+
 const metricMeta = {
   'Total Tenants': { icon: 'tenants', change: '+12% tháng này', tone: 'positive' },
   Tenants: { icon: 'tenants', change: '+12% tháng này', tone: 'positive' },
@@ -22,7 +24,7 @@ export function renderMetricCard(label, value) {
     <article class="metric-card">
       <div class="metric-card-top">
         <span>${displayLabel}</span>
-        <i class="metric-icon ${meta.icon || 'default'}"></i>
+        ${renderIcon(meta.icon || 'default', 'metric-icon')}
       </div>
       <strong>${value}</strong>
       <small class="metric-change ${meta.tone || 'neutral'}">${meta.change || 'Ổn định'}</small>

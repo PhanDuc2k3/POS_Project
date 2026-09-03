@@ -1,0 +1,79 @@
+﻿.permission-grid {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.permission-cell {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 4px 8px;
+  align-items: center;
+}
+
+.permission-cell.enabled {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.permission-cell small {
+  grid-column: 2;
+  color: var(--muted);
+}
+
+.request-list {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  width: 100%;
+}
+
+.request-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 14px;
+}
+
+.request-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.request-main div,
+.request-account {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.request-main span,
+.request-card p,
+.request-account span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.request-account {
+  border: 1px dashed var(--blue);
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
+}
+
+.empty {
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+

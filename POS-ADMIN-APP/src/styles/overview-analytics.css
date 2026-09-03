@@ -1,0 +1,454 @@
+﻿.overview-dashboard-grid {
+  grid-template-columns: minmax(0, 8fr) minmax(260px, 2fr);
+  grid-template-areas:
+    "mrr actions"
+    "subs actions"
+    "orders health";
+}
+
+.mrr-panel {
+  min-height: 360px;
+}
+
+.mrr-panel .mrr-stage.modern {
+  min-height: 308px;
+}
+
+.mrr-stage.modern,
+.subscription-stage.modern {
+  position: relative;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 260px;
+  margin-top: 10px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid #d8ddef;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at top right, rgba(79, 70, 229, 0.12), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #f8f9ff 100%);
+}
+
+.mrr-stage.modern::before,
+.subscription-stage.modern::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(#edf0f8 1px, transparent 1px),
+    linear-gradient(90deg, #edf0f8 1px, transparent 1px);
+  background-size: 56px 38px;
+  opacity: 0.58;
+}
+
+.mrr-stage.modern > *,
+.subscription-stage.modern > * {
+  position: relative;
+  z-index: 1;
+}
+
+.modern-chart-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.mrr-title-row {
+  gap: 14px;
+  align-items: center;
+}
+
+.mrr-range-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.mrr-range-tabs button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #d4d9ea;
+  border-radius: 4px;
+  background: #fff;
+  color: #4e5570;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.mrr-range-tabs button.active {
+  border-color: #4f46e5;
+  background: #4f46e5;
+  color: #fff;
+}
+
+.modern-chart-head span,
+.subscription-summary span,
+.subscription-modern-item span,
+.subscription-modern-cards span {
+  display: block;
+  color: #5c6380;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.modern-chart-head strong {
+  display: block;
+  margin-top: 6px;
+  color: #111342;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.modern-chart-head small,
+.subscription-summary small,
+.subscription-modern-item small {
+  display: block;
+  margin-top: 6px;
+  color: #6f7896;
+  font-size: 11px;
+}
+
+.modern-chart-head b {
+  padding: 6px 9px;
+  border: 1px solid #bde8d3;
+  border-radius: 999px;
+  background: #ecfff5;
+  color: #007f54;
+  font-size: 11px;
+}
+
+.mrr-modern-body {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 18px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mrr-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 0 20px;
+  color: #7d849d;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.mrr-modern-svg {
+  display: block;
+  width: 100%;
+  min-width: 100%;
+  max-width: none;
+  height: 178px;
+  filter: drop-shadow(0 14px 20px rgba(79, 70, 229, 0.12));
+}
+
+.grid-lines line {
+  stroke: #e2e7f3;
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+
+.mrr-bar-body {
+  align-items: stretch;
+}
+
+.mrr-bar-chart {
+  position: relative;
+  min-height: 178px;
+  display: grid;
+  grid-template-columns: repeat(var(--bar-count), minmax(0, 1fr));
+  align-items: end;
+  gap: clamp(4px, 0.8vw, 11px);
+  padding: 8px 4px 0;
+  border-bottom: 1px solid #d9def0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mrr-wave-svg {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 8px;
+  width: calc(100% - 8px);
+  height: 156px;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.mrr-wave-glow,
+.mrr-wave-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.mrr-wave-glow {
+  stroke: rgba(79, 70, 229, .18);
+  stroke-width: 12;
+}
+
+.mrr-wave-line {
+  stroke: #4f46e5;
+  stroke-width: 3;
+}
+
+.mrr-bar-item {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  height: 178px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 22px;
+  align-items: end;
+  gap: 7px;
+}
+
+.mrr-bar-item b {
+  display: none;
+  width: 3px;
+  height: 8px;
+  justify-self: center;
+  margin-bottom: calc((var(--bar-level) - 4) * 1.56px);
+  border: 0;
+  border-radius: 0;
+  background: #4f46e5;
+  box-shadow: none;
+}
+
+.mrr-bar-item.current b {
+  background: #12a875;
+}
+
+.mrr-bar-item span {
+  min-width: 0;
+  color: #6b728f;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+.chart-months.modern-months {
+  position: static;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  margin-left: 68px;
+  color: #6b728f;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.mrr-modern-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e7f3;
+  color: #5d6481;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mrr-modern-footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.mrr-modern-footer i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #4f46e5;
+}
+
+.mrr-modern-footer span:nth-child(2) i {
+  background: #a5b4fc;
+}
+
+.mrr-modern-footer strong {
+  margin-left: auto;
+  color: #111342;
+}
+
+.subscription-stage.modern {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.7fr) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.subscription-summary {
+  display: grid;
+  grid-template-columns: 142px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.subscription-summary strong {
+  display: block;
+  margin-top: 6px;
+  color: #111342;
+  font-size: 22px;
+}
+
+.subscription-ring {
+  position: relative;
+  display: grid;
+  width: 142px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(
+    #86d7b4 0 48%,
+    #7cb6ee 48% 78%,
+    #f0cf78 78% 94%,
+    #ee8f95 94% 100%
+  );
+  box-shadow: 0 20px 40px rgba(31, 41, 80, 0.12);
+}
+
+.subscription-ring::before {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  background: #fbfbff;
+  box-shadow: inset 0 0 0 1px #e1e6f2;
+}
+
+.subscription-ring strong,
+.subscription-ring span {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.subscription-ring strong {
+  align-self: end;
+  color: #111342;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.subscription-ring span {
+  align-self: start;
+  margin-top: 5px;
+  color: #6f7896;
+  font-size: 10px;
+}
+
+.subscription-modern-list {
+  display: grid;
+  gap: 12px;
+}
+
+.subscription-modern-item {
+  display: grid;
+  grid-template-columns: 116px minmax(120px, 1fr) 88px;
+  gap: 12px;
+  align-items: center;
+}
+
+.subscription-modern-item div strong {
+  display: block;
+  margin-top: 4px;
+  color: #111342;
+  font-size: 17px;
+}
+
+.subscription-modern-item b {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e9f4;
+}
+
+.subscription-modern-item b i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.subscription-modern-item.green b i,
+.subscription-modern-cards .green::before {
+  background: #86d7b4;
+}
+
+.subscription-modern-item.red b i,
+.subscription-modern-cards .red::before {
+  background: #ee8f95;
+}
+
+.subscription-modern-item.blue b i,
+.subscription-modern-cards .blue::before {
+  background: #7cb6ee;
+}
+
+.subscription-modern-item.gold b i,
+.subscription-modern-cards .gold::before {
+  background: #f0cf78;
+}
+
+.subscription-modern-item small {
+  margin: 0;
+  text-align: right;
+  font-weight: 800;
+}
+
+.subscription-modern-cards {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.subscription-modern-cards article {
+  position: relative;
+  min-height: 70px;
+  padding: 13px 14px 12px;
+  overflow: hidden;
+  border: 1px solid #dfe4f1;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.subscription-modern-cards article::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+}
+
+.subscription-modern-cards strong {
+  display: block;
+  margin-top: 9px;
+  color: #2416d6;
+  font-size: 23px;
+  line-height: 1;
+}
+

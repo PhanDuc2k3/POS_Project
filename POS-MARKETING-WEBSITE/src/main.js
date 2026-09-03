@@ -8,6 +8,7 @@ import { renderOrderDetailPage } from './pages/OrderDetailPage.js';
 import { renderProfilePage } from './pages/ProfilePage.js';
 import { renderProductPage } from './pages/ProductPage.js';
 import { renderWarrantyPage } from './pages/WarrantyPage.js';
+import { renderLucideIcons } from './shared/icons.js';
 import {
   getMarketingSession,
   getPublicOrderStatus,
@@ -101,6 +102,7 @@ function render() {
     ${renderFooter()}
     ${renderAuthModal(state)}
   `;
+  renderLucideIcons();
   syncLockedForms();
 
   if (lastRenderedHash !== window.location.hash) {

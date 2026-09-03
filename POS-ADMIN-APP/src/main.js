@@ -56,6 +56,7 @@ import {
 } from './services/platform.js';
 import { clearSession, getAccessToken, getRefreshToken, getUser } from './services/session.js';
 import { esc, money } from './utils/format.js';
+import { renderLucideIcons } from './utils/icons.js';
 import { loadState, saveState } from './services/storage.js';
 import { connectRealtime, disconnectRealtime } from './services/realtime.js';
 
@@ -1729,6 +1730,7 @@ function render() {
 
   if (!state.authenticated) {
     app.innerHTML = renderLoginPage(state);
+    renderLucideIcons();
     return;
   }
 
@@ -1737,6 +1739,7 @@ function render() {
     ${state.loading ? '<div class="toast">Đang tải dữ liệu nền tảng...</div>' : ''}
     ${state.error ? `<div class="toast">${esc(state.error)}</div>` : ''}
   `;
+  renderLucideIcons();
 }
 
 bindEvents();

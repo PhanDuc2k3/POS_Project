@@ -1,0 +1,21 @@
+﻿.price-card li,
+.store-slot-panel li {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: start;
+  gap: 10px;
+}
+
+.list-icon {
+  color: var(--success);
+}
+
+.price-card li::before,
+.product-card::after,
+.product-card li::before,
+.product-detail-list li::before,
+.news-takeaways li::before,
+.check-list li::before {
+  display: none;
+  content: "";
+}

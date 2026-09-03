@@ -1,0 +1,71 @@
+﻿.support-layout,
+.location-layout {
+  display: grid;
+  grid-template-columns: 1fr 0.72fr;
+  gap: 24px;
+  padding-top: 0;
+  align-items: start;
+}
+
+.support-layout h2 {
+  font-size: 34px;
+}
+
+.check-list {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.check-list li {
+  align-items: start;
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  color: var(--muted);
+}
+
+.check-list li::before {
+  color: var(--success);
+  font-weight: 800;
+  content: "âœ“";
+}
+
+.support-contact {
+  display: grid;
+  gap: 14px;
+}
+
+.support-contact .button {
+  justify-self: start;
+  margin-top: 8px;
+}
+
+.location-map {
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+  color: #fff;
+  background:
+    linear-gradient(rgba(25, 28, 30, 0.2), rgba(25, 28, 30, 0.2)),
+    url("assets/solutions.png") center top / cover;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow);
+}
+
+.location-map span {
+  padding: 12px 18px;
+  background: rgba(0, 0, 0, 0.72);
+  border-radius: var(--radius);
+  font-family: Geist, Inter, sans-serif;
+  font-weight: 800;
+}
+
+.location-list {
+  display: grid;
+  gap: 16px;
+}
+

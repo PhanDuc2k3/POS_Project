@@ -1,0 +1,63 @@
+﻿.package-grid {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.package-card {
+  box-shadow: none;
+  padding: 14px;
+}
+
+.package-card.active {
+  border-color: var(--blue);
+  background: #f7fbff;
+}
+
+.package-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.package-title span,
+.package-card p,
+.package-card li {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.package-card ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.field span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.field input,
+.field select {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 0 12px;
+}
+
+.role-picker {
+  min-width: 200px;
+  margin: 0;
+}
+

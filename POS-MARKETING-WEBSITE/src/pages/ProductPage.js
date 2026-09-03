@@ -1,7 +1,11 @@
 import { featureComparison, hardwareProducts, products, softwareProducts } from '../shared/data.js';
+import { renderIcon } from '../shared/icons.js';
 
 function renderMark(value) {
   if (typeof value === 'string') return `<span class="feature-text">${value}</span>`;
+  return value
+    ? `<span class="feature-yes">${renderIcon('check')}</span>`
+    : `<span class="feature-no">${renderIcon('minus')}</span>`;
   return value ? '<span class="feature-yes">✓</span>' : '<span class="feature-no">—</span>';
 }
 
@@ -13,7 +17,7 @@ function getSelectedProduct() {
 function renderProductCard(product) {
   const highlights = product.highlights
     .slice(0, 3)
-    .map((item) => `<li>${item}</li>`)
+    .map((item) => `<li>${renderIcon('check', 'list-icon')}${item}</li>`)
     .join('');
 
   return `
@@ -130,7 +134,7 @@ function renderProductDetail(product) {
     .map((item) => `<a href="#products/${item.slug}">${item.title}</a>`)
     .join('');
 
-  const highlights = product.highlights.map((item) => `<li>${item}</li>`).join('');
+  const highlights = product.highlights.map((item) => `<li>${renderIcon('check', 'list-icon')}${item}</li>`).join('');
   const modules = product.modules.map((item) => `<span>${item}</span>`).join('');
   const metrics = product.metrics
     .map((item) => `

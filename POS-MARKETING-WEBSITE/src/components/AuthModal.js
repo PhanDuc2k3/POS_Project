@@ -1,3 +1,5 @@
+import { renderIcon } from '../shared/icons.js';
+
 export function renderAuthModal(state = {}) {
   if (!state.authModalOpen) return '';
 
@@ -7,7 +9,7 @@ export function renderAuthModal(state = {}) {
   return `
     <div class="modal-backdrop">
       <section class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
-        <button class="modal-close" type="button" aria-label="Dong" data-action="close-auth">x</button>
+        <button class="modal-close" type="button" aria-label="Dong" data-action="close-auth">${renderIcon('x')}</button>
         <form class="auth-panel" data-form="${isSignup ? 'signup' : 'signin'}">
           <h2 id="auth-modal-title">${isSignup ? 'DANG KY' : 'DANG NHAP'}</h2>
           <div class="auth-divider"><span>Tai khoan marketing</span></div>

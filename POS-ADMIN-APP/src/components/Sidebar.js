@@ -1,3 +1,5 @@
+import { renderIcon } from '../utils/icons.js';
+
 const navItems = [
   ['overview', 'Tổng quan', 'grid'],
   ['orders', 'Đơn đăng ký', 'receipt'],
@@ -20,7 +22,7 @@ export function renderSidebar(activeView) {
       </div>
 
       <button class="new-tenant-btn" data-action="open-create-tenant">
-        <span class="plus-mark"></span>
+        ${renderIcon('plus', 'plus-mark')}
         Tạo tenant
       </button>
 
@@ -40,7 +42,7 @@ export function renderSidebar(activeView) {
 function navButton(view, label, icon, activeView) {
   return `
     <button class="nav-button ${activeView === view ? 'active' : ''}" data-action="view" data-view="${view}">
-      <i class="nav-icon ${icon}"></i>
+      ${renderIcon(icon, 'nav-icon')}
       ${label}
     </button>
   `;

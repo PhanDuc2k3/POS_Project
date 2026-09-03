@@ -1,7 +1,8 @@
 import { warrantyPolicies } from '../shared/data.js';
+import { renderIcon } from '../shared/icons.js';
 
 export function renderWarrantyPage() {
-  const policies = warrantyPolicies.map((item) => `<li>${item}</li>`).join('');
+  const policies = warrantyPolicies.map((item) => `<li>${renderIcon('check', 'list-icon')}${item}</li>`).join('');
 
   return `
     <main class="page-main">

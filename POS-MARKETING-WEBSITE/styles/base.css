@@ -1,0 +1,64 @@
+﻿:root {
+  --surface: #f7f9fb;
+  --surface-low: #f2f4f6;
+  --surface-card: #ffffff;
+  --surface-high: #e6e8ea;
+  --text: #191c1e;
+  --muted: #45464d;
+  --outline: #c6c6cd;
+  --primary: #000000;
+  --secondary: #0058be;
+  --secondary-strong: #2170e4;
+  --success: #009668;
+  --error: #ba1a1a;
+  --shadow: 0 16px 50px rgba(15, 23, 42, 0.1);
+  --radius: 8px;
+  --radius-large: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--text);
+  font-family: Inter, Arial, sans-serif;
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+.lucide-icon,
+.account-icon,
+.list-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  stroke-width: 2.2;
+}
+
