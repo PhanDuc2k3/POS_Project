@@ -181,7 +181,10 @@ function broadcastPlatformChange(req, response, targetPath, responseText) {
   if (response.status < 200 || response.status >= 300) return;
 
   const isPlatformPath = targetPath.startsWith('/platform/');
-  const isPublicPlatformPath = targetPath === '/public/marketing-signups' || targetPath.startsWith('/public/orders') || targetPath.startsWith('/public/sales-leads');
+  const isPublicPlatformPath = targetPath === '/public/marketing-signups'
+    || targetPath.startsWith('/public/orders')
+    || targetPath.startsWith('/public/sales-leads')
+    || targetPath.startsWith('/public/support-tickets');
   if (!isPlatformPath && !isPublicPlatformPath) return;
 
   let payload = null;
@@ -266,7 +269,7 @@ app.post('/api/payment-webhooks/sepay', async (req, res) => {
 
 app.use('/api/public', (req, res) => {
   const path = req.path || '/';
-  if (path === '/marketing-signups' || path.startsWith('/marketing-signups/') || path === '/orders' || path.startsWith('/orders/') || path === '/sales-leads') {
+  if (path === '/marketing-signups' || path.startsWith('/marketing-signups/') || path === '/orders' || path.startsWith('/orders/') || path === '/sales-leads' || path === '/support-tickets') {
     if (req.method === 'POST' && path === '/marketing-signups') {
       return publicSignupLimiter(req, res, () => forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`));
     }
@@ -277,6 +280,9 @@ app.use('/api/public', (req, res) => {
       return publicOrderLimiter(req, res, () => forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`));
     }
     if (req.method === 'POST' && path === '/sales-leads') {
+      return publicSalesLeadLimiter(req, res, () => forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`));
+    }
+    if (req.method === 'POST' && path === '/support-tickets') {
       return publicSalesLeadLimiter(req, res, () => forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`));
     }
     return forwardJson(req, res, config.PLATFORM_SERVICE_URL, `/public${req.url}`);

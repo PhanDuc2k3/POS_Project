@@ -57,10 +57,11 @@ export function renderOrdersPage(state, helpers) {
         `).join('')}
       </div>
 
-      ${renderPublicOrderLookup(state)}
-
       <section class="orders-card">
         <div class="order-filter-row">
+          <label class="order-code-filter">Tìm mã đơn
+            <input data-field="orderSearch" value="${esc(state.orderSearch || '')}" placeholder="ORD-2026-000005, SUB-1008..." />
+          </label>
           <label>Gói
             <select data-field="orderPackageFilter">
               <option value="all">Tất cả</option>
@@ -148,11 +149,26 @@ function filterOrders(orders, state) {
   return orders.filter((order) => {
     const status = String(order.status || '').toUpperCase();
     const tabMatch = orderTabMatches(status, state.orderStatusFilter || 'all');
+    const queryMatch = orderMatchesQuery(order, state.orderSearch);
     const packageMatch = state.orderPackageFilter === 'all' || !state.orderPackageFilter || normalizePackageTier(order.packageTier) === state.orderPackageFilter;
     const statusMatch = state.orderDetailStatusFilter === 'all' || !state.orderDetailStatusFilter || status === state.orderDetailStatusFilter;
     const dateMatch = orderDateMatches(order.createdAt, state.orderDateFilter || 'all');
-    return tabMatch && packageMatch && statusMatch && dateMatch;
+    return tabMatch && queryMatch && packageMatch && statusMatch && dateMatch;
   });
+}
+
+function orderMatchesQuery(order, value) {
+  const query = String(value || '').trim().toLowerCase();
+  if (!query) return true;
+  return [
+    order.orderCode,
+    order.id,
+    order.sourceId,
+    order.customerName,
+    order.companyName,
+    order.email,
+    order.phone,
+  ].filter(Boolean).join(' ').toLowerCase().includes(query);
 }
 
 function orderTabMatches(status, filter) {
@@ -176,47 +192,6 @@ function orderDateMatches(value, range) {
 
 function uniqueOptions(values) {
   return [...new Set(values.filter(Boolean).map((value) => String(value)))];
-}
-
-function renderPublicOrderLookup(state) {
-  const result = state.publicOrderLookupResult || null;
-  return `
-    <section class="public-order-lookup">
-      <div class="public-order-copy">
-        <h2>Tra cứu đơn công khai</h2>
-        <p>Kiểm tra trạng thái mà endpoint công khai trả về cho khách hàng.</p>
-      </div>
-      <div class="public-order-search">
-        <label>
-          <span>Mã đơn</span>
-          <input data-field="publicOrderLookupCode" value="${esc(state.publicOrderLookupCode || '')}" placeholder="ORD-2026-000001" />
-        </label>
-        <button type="button" data-action="lookup-public-order">Tra cứu</button>
-        ${result ? '<button type="button" class="public-order-clear" data-action="clear-public-order-lookup">Xóa</button>' : ''}
-      </div>
-      ${result ? renderPublicOrderResult(result) : ''}
-    </section>
-  `;
-}
-
-function renderPublicOrderResult(order) {
-  return `
-    <div class="public-order-result">
-      <span class="order-status-pill ${statusTone(order.status)}">${esc(statusLabel(order.status))}</span>
-      <div>
-        <strong>${esc(order.orderCode || '-')}</strong>
-        <small>Tạo lúc ${esc(formatShortDate(order.createdAt) || '-')}</small>
-      </div>
-      <div>
-        <strong>${esc(packageLabel(order.packageTier))}</strong>
-        <small>${esc(order.requestedStoreCount || 1)} cửa hàng</small>
-      </div>
-      <div>
-        <strong>${esc(statusLabel(order.paymentStatus || 'UNPAID'))}</strong>
-        <small>Trạng thái thanh toán</small>
-      </div>
-    </div>
-  `;
 }
 
 function renderOrderRow(order, selected) {

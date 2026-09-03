@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const path = require('path');
 
 const DEV_SEED = 'pos-dev-2024';
 function devSecret(name) {
@@ -87,4 +88,18 @@ module.exports = {
 
   // Internal service-to-service auth
   INTERNAL_SERVICE_TOKEN: process.env.INTERNAL_SERVICE_TOKEN || 'pos-internal-token',
+
+  // Email / SMTP
+  SMTP_ENABLED: process.env.SMTP_ENABLED === 'true',
+  SMTP_HOST: process.env.SMTP_HOST || '',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT, 10) || 1025,
+  SMTP_SECURE: process.env.SMTP_SECURE === 'true',
+  SMTP_STARTTLS: process.env.SMTP_STARTTLS === 'true',
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASS: process.env.SMTP_PASS || '',
+  SMTP_FROM: process.env.SMTP_FROM || 'POS Platform <no-reply@pos.local>',
+  SMTP_TIMEOUT_MS: parseInt(process.env.SMTP_TIMEOUT_MS, 10) || 10000,
+  MAIL_DRY_RUN: process.env.MAIL_DRY_RUN !== 'false',
+  MAIL_OUTBOX_DIR: process.env.MAIL_OUTBOX_DIR || path.resolve(__dirname, '..', '..', 'data', 'mail-outbox'),
+  ADMIN_NOTIFY_EMAIL: process.env.ADMIN_NOTIFY_EMAIL || '',
 };

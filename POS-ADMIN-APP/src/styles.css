@@ -9,11 +9,13 @@
 @import url("./styles/overview.css");
 @import url("./styles/packages.css");
 @import url("./styles/orders.css");
+@import url("./styles/tickets.css");
 @import url("./styles/tenants.css");
 @import url("./styles/accounts.css");
 @import url("./styles/permissions.css");
 @import url("./styles/settings.css");
 @import url("./styles/audit.css");
+@import url("./styles/email.css");
 @import url("./styles/trials.css");
 @import url("./styles/overview-analytics.css");
 @import url("./styles/responsive.css");

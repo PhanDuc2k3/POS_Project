@@ -105,6 +105,42 @@ Mac dinh nam trong `src/shared/config.js`.
 | `JWT_REFRESH_SECRET` | dev secret |
 | `KAFKA_BROKER` | rong, dung in-memory event bus |
 
+## Email / SMTP
+
+Backend gui email tap trung tu POS-ENGINE. Admin App `localhost:8000` va Marketing Website `localhost:8001` van goi API qua Gateway `http://localhost:4000/api`; cac email ve dang ky marketing, don hang, thay doi trang thai don, trial va password reset duoc gui tu service tuong ung.
+
+Neu chua cau hinh SMTP, email se duoc ghi ra outbox local:
+
+```text
+POS-ENGINE/data/mail-outbox
+```
+
+Cau hinh SMTP bang bien moi truong:
+
+| Bien | Mac dinh | Mo ta |
+| --- | --- | --- |
+| `SMTP_ENABLED` | `false` | Bat gui SMTP that |
+| `SMTP_HOST` | rong | SMTP host |
+| `SMTP_PORT` | `1025` | SMTP port |
+| `SMTP_SECURE` | `false` | Dung TLS ngay tu dau, thuong la port 465 |
+| `SMTP_STARTTLS` | `false` | Nang cap STARTTLS sau EHLO |
+| `SMTP_USER` | rong | Tai khoan SMTP |
+| `SMTP_PASS` | rong | Mat khau SMTP |
+| `SMTP_FROM` | `POS Platform <no-reply@pos.local>` | Nguoi gui |
+| `MAIL_DRY_RUN` | `true` | Neu SMTP loi thi ghi outbox thay vi lam fail request |
+| `MAIL_OUTBOX_DIR` | `data/mail-outbox` | Thu muc luu file `.eml` local |
+| `ADMIN_NOTIFY_EMAIL` | rong | Email admin nhan don hang/lead/trial moi |
+
+Vi du dung MailHog/Mailpit local:
+
+```powershell
+$env:SMTP_ENABLED="true"
+$env:SMTP_HOST="localhost"
+$env:SMTP_PORT="1025"
+$env:ADMIN_NOTIFY_EMAIL="admin@pos.local"
+npm.cmd run dev
+```
+
 ## Realtime va in hoa don
 
 Gateway chay Socket.IO tren port `4000`. Electron dang ky device bang:

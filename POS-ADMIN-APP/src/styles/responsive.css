@@ -150,16 +150,6 @@
     padding: 18px 14px 28px;
   }
 
-  .public-order-lookup,
-  .public-order-search,
-  .public-order-result {
-    grid-template-columns: 1fr;
-  }
-
-  .public-order-search button {
-    width: 100%;
-  }
-
   .order-detail-backdrop {
     inset: 0;
   }
@@ -481,11 +471,6 @@ button {
 .brand-block span {
   font-size: 9px;
   line-height: 1.25;
-}
-
-.new-tenant-btn {
-  min-height: 38px;
-  font-size: 14px;
 }
 
 .overview-heading h1,

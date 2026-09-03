@@ -80,6 +80,42 @@ export function renderFormsSection(state = {}) {
         <button class="button primary" type="submit">${hasMarketingSignup ? 'Gửi thông tin tư vấn' : 'Đăng ký để gửi tư vấn'}</button>
         <p class="form-message" role="status"></p>
       </form>
+      <form class="contact-card support-ticket-card" data-form="support-ticket">
+        <p class="eyebrow">Support ticket</p>
+        <h2>Gửi phiếu hỗ trợ hoặc trao đổi qua email.</h2>
+        <div class="two-inputs">
+          <label>Họ tên<input name="name" placeholder="Your name" value="${esc(state.marketingSignup?.name || '')}" required /></label>
+          <label>Email<input name="email" type="email" placeholder="owner@example.com" value="${esc(state.marketingSignup?.email || '')}" required /></label>
+        </div>
+        <div class="two-inputs">
+          <label>Số điện thoại<input name="phone" placeholder="+84..." /></label>
+          <label>Mã đơn liên quan<input name="orderCode" placeholder="ORD-2026-000001" /></label>
+        </div>
+        <div class="two-inputs">
+          <label>Tiêu đề<input name="subject" placeholder="Cần hỗ trợ thanh toán / kích hoạt..." required /></label>
+          <label>
+            Mức ưu tiên
+            <select name="priority">
+              <option value="NORMAL">Bình thường</option>
+              <option value="HIGH">Cao</option>
+              <option value="URGENT">Khẩn cấp</option>
+              <option value="LOW">Thấp</option>
+            </select>
+          </label>
+        </div>
+        <label>Nội dung<textarea name="message" rows="4" placeholder="Mô tả vấn đề bạn cần hỗ trợ..." required></textarea></label>
+        <button class="button primary" type="submit">${hasMarketingSignup ? 'Gửi ticket hỗ trợ' : 'Đăng ký để gửi ticket'}</button>
+        <p class="form-message" role="status"></p>
+      </form>
     </section>
   `;
+}
+
+function esc(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }

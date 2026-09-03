@@ -10,6 +10,8 @@ import { renderOrdersPage } from './pages/OrdersPage.js';
 import { renderPermissionsPage } from './pages/PermissionsPage.js';
 import { renderProfileSettingsPage } from './pages/ProfileSettingsPage.js';
 import { renderAuditLogPage } from './pages/AuditLogPage.js';
+import { renderEmailPage } from './pages/EmailPage.js';
+import { renderTicketsPage } from './pages/TicketsPage.js';
 import {
   changePassword,
   activateAccount,
@@ -32,13 +34,15 @@ import {
   bootstrap,
   createTenant,
   createOrder,
-  getPublicOrderStatus,
   holdOrderProvisioning,
   approveOrder,
   approveTrialRequest,
   banAccount,
   cancelOrder,
   confirmOrderPayment,
+  getEmailOutbox,
+  getEmailStatus,
+  getSupportTickets,
   inviteAccount,
   markOrderContacted,
   provisionOrder,
@@ -53,6 +57,9 @@ import {
   updateSalesLeadStatus,
   updateTenantPackage,
   waitOrderPayment,
+  sendTestEmail,
+  replySupportTicket,
+  updateSupportTicketStatus,
 } from './services/platform.js';
 import { clearSession, getAccessToken, getRefreshToken, getUser } from './services/session.js';
 import { esc, money } from './utils/format.js';
@@ -63,6 +70,20 @@ import { connectRealtime, disconnectRealtime } from './services/realtime.js';
 const app = document.getElementById('app');
 let state = loadState(initialState);
 let realtimeRefreshTimer = null;
+
+function renderWithFocusRestore(target) {
+  const field = target?.dataset?.field;
+  const start = target?.selectionStart;
+  const end = target?.selectionEnd;
+  render();
+  if (!field) return;
+  const next = [...app.querySelectorAll('[data-field]')].find((item) => item.dataset.field === field);
+  if (!next) return;
+  next.focus();
+  if (typeof next.setSelectionRange === 'function' && typeof start === 'number' && typeof end === 'number') {
+    next.setSelectionRange(start, end);
+  }
+}
 
 const defaultPackagePermissions = {
   trial: ['store.manage', 'menu.manage', 'transaction.view', 'pos.sell', 'payment.collect'],
@@ -120,6 +141,7 @@ function applyBackendData(data) {
   state.tenants = data.tenants || [];
   state.trialRequests = data.trialRequests || [];
   state.salesLeads = data.salesLeads || [];
+  state.supportTickets = data.supportTickets || [];
   state.marketingSignups = data.marketingSignups || [];
   state.packages = data.packages || [];
   state.orders = data.orders || [];
@@ -182,14 +204,16 @@ async function startRealtime() {
 
 function handleRealtimePlatformChange(event) {
   const item = normalizeRealtimeEvent(event);
-  const events = [item, ...(state.realtime?.events || [])].slice(0, 8);
-  state.realtime = {
-    ...(state.realtime || {}),
-    unread: (state.realtime?.unread || 0) + 1,
-    events,
-  };
-  saveState(state);
-  render();
+  if (item) {
+    const events = [item, ...(state.realtime?.events || [])].filter(isImportantNotification).slice(0, 8);
+    state.realtime = {
+      ...(state.realtime || {}),
+      unread: (state.realtime?.unread || 0) + 1,
+      events,
+    };
+    saveState(state);
+    render();
+  }
 
   clearTimeout(realtimeRefreshTimer);
   realtimeRefreshTimer = setTimeout(() => {
@@ -200,38 +224,61 @@ function handleRealtimePlatformChange(event) {
 function normalizeRealtimeEvent(event = {}) {
   const path = String(event.path || '');
   const data = event.data || {};
-  let label = 'Dữ liệu nền tảng đã thay đổi';
-  let view = 'overview';
+  const method = String(event.method || 'POST').toUpperCase();
+  const status = String(data.status || data.paymentStatus || '').toUpperCase();
+  let label = '';
+  let view = 'orders';
+  let priority = 'normal';
 
-  if (path.includes('/trial-requests')) {
-    label = `${event.method || 'POST'} yêu cầu dùng thử ${data.restaurantName || data.id || ''}`.trim();
-    view = 'orders';
-  } else if (path.includes('/marketing-signups')) {
-    label = `${event.method || 'POST'} đăng ký marketing ${data.email || data.signupId || ''}`.trim();
-    view = 'orders';
+  if (path.includes('/orders')) {
+    const code = data.orderCode || data.id || '';
+    if (method === 'POST') label = `Đơn đăng ký mới ${code}`.trim();
+    else if (status === 'PAID') label = `Đơn đã thanh toán ${code}`.trim();
+    else if (status === 'PROVISIONING_FAILED') {
+      label = `Khởi tạo tenant lỗi ${code}`.trim();
+      priority = 'danger';
+    } else if (['PENDING', 'WAITING_PAYMENT', 'ON_HOLD', 'PROVISIONING'].includes(status)) {
+      label = `Đơn cần xử lý ${code}`.trim();
+      priority = status === 'ON_HOLD' ? 'danger' : 'normal';
+    }
+  } else if (path.includes('/trial-requests')) {
+    if (method === 'POST' || String(data.status || '').toLowerCase() === 'pending') {
+      label = `PLUS-Trial mới ${data.restaurantName || data.id || ''}`.trim();
+    }
   } else if (path.includes('/sales-leads')) {
-    label = `${event.method || 'POST'} lead bán hàng ${data.name || data.id || ''}`.trim();
-    view = 'orders';
-  } else if (path.includes('/orders')) {
-    label = `${event.method || 'POST'} đơn đăng ký ${data.orderCode || data.id || ''}`.trim();
-    view = 'orders';
-  } else if (path.includes('/tenants')) {
-    label = `${event.method || 'POST'} tenant ${data.name || data.id || ''}`.trim();
-    view = 'tenants';
-  } else if (path.includes('/accounts')) {
-    label = `${event.method || 'POST'} tài khoản ${data.email || data.id || ''}`.trim();
-    view = 'accounts';
-  } else if (path.includes('/permissions')) {
-    label = 'Cấu hình phân quyền đã thay đổi';
-    view = 'permissions';
+    if (method === 'POST' || status === 'NEW') {
+      label = `Lead bán hàng mới ${data.name || data.id || ''}`.trim();
+    }
   }
+
+  if (!label && path.includes('/support-tickets') && method === 'POST') {
+    label = `Ticket hỗ trợ mới ${data.subject || data.id || ''}`.trim();
+    view = 'tickets';
+  }
+
+  if (!label) return null;
 
   return {
     label,
     view,
+    priority,
     actor: event.actor || 'system',
     occurredAt: event.occurredAt || new Date().toISOString(),
   };
+}
+
+function isImportantNotification(item) {
+  const label = String(item?.label || '');
+  if (!label || !['orders', 'tickets'].includes(item.view)) return false;
+  if (/^(GET|POST|PUT|PATCH|DELETE)\s/i.test(label)) return false;
+  if (/marketing signup|audit|permission|account/i.test(label)) return false;
+  return true;
+}
+
+function notificationUnreadCount() {
+  const unread = Number(state.realtime?.unread || 0);
+  const importantCount = (state.realtime?.events || []).filter(isImportantNotification).length;
+  return Math.min(unread, importantCount);
 }
 
 async function loadSecurityData() {
@@ -281,6 +328,55 @@ async function openAuditView() {
   await loadAuditData();
 }
 
+async function loadEmailData() {
+  state.loading = true;
+  state.error = '';
+  render();
+  try {
+    const [emailStatus, emailOutbox] = await Promise.all([getEmailStatus(), getEmailOutbox()]);
+    state.emailStatus = emailStatus;
+    state.emailOutbox = emailOutbox;
+    state.emailMessage = '';
+    state.emailTone = 'info';
+    saveState(state);
+  } catch (err) {
+    state.error = err.message;
+  } finally {
+    state.loading = false;
+    render();
+  }
+}
+
+async function openEmailView() {
+  setView('email');
+  await loadEmailData();
+}
+
+async function loadTicketData() {
+  state.loading = true;
+  state.error = '';
+  render();
+  try {
+    state.supportTickets = await getSupportTickets();
+    if (!state.selectedSupportTicketId && state.supportTickets[0]) {
+      state.selectedSupportTicketId = state.supportTickets[0].id;
+    }
+    state.ticketMessage = '';
+    state.ticketTone = 'info';
+    saveState(state);
+  } catch (err) {
+    state.error = err.message;
+  } finally {
+    state.loading = false;
+    render();
+  }
+}
+
+async function openTicketsView() {
+  setView('tickets');
+  await loadTicketData();
+}
+
 async function ensureAuthenticated() {
   const hasToken = !!(getAccessToken() || getRefreshToken());
   if (!hasToken) {
@@ -299,6 +395,8 @@ async function ensureAuthenticated() {
     await startRealtime();
     if (state.activeView === 'settings') await loadSecurityData();
     if (state.activeView === 'audit') await loadAuditData();
+    if (state.activeView === 'email') await loadEmailData();
+    if (state.activeView === 'tickets') await loadTicketData();
   } catch {
     disconnectRealtime();
     clearSession();
@@ -423,6 +521,86 @@ async function handleRefresh() {
   await loadPlatformData();
 }
 
+async function handleSendTestEmail() {
+  const to = String(state.emailTestDraft?.to || '').trim();
+  if (!to) {
+    state.emailMessage = 'Vui lòng nhập email nhận';
+    state.emailTone = 'danger';
+    render();
+    return;
+  }
+
+  state.loading = true;
+  state.error = '';
+  render();
+  try {
+    const result = await sendTestEmail(to);
+    const mode = result.mode === 'smtp' ? 'SMTP' : 'outbox local';
+    state.emailMessage = `Đã gửi email test qua ${mode}`;
+    state.emailTone = 'success';
+    const [emailStatus, emailOutbox] = await Promise.all([getEmailStatus(), getEmailOutbox()]);
+    state.emailStatus = emailStatus;
+    state.emailOutbox = emailOutbox;
+    saveState(state);
+  } catch (err) {
+    state.emailMessage = err.message;
+    state.emailTone = 'danger';
+  } finally {
+    state.loading = false;
+    render();
+  }
+}
+
+async function handleReplySupportTicket(id) {
+  const body = String(state.supportTicketReplyDraft || '').trim();
+  if (!id || !body) {
+    state.ticketMessage = 'Vui lòng nhập nội dung phản hồi';
+    state.ticketTone = 'danger';
+    render();
+    return;
+  }
+
+  state.loading = true;
+  state.error = '';
+  render();
+  try {
+    const ticket = await replySupportTicket(id, body);
+    state.supportTickets = (state.supportTickets || []).map((item) => item.id === ticket.id ? ticket : item);
+    state.selectedSupportTicketId = ticket.id;
+    state.supportTicketReplyDraft = '';
+    state.ticketMessage = 'Đã gửi phản hồi cho khách qua email';
+    state.ticketTone = 'success';
+    saveState(state);
+  } catch (err) {
+    state.ticketMessage = err.message;
+    state.ticketTone = 'danger';
+  } finally {
+    state.loading = false;
+    render();
+  }
+}
+
+async function handleUpdateSupportTicketStatus(id, status) {
+  if (!id || !status) return;
+  state.loading = true;
+  state.error = '';
+  render();
+  try {
+    const ticket = await updateSupportTicketStatus(id, status);
+    state.supportTickets = (state.supportTickets || []).map((item) => item.id === ticket.id ? ticket : item);
+    state.selectedSupportTicketId = ticket.id;
+    state.ticketMessage = 'Đã cập nhật trạng thái ticket';
+    state.ticketTone = 'success';
+    saveState(state);
+  } catch (err) {
+    state.ticketMessage = err.message;
+    state.ticketTone = 'danger';
+  } finally {
+    state.loading = false;
+    render();
+  }
+}
+
 async function handleSignOut() {
   disconnectRealtime();
   await logout();
@@ -455,6 +633,8 @@ function bindEvents() {
         state.globalSearch = '';
         if (target.dataset.view === 'settings') await openSettingsView();
         else if (target.dataset.view === 'audit') await openAuditView();
+        else if (target.dataset.view === 'email') await openEmailView();
+        else if (target.dataset.view === 'tickets') await openTicketsView();
         else setView(target.dataset.view);
       }
       if (action === 'open-overview-item') {
@@ -545,15 +725,8 @@ function bindEvents() {
       if (action === 'approve-trial') await handleApproveTrial(target.dataset.id);
       if (action === 'reject-trial') await handleRejectTrial(target.dataset.id);
       if (action === 'create-order') await handleCreateOrder();
-      if (action === 'lookup-public-order') await handleLookupPublicOrder();
       if (action === 'set-order-status-filter') {
         state.orderStatusFilter = target.dataset.status || 'all';
-        saveState(state);
-        render();
-      }
-      if (action === 'clear-public-order-lookup') {
-        state.publicOrderLookupCode = '';
-        state.publicOrderLookupResult = null;
         saveState(state);
         render();
       }
@@ -717,6 +890,17 @@ function bindEvents() {
       }
       if (action === 'refresh-security-data') await loadSecurityData();
       if (action === 'refresh-audit-data') await loadAuditData();
+      if (action === 'refresh-email-data') await loadEmailData();
+      if (action === 'send-test-email') await handleSendTestEmail();
+      if (action === 'refresh-ticket-data') await loadTicketData();
+      if (action === 'select-support-ticket') {
+        state.selectedSupportTicketId = target.dataset.id;
+        state.supportTicketReplyDraft = '';
+        saveState(state);
+        render();
+      }
+      if (action === 'reply-support-ticket') await handleReplySupportTicket(target.dataset.id);
+      if (action === 'update-support-ticket-status') await handleUpdateSupportTicketStatus(target.dataset.id, target.dataset.status);
       if (action === 'set-settings-panel') {
         state.settingsPanel = target.dataset.panel || '';
         saveState(state);
@@ -770,7 +954,6 @@ function bindEvents() {
       }
     }
     if (field === 'inviteEmail') state.inviteEmail = event.target.value;
-    if (field === 'publicOrderLookupCode') state.publicOrderLookupCode = event.target.value;
     if (field === 'rejectOrderReason') state.rejectOrderDialog = { ...(state.rejectOrderDialog || {}), reason: event.target.value };
     if (field === 'tenantSearch') {
       state.tenantSearch = event.target.value;
@@ -810,6 +993,10 @@ function bindEvents() {
     }
     if (field === 'orderStatusFilter') {
       state.orderStatusFilter = event.target.value;
+      shouldRender = true;
+    }
+    if (field === 'orderSearch') {
+      state.orderSearch = event.target.value;
       shouldRender = true;
     }
     if (field === 'orderPackageFilter') {
@@ -880,8 +1067,18 @@ function bindEvents() {
     if (field === 'passwordCurrent') state.passwordDraft = { ...(state.passwordDraft || {}), current: event.target.value };
     if (field === 'passwordNew') state.passwordDraft = { ...(state.passwordDraft || {}), next: event.target.value };
     if (field === 'passwordConfirm') state.passwordDraft = { ...(state.passwordDraft || {}), confirm: event.target.value };
+    if (field === 'emailTestTo') state.emailTestDraft = { ...(state.emailTestDraft || {}), to: event.target.value };
+    if (field === 'supportTicketSearch') {
+      state.supportTicketSearch = event.target.value;
+      shouldRender = true;
+    }
+    if (field === 'supportTicketStatusFilter') {
+      state.supportTicketStatusFilter = event.target.value;
+      shouldRender = true;
+    }
+    if (field === 'supportTicketReplyDraft') state.supportTicketReplyDraft = event.target.value;
     saveState(state);
-    if (shouldRender) render();
+    if (shouldRender) renderWithFocusRestore(event.target);
   });
 
   app.addEventListener('change', async (event) => {
@@ -1064,29 +1261,6 @@ async function handleCreateOrder() {
   if (!tenant) return;
   await createOrder(tenant.id, normalizeTenantPackageTier(state.packageDraft || tenant.packageTier));
   await loadPlatformData();
-}
-
-async function handleLookupPublicOrder() {
-  const orderCode = String(state.publicOrderLookupCode || '').trim();
-  if (!orderCode) {
-    state.error = 'Vui lòng nhập mã đơn công khai để tra cứu';
-    render();
-    return;
-  }
-
-  state.loading = true;
-  state.error = '';
-  render();
-  try {
-    state.publicOrderLookupResult = await getPublicOrderStatus(orderCode);
-    saveState(state);
-  } catch (err) {
-    state.publicOrderLookupResult = null;
-    throw err;
-  } finally {
-    state.loading = false;
-    render();
-  }
 }
 
 function openOrderRejectDialog(id) {
@@ -1623,6 +1797,13 @@ function globalSearchResults() {
     ...(state.accounts || []).map((item) => ({ type: 'Tài khoản', label: item.name || item.email, meta: [item.email, item.role].filter(Boolean).join(' / '), view: 'accounts', id: item.id })),
     ...(state.trialRequests || []).map((item) => ({ type: 'PLUS-Trial', label: item.restaurantName, meta: [item.contactName, item.status].filter(Boolean).join(' / '), view: 'orders', id: `trial:${item.id}` })),
   ];
+  rows.push(...(state.supportTickets || []).map((item) => ({
+    type: 'Ticket',
+    label: item.subject || item.id,
+    meta: [item.email, item.status, item.orderCode].filter(Boolean).join(' / '),
+    view: 'tickets',
+    id: item.id,
+  })));
   return rows.filter((row) => [row.type, row.label, row.meta].join(' ').toLowerCase().includes(query)).slice(0, 8);
 }
 
@@ -1651,7 +1832,7 @@ function renderNotifications() {
   const pendingTrials = (state.trialRequests || []).filter((item) => String(item.status || '').toLowerCase() === 'pending').length;
   const newLeads = (state.salesLeads || []).filter((item) => String(item.status || '').toLowerCase() === 'new').length;
   const provisioning = (state.orders || []).filter((item) => ['PROVISIONING', 'PROVISIONING_FAILED', 'ON_HOLD'].includes(String(item.status || '').toUpperCase())).length;
-  const events = state.realtime?.events || [];
+  const events = (state.realtime?.events || []).filter(isImportantNotification);
   return `
     <div class="notification-panel">
       <header>
@@ -1664,7 +1845,7 @@ function renderNotifications() {
       ${events.length ? `
         <div class="realtime-events">
           ${events.map((item) => `
-            <button type="button" data-action="view" data-view="${esc(item.view)}">
+            <button type="button" class="realtime-event ${esc(item.priority || '')}" data-action="view" data-view="${esc(item.view)}">
               <span></span>
               <strong>${esc(item.label)}</strong>
               <small>${esc(item.actor)} &middot; ${esc(formatRealtimeTime(item.occurredAt))}</small>
@@ -1685,6 +1866,7 @@ function formatRealtimeTime(value) {
 }
 
 function renderAppShell() {
+  const notificationUnread = notificationUnreadCount();
   return `
     <div class="admin-shell">
       ${renderSidebar(state.activeView)}
@@ -1699,7 +1881,7 @@ function renderAppShell() {
           </div>
           <div class="topbar-actions">
             <button class="top-icon notification-trigger ${state.realtime?.connected ? 'live' : ''}" data-action="toggle-notifications" aria-label="Thông báo">
-              ${state.realtime?.unread ? `<span>${esc(state.realtime.unread)}</span>` : ''}
+              ${notificationUnread ? `<span>${esc(notificationUnread)}</span>` : ''}
             </button>
             <button class="top-icon settings" data-action="view" data-view="settings" aria-label="Cài đặt"></button>
             <button class="top-avatar" data-action="view" data-view="settings" aria-label="${esc(state.user?.username || 'platform')}"></button>
@@ -1714,6 +1896,8 @@ function renderAppShell() {
           ${state.activeView === 'accounts' ? renderAccountsPage(state, { selectedTenant }) : ''}
           ${state.activeView === 'orders' ? renderOrdersPage(state, { tenantName }) : ''}
           ${state.activeView === 'permissions' ? renderPermissionsPage(state) : ''}
+          ${state.activeView === 'tickets' ? renderTicketsPage(state) : ''}
+          ${state.activeView === 'email' ? renderEmailPage(state) : ''}
           ${state.activeView === 'settings' ? renderProfileSettingsPage(state) : ''}
           ${state.activeView === 'audit' ? renderAuditLogPage(state) : ''}
         </div>

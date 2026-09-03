@@ -156,6 +156,35 @@ function rowToMarketingSignup(row) {
   };
 }
 
+function rowToSupportTicket(row) {
+  return {
+    id: row[0],
+    signupId: row[1],
+    orderCode: row[2],
+    subject: row[3],
+    customerName: row[4],
+    email: row[5],
+    phone: row[6],
+    priority: row[7],
+    status: row[8],
+    createdAt: row[9],
+    updatedAt: row[10],
+  };
+}
+
+function rowToSupportTicketMessage(row) {
+  return {
+    id: row[0],
+    ticketId: row[1],
+    senderType: row[2],
+    senderName: row[3],
+    senderEmail: row[4],
+    body: row[5],
+    sentByEmail: Boolean(row[6]),
+    createdAt: row[7],
+  };
+}
+
 function createId(prefix) {
   const random = Math.floor(Math.random() * 900 + 100);
   return `${prefix}-${Date.now().toString().slice(-6)}-${random}`;
@@ -406,6 +435,87 @@ function createSalesLead({ name, phone, email, message }) {
   );
   saveDatabase();
   return listSalesLeads().find((lead) => lead.id === id) || null;
+}
+
+function listSupportTickets() {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, signup_id, order_code, subject, customer_name, email, phone, priority, status, created_at, updated_at
+     FROM platform_support_tickets
+     ORDER BY updated_at DESC, created_at DESC`
+  );
+  return result[0]?.values?.map(rowToSupportTicket) || [];
+}
+
+function findSupportTicketById(id) {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, signup_id, order_code, subject, customer_name, email, phone, priority, status, created_at, updated_at
+     FROM platform_support_tickets
+     WHERE id = ?`,
+    [id]
+  );
+  return result[0]?.values?.[0] ? rowToSupportTicket(result[0].values[0]) : null;
+}
+
+function listSupportTicketMessages(ticketId) {
+  const db = getDatabase();
+  const result = db.exec(
+    `SELECT id, ticket_id, sender_type, sender_name, sender_email, body, sent_by_email, created_at
+     FROM platform_support_ticket_messages
+     WHERE ticket_id = ?
+     ORDER BY created_at ASC`,
+    [ticketId]
+  );
+  return result[0]?.values?.map(rowToSupportTicketMessage) || [];
+}
+
+function createSupportTicket({ signupId, orderCode, subject, customerName, email, phone, priority, body }) {
+  const id = createId('TCK');
+  const db = getDatabase();
+  db.run(
+    `INSERT INTO platform_support_tickets (id, signup_id, order_code, subject, customer_name, email, phone, priority, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'OPEN')`,
+    [id, signupId || null, orderCode || '', subject, customerName, email, phone || '', priority || 'NORMAL']
+  );
+  db.run(
+    `INSERT INTO platform_support_ticket_messages (id, ticket_id, sender_type, sender_name, sender_email, body)
+     VALUES (?, ?, 'CUSTOMER', ?, ?, ?)`,
+    [createId('MSG'), id, customerName, email, body]
+  );
+  saveDatabase();
+  return findSupportTicketById(id);
+}
+
+function createSupportTicketMessage({ ticketId, senderType, senderName, senderEmail, body, sentByEmail = false }) {
+  const id = createId('MSG');
+  const db = getDatabase();
+  db.run(
+    `INSERT INTO platform_support_ticket_messages (id, ticket_id, sender_type, sender_name, sender_email, body, sent_by_email)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, ticketId, senderType, senderName || '', senderEmail || '', body, sentByEmail ? 1 : 0]
+  );
+  db.run(
+    `UPDATE platform_support_tickets
+     SET status = CASE WHEN ? = 'ADMIN' AND status = 'OPEN' THEN 'WAITING_CUSTOMER' ELSE status END,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [senderType, ticketId]
+  );
+  saveDatabase();
+  return listSupportTicketMessages(ticketId).find((message) => message.id === id) || null;
+}
+
+function updateSupportTicketStatus(id, status) {
+  const current = findSupportTicketById(id);
+  if (!current) return null;
+  const db = getDatabase();
+  db.run(
+    'UPDATE platform_support_tickets SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [status, id]
+  );
+  saveDatabase();
+  return findSupportTicketById(id);
 }
 
 function findSalesLeadById(id) {
@@ -680,6 +790,7 @@ function getSummary() {
   const orders = listOrders();
   const trialRequests = listTrialRequests();
   const salesLeads = listSalesLeads();
+  const supportTickets = listSupportTickets();
   const packages = listPackages();
   const subscriptions = listSubscriptions();
   const activeMrr = calculateMrrAt(new Date(), { tenants, packages, subscriptions });
@@ -991,6 +1102,7 @@ function bootstrap() {
     accounts,
     trialRequests,
     salesLeads,
+    supportTickets,
     marketingSignups,
     permissions,
   };
@@ -1015,6 +1127,12 @@ module.exports = {
   banAccount,
   listTrialRequests,
   listSalesLeads,
+  listSupportTickets,
+  findSupportTicketById,
+  listSupportTicketMessages,
+  createSupportTicket,
+  createSupportTicketMessage,
+  updateSupportTicketStatus,
   listMarketingSignups,
   findMarketingSignupByEmail,
   findMarketingSignupCredentialsByEmail,

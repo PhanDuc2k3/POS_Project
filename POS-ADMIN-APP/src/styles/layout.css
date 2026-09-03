@@ -23,7 +23,7 @@ body {
 
 .sidebar {
   min-height: 100vh;
-  padding: 14px 12px;
+  padding: 0 12px 14px;
   gap: 14px;
   background:
     linear-gradient(180deg, #ffffff 0%, #f8faff 58%, #f3f7ff 100%);
@@ -50,8 +50,8 @@ body {
   grid-template-columns: 38px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-height: 46px;
-  padding: 4px 6px 10px;
+  min-height: 96px;
+  padding: 0 6px;
   border-bottom: 1px solid #e2e6f3;
 }
 
@@ -88,31 +88,6 @@ body {
   letter-spacing: 0;
   text-transform: uppercase;
   color: #5f6683;
-}
-
-.new-tenant-btn {
-  min-height: 38px;
-  border-radius: 7px;
-  background: linear-gradient(135deg, #5148e5, #5d55ec);
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 900;
-  box-shadow: 0 10px 22px rgba(79, 70, 229, .2);
-  transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
-}
-
-.new-tenant-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 28px rgba(79, 70, 229, .26);
-}
-
-.new-tenant-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 8px 18px rgba(79, 70, 229, .2);
 }
 
 .plus-mark,
@@ -166,8 +141,7 @@ body {
   color: #161a4a;
 }
 
-.nav-button:focus-visible,
-.new-tenant-btn:focus-visible {
+.nav-button:focus-visible {
   outline: 2px solid rgba(79, 70, 229, .35);
   outline-offset: 2px;
 }
@@ -307,9 +281,9 @@ body {
 }
 
 .topbar {
-  flex: 0 0 38px;
-  height: 38px;
-  padding: 0 10px 0 14px;
+  flex: 0 0 96px;
+  height: 96px;
+  padding: 0 24px 0 24px;
   margin: 0;
   background: #fbfbff;
   border-bottom: 1px solid var(--admin-line);
@@ -349,7 +323,7 @@ body {
 }
 
 .top-tab {
-  height: 38px;
+  height: 96px;
   padding: 0;
   background: transparent;
   color: #20264a;
@@ -364,13 +338,13 @@ body {
 }
 
 .topbar-actions {
-  gap: 11px;
+  gap: 16px;
   position: relative;
 }
 
 .top-search {
   width: min(430px, 100%);
-  height: 26px;
+  height: 42px;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -412,12 +386,13 @@ body {
 
 .top-icon,
 .top-avatar {
-  width: 18px;
-  height: 18px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   border-radius: 50%;
   background: transparent;
   position: relative;
+  color: #111342;
 }
 
 .top-icon::before {
@@ -454,16 +429,21 @@ body {
 }
 
 .top-avatar {
-  background: radial-gradient(circle at 50% 35%, #6d7b8c 0 18%, transparent 19%),
-    radial-gradient(circle at 50% 78%, #6d7b8c 0 30%, transparent 31%),
-    #dce8df;
-  border: 1px solid #cbd4d0;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #3730a3;
+}
+
+.top-icon:hover,
+.top-avatar:hover {
+  background: #eef2ff;
+  color: #3730a3;
 }
 
 .global-search-panel,
 .notification-panel {
   position: absolute;
-  top: 32px;
+  top: 74px;
   z-index: 35;
   border: 1px solid #cbd0e5;
   border-radius: 6px;
@@ -618,10 +598,10 @@ body {
 
 .notification-trigger > span {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 17px;
-  height: 17px;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
   padding: 0 4px;
   border: 2px solid #f6f8fb;
   border-radius: 999px;
@@ -629,7 +609,7 @@ body {
   place-items: center;
   background: #dc2626;
   color: #fff;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -647,6 +627,14 @@ body {
   display: grid;
   grid-template-columns: 8px minmax(0, 1fr);
   gap: 2px 8px;
+}
+
+.realtime-events button.danger {
+  background: #fff1f2;
+}
+
+.realtime-events button.danger strong {
+  color: #991b1b;
 }
 
 .realtime-events span {

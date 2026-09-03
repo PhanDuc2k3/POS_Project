@@ -7,7 +7,6 @@
 
 .orders-page.detail-open .orders-heading,
 .orders-page.detail-open .order-filter-tabs,
-.orders-page.detail-open .public-order-lookup,
 .orders-page.detail-open .orders-card {
   filter: blur(2px);
 }
@@ -50,112 +49,6 @@
 .order-filter-tabs button.active {
   background: #eef0ff;
   color: #4f46e5;
-}
-
-.public-order-lookup {
-  margin-bottom: 14px;
-  padding: 16px;
-  border: 1px solid #cbd0e5;
-  border-radius: 6px;
-  background: #fbfbff;
-  display: grid;
-  grid-template-columns: minmax(220px, .8fr) minmax(360px, 1.2fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.public-order-copy h2 {
-  color: #111342;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.public-order-copy p {
-  margin: 6px 0 0;
-  color: #6f7690;
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.public-order-search {
-  display: grid;
-  grid-template-columns: minmax(190px, 1fr) auto auto;
-  gap: 10px;
-  align-items: end;
-}
-
-.public-order-search label {
-  display: grid;
-  gap: 6px;
-}
-
-.public-order-search span {
-  color: #3d445f;
-  text-transform: uppercase;
-  font-size: 8px;
-  font-weight: 900;
-  letter-spacing: .3px;
-}
-
-.public-order-search input {
-  width: 100%;
-  min-height: 36px;
-  padding: 0 11px;
-  border: 1px solid #cbd0e5;
-  border-radius: 4px;
-  background: #fff;
-  color: #111342;
-  font-size: 12px;
-  outline: 0;
-}
-
-.public-order-search input:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, .12);
-}
-
-.public-order-search button {
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 4px;
-  background: #4f46e5;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.public-order-search .public-order-clear {
-  border: 1px solid #cbd0e5;
-  background: #fff;
-  color: #27304f;
-}
-
-.public-order-result {
-  grid-column: 1 / -1;
-  padding: 13px 14px;
-  border: 1px solid #dce1ef;
-  border-radius: 5px;
-  background: #fff;
-  display: grid;
-  grid-template-columns: auto repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  align-items: center;
-}
-
-.public-order-result strong,
-.public-order-result small {
-  display: block;
-}
-
-.public-order-result strong {
-  color: #111342;
-  font-size: 12px;
-}
-
-.public-order-result small {
-  margin-top: 4px;
-  color: #6f7690;
-  font-size: 10px;
 }
 
 .orders-card {
@@ -214,6 +107,7 @@
 }
 
 .order-filter-row button,
+.order-filter-row input,
 .order-filter-row select {
   min-height: 27px;
   padding: 0 11px;
@@ -226,6 +120,22 @@
   gap: 8px;
   font-size: 10px;
   font-weight: 900;
+}
+
+.order-code-filter {
+  min-width: min(260px, 100%);
+  flex: 1 1 260px;
+}
+
+.order-filter-row input {
+  width: 100%;
+  min-height: 32px;
+  outline: 0;
+}
+
+.order-filter-row input:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, .12);
 }
 
 .order-filter-row i {

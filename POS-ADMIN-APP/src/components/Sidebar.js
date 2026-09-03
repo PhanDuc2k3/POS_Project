@@ -8,6 +8,8 @@ const navItems = [
   ['packages', 'Gói dịch vụ', 'package'],
   ['permissions', 'Phân quyền', 'key'],
   ['audit', 'Nhật ký kiểm toán', 'audit'],
+  ['tickets', 'Tickets', 'tickets'],
+  ['email', 'Email', 'email'],
 ];
 
 export function renderSidebar(activeView) {
@@ -20,11 +22,6 @@ export function renderSidebar(activeView) {
           <span>Bảng quản trị</span>
         </div>
       </div>
-
-      <button class="new-tenant-btn" data-action="open-create-tenant">
-        ${renderIcon('plus', 'plus-mark')}
-        Tạo tenant
-      </button>
 
       <nav class="sidebar-nav">
         ${navItems.map(([view, label, icon]) => navButton(view, label, icon, activeView)).join('')}

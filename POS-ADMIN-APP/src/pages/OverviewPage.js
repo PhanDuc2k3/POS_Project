@@ -352,12 +352,16 @@ function rangeUnitLabel(selectedRange) {
 
 function renderMrrBarTrend(bars, selectedRange) {
   const values = bars.map((item) => Number(item.value || 0));
+  const hasRevenue = values.some((value) => value > 0);
   const max = Math.max(...values, 1);
   const first = values[0] || 0;
   const last = values.at(-1) || 0;
   const periodTotal = values.reduce((sum, value) => sum + value, 0);
   const growth = first ? Math.round(((last - first) / first) * 100) : 0;
   const unitLabel = rangeUnitLabel(selectedRange);
+  const trendLabel = hasRevenue && first > 0
+    ? `${growth >= 0 ? '+' : ''}${growth}% / ${rangeGrowthLabel(selectedRange)}`
+    : `${money(periodTotal)} VND / ${rangeGrowthLabel(selectedRange)}`;
   const wavePath = buildMrrWavePath(values, max);
 
   return `
@@ -368,11 +372,11 @@ function renderMrrBarTrend(bars, selectedRange) {
           <strong>${esc(money(periodTotal))} VND</strong>
           <small>Mỗi điểm là số tiền kiếm được trong từng ${esc(unitLabel)}</small>
         </div>
-        <b>${growth >= 0 ? '+' : ''}${growth}% / ${esc(rangeGrowthLabel(selectedRange))}</b>
+        <b>${esc(trendLabel)}</b>
       </div>
       <div class="mrr-modern-body mrr-bar-body">
         <div class="mrr-axis">
-          ${axisLabels(max).map((label) => `<span>${esc(label)}</span>`).join('')}
+          ${axisLabels(max, hasRevenue).map((label) => `<span>${esc(label)}</span>`).join('')}
         </div>
         <div class="mrr-bar-chart" style="--bar-count: ${bars.length}">
           <svg class="mrr-wave-svg" viewBox="0 0 1000 156" preserveAspectRatio="none" aria-hidden="true">
@@ -528,7 +532,8 @@ function renderSubscriptionChart(subscriptions) {
   `;
 }
 
-function axisLabels(max) {
+function axisLabels(max, hasValues = true) {
+  if (!hasValues) return ['0', '0', '0', '0'];
   const top = Math.max(Number(max || 0), 1);
   return [top, top * 0.75, top * 0.5, top * 0.25].map((value) => money(Math.round(value)));
 }

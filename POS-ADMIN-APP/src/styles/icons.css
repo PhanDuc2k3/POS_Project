@@ -115,6 +115,21 @@
   height: 18px;
 }
 
+.top-icon > .lucide-icon,
+.top-icon .lucide-icon,
+.top-avatar > .lucide-icon,
+.top-avatar .lucide-icon {
+  width: 25px;
+  height: 25px;
+  stroke-width: 2.4;
+}
+
+.top-search > .lucide-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.3;
+}
+
 .brand-mark {
   display: grid;
   place-items: center;

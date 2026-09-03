@@ -147,8 +147,12 @@ textarea:focus {
 }
 
 .contact-signin.contact-only {
-  grid-template-columns: minmax(0, 780px);
+  grid-template-columns: repeat(2, minmax(0, 620px));
   justify-content: center;
+}
+
+.support-ticket-card {
+  border-top: 4px solid var(--secondary);
 }
 
 .two-inputs {

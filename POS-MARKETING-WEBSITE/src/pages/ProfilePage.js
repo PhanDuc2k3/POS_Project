@@ -142,10 +142,29 @@ function renderLeadCard(lead) {
   `;
 }
 
+function renderTicketCard(ticket) {
+  const latest = [...(ticket.messages || [])].pop();
+  return `
+    <article class="profile-record-card compact">
+      <div class="profile-record-head">
+        <div>
+          <span>Ticket hỗ trợ</span>
+          <strong>${esc(ticket.id || '-')}</strong>
+        </div>
+        <b class="profile-status ${statusTone(ticket.status)}">${esc(ticketStatusLabel(ticket.status))}</b>
+      </div>
+      <p><strong>${esc(ticket.subject || 'Hỗ trợ')}</strong></p>
+      <p>${esc(latest?.body || 'Đội hỗ trợ sẽ phản hồi qua email.')}</p>
+      <small>Cập nhật ${esc(formatDate(ticket.updatedAt || ticket.createdAt))}</small>
+    </article>
+  `;
+}
+
 export function renderProfilePage(state = {}) {
   const signup = state.marketingSignup || null;
   const orders = state.profileOrders || [];
   const leads = state.profileLeads || [];
+  const tickets = state.profileTickets || [];
   const latestOrder = orders[0] || state.myTrialRequest || null;
 
   if (!signup?.signupToken) {
@@ -178,6 +197,7 @@ export function renderProfilePage(state = {}) {
         <article><span>Ngày đăng ký</span><strong>${esc(formatDate(signup.registeredAt || signup.createdAt))}</strong></article>
         <article><span>Đơn đã gửi</span><strong>${esc(orders.length)}</strong></article>
         <article><span>Yêu cầu tư vấn</span><strong>${esc(leads.length)}</strong></article>
+        <article><span>Ticket hỗ trợ</span><strong>${esc(tickets.length)}</strong></article>
       </section>
 
       <section class="profile-layout">
@@ -208,8 +228,24 @@ export function renderProfilePage(state = {}) {
             <h2>Yêu cầu tư vấn</h2>
             ${leads.length ? leads.map(renderLeadCard).join('') : '<p class="profile-muted">Bạn chưa gửi yêu cầu tư vấn nào.</p>'}
           </section>
+
+          <section class="profile-info-panel">
+            <h2>Ticket hỗ trợ</h2>
+            ${tickets.length ? tickets.map(renderTicketCard).join('') : '<p class="profile-muted">Bạn chưa gửi ticket hỗ trợ nào.</p>'}
+          </section>
         </aside>
       </section>
     </main>
   `;
+}
+
+function ticketStatusLabel(value) {
+  const map = {
+    OPEN: 'Mới',
+    IN_PROGRESS: 'Đang xử lý',
+    WAITING_CUSTOMER: 'Chờ bạn phản hồi',
+    RESOLVED: 'Đã xử lý',
+    CLOSED: 'Đã đóng',
+  };
+  return map[String(value || '').toUpperCase()] || statusLabel(value);
 }

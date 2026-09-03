@@ -27,7 +27,12 @@ router.get('/public/marketing-signups/session', controller.getPublicMarketingSes
 router.post('/public/orders', controller.createPublicOrder);
 router.get('/public/orders/:orderCode/status', controller.getPublicOrderStatus);
 router.post('/public/sales-leads', controller.createPublicSalesLead);
+router.post('/public/support-tickets', controller.createPublicSupportTicket);
 router.patch('/platform/sales-leads/:id/status', controller.updateSalesLeadStatus);
+router.get('/platform/support-tickets', controller.getSupportTickets);
+router.get('/platform/support-tickets/:id', controller.getSupportTicket);
+router.post('/platform/support-tickets/:id/reply', controller.replySupportTicket);
+router.patch('/platform/support-tickets/:id/status', controller.updateSupportTicketStatus);
 router.get('/platform/orders', controller.getOrders);
 router.get('/platform/orders/:id', controller.getOrder);
 router.post('/platform/orders', controller.createOrder);
@@ -42,5 +47,8 @@ router.post('/platform/orders/:id/hold-provisioning', controller.holdOrderProvis
 router.post('/platform/orders/:id/provision', controller.provisionOrder);
 router.get('/platform/permissions/:role', controller.getPermission);
 router.patch('/platform/permissions/:role', controller.togglePermission);
+router.get('/platform/email/status', controller.getEmailStatus);
+router.get('/platform/email/outbox', controller.listEmailOutbox);
+router.post('/platform/email/test', controller.sendTestEmail);
 
 module.exports = router;

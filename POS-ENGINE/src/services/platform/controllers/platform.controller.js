@@ -121,6 +121,26 @@ function updateSalesLeadStatus(req, res) {
   return send(res, service.updateSalesLeadStatus(getUser(req), req.params.id, req.body));
 }
 
+function createPublicSupportTicket(req, res) {
+  return send(res, service.createPublicSupportTicket(req.body), true);
+}
+
+function getSupportTickets(req, res) {
+  return send(res, service.listSupportTickets(getUser(req)));
+}
+
+function getSupportTicket(req, res) {
+  return send(res, service.getSupportTicket(getUser(req), req.params.id));
+}
+
+function replySupportTicket(req, res) {
+  return send(res, service.replySupportTicket(getUser(req), req.params.id, req.body), true);
+}
+
+function updateSupportTicketStatus(req, res) {
+  return send(res, service.updateSupportTicketStatus(getUser(req), req.params.id, req.body));
+}
+
 function createOrder(req, res) {
   return send(res, service.createOrder(getUser(req), req.body), true);
 }
@@ -169,6 +189,18 @@ function togglePermission(req, res) {
   return send(res, service.toggleRolePermission(getUser(req), req.params.role, req.body.permission));
 }
 
+function getEmailStatus(req, res) {
+  return send(res, service.getEmailStatus(getUser(req)));
+}
+
+function listEmailOutbox(req, res) {
+  return send(res, service.listEmailOutbox(getUser(req)));
+}
+
+async function sendTestEmail(req, res) {
+  return send(res, await service.sendTestEmail(getUser(req), req.body), true);
+}
+
 module.exports = {
   getBootstrap,
   getSummary,
@@ -197,6 +229,11 @@ module.exports = {
   getPublicOrderStatus,
   createPublicSalesLead,
   updateSalesLeadStatus,
+  createPublicSupportTicket,
+  getSupportTickets,
+  getSupportTicket,
+  replySupportTicket,
+  updateSupportTicketStatus,
   createOrder,
   markOrderContacted,
   quoteOrder,
@@ -209,4 +246,7 @@ module.exports = {
   provisionOrder,
   getPermission,
   togglePermission,
+  getEmailStatus,
+  listEmailOutbox,
+  sendTestEmail,
 };

@@ -1,6 +1,7 @@
 const repo = require('../repositories/platform.repo');
 const orderStatus = require('./order-status.service');
 const config = require('../../../shared/config');
+const emailNotifications = require('./email-notification.service');
 
 const INTERNAL_HEADERS = {
   'Content-Type': 'application/json',
@@ -12,11 +13,12 @@ function packageToOperatingMode(packageTier) {
 }
 
 function markFailed(order, step, message) {
-  repo.updateOrder(order.id, {
+  const updated = repo.updateOrder(order.id, {
     status: 'PROVISIONING_FAILED',
     provisioningStep: step,
     failureReason: message,
   });
+  emailNotifications.notifyOrderStatusChanged(updated);
   return { error: message, status: 500 };
 }
 
@@ -127,6 +129,7 @@ async function provisionOrder(orderId, actor) {
       provisioningStep: 'COMPLETED',
       failureReason: null,
     });
+    emailNotifications.notifyOrderStatusChanged(current);
 
     return {
       data: {

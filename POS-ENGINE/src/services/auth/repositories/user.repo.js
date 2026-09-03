@@ -184,12 +184,19 @@ function updateSecurityQuestion(userId, question, answerHash) {
 function findByUsernameForReset(username) {
   const db = getDatabase();
   const result = db.exec(
-    'SELECT id, security_question, security_answer_hash FROM users WHERE username = ? AND is_active = 1',
+    'SELECT id, username, display_name, email, security_question, security_answer_hash FROM users WHERE username = ? AND is_active = 1',
     [username]
   );
   if (!result.length || !result[0].values.length) return null;
   const row = result[0].values[0];
-  return { id: row[0], securityQuestion: row[1], securityAnswerHash: row[2] };
+  return {
+    id: row[0],
+    username: row[1],
+    displayName: row[2],
+    email: row[3],
+    securityQuestion: row[4],
+    securityAnswerHash: row[5],
+  };
 }
 
 function getAvatar(userId) {

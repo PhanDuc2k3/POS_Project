@@ -186,6 +186,35 @@ async function initDatabase() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_support_tickets (
+      id TEXT PRIMARY KEY,
+      signup_id TEXT,
+      order_code TEXT,
+      subject TEXT NOT NULL,
+      customer_name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT,
+      priority TEXT NOT NULL DEFAULT 'NORMAL',
+      status TEXT NOT NULL DEFAULT 'OPEN',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS platform_support_ticket_messages (
+      id TEXT PRIMARY KEY,
+      ticket_id TEXT NOT NULL,
+      sender_type TEXT NOT NULL,
+      sender_name TEXT,
+      sender_email TEXT,
+      body TEXT NOT NULL,
+      sent_by_email INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   try {
     db.run(`ALTER TABLE platform_trial_requests ADD COLUMN submitted_by_user_id INTEGER`);
   } catch (e) {}
@@ -227,6 +256,10 @@ async function initDatabase() {
     `ALTER TABLE platform_subscription_orders ADD COLUMN provisioning_step TEXT`,
     `ALTER TABLE platform_subscription_orders ADD COLUMN failure_reason TEXT`,
     `ALTER TABLE platform_subscription_orders ADD COLUMN updated_at DATETIME`,
+    `ALTER TABLE platform_support_tickets ADD COLUMN signup_id TEXT`,
+    `ALTER TABLE platform_support_tickets ADD COLUMN order_code TEXT`,
+    `ALTER TABLE platform_support_tickets ADD COLUMN phone TEXT`,
+    `ALTER TABLE platform_support_tickets ADD COLUMN priority TEXT NOT NULL DEFAULT 'NORMAL'`,
   ].forEach((sql) => {
     try {
       db.run(sql);

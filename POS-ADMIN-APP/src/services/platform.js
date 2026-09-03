@@ -143,3 +143,36 @@ export async function togglePermission(role, permission) {
     body: JSON.stringify({ permission }),
   }));
 }
+
+export async function getEmailStatus() {
+  return readJson(await apiFetch('/platform/email/status'));
+}
+
+export async function getEmailOutbox() {
+  return readJson(await apiFetch('/platform/email/outbox'));
+}
+
+export async function sendTestEmail(to) {
+  return readJson(await apiFetch('/platform/email/test', {
+    method: 'POST',
+    body: JSON.stringify({ to }),
+  }));
+}
+
+export async function getSupportTickets() {
+  return readJson(await apiFetch('/platform/support-tickets'));
+}
+
+export async function replySupportTicket(id, body) {
+  return readJson(await apiFetch(`/platform/support-tickets/${encodeURIComponent(id)}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ body }),
+  }));
+}
+
+export async function updateSupportTicketStatus(id, status) {
+  return readJson(await apiFetch(`/platform/support-tickets/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  }));
+}

@@ -18,6 +18,7 @@ import {
   setStoredOrder,
   submitPublicOrder,
   submitSalesLead,
+  submitSupportTicket,
 } from './shared/api.js';
 
 const app = document.getElementById('app');
@@ -41,6 +42,7 @@ const state = {
   marketingSignup: null,
   profileOrders: [],
   profileLeads: [],
+  profileTickets: [],
   authModalOpen: false,
   authMode: 'signin',
   ready: false,
@@ -146,10 +148,12 @@ async function loadSession() {
       });
       state.profileOrders = session.orders || [];
       state.profileLeads = session.salesLeads || [];
+      state.profileTickets = session.supportTickets || [];
     } catch {
       setMarketingSignup(null);
       state.profileOrders = [];
       state.profileLeads = [];
+      state.profileTickets = [];
     }
   }
 
@@ -322,6 +326,23 @@ async function handleContactSubmit(form) {
   return lead;
 }
 
+async function handleSupportTicketSubmit(form) {
+  const formData = new FormData(form);
+  const ticket = await submitSupportTicket({
+    ...getMarketingSignupPayload(),
+    name: formData.get('name'),
+    email: formData.get('email'),
+    phone: formData.get('phone'),
+    orderCode: formData.get('orderCode'),
+    subject: formData.get('subject'),
+    priority: formData.get('priority'),
+    message: formData.get('message'),
+  });
+  state.profileTickets = [ticket, ...state.profileTickets.filter((item) => item.id !== ticket.id)];
+  form.reset();
+  return ticket;
+}
+
 function setModalMessage(target, text) {
   const modal = target.closest('.auth-modal');
   const message = modal?.querySelector('.form-message');
@@ -402,6 +423,7 @@ function bindEvents() {
       state.myTrialRequest = null;
       state.profileOrders = [];
       state.profileLeads = [];
+      state.profileTickets = [];
       state.authModalOpen = false;
       if (window.location.hash === '#profile') window.location.hash = '#home';
       render();
@@ -410,7 +432,7 @@ function bindEvents() {
 
   app.addEventListener('submit', async (event) => {
     const form = event.target.closest('form[data-form]');
-    if (!form || !['signin', 'signup', 'contact', 'trial'].includes(form.dataset.form)) return;
+    if (!form || !['signin', 'signup', 'contact', 'trial', 'support-ticket'].includes(form.dataset.form)) return;
 
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -441,6 +463,14 @@ function bindEvents() {
         if (message) message.textContent = 'Dang gui thong tin...';
         const lead = await handleContactSubmit(form);
         if (message) message.textContent = `Da gui thong tin tu van. Ma lien he: ${lead.leadCode}.`;
+        return;
+      }
+
+      if (form.dataset.form === 'support-ticket') {
+        if (!requireMarketingSignup(form)) return;
+        if (message) message.textContent = 'Dang gui ticket...';
+        const ticket = await handleSupportTicketSubmit(form);
+        if (message) message.textContent = `Da tao ticket ho tro: ${ticket.id}. Doi ngu ho tro se phan hoi qua email.`;
         return;
       }
 

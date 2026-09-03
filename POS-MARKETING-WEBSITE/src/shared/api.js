@@ -71,3 +71,14 @@ export async function submitSalesLead(payload) {
   if (!response.ok) throw new Error(data.error || 'Could not submit contact request');
   return data;
 }
+
+export async function submitSupportTicket(payload) {
+  const response = await fetch(`${API_URL}/public/support-tickets`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Could not submit support ticket');
+  return data;
+}

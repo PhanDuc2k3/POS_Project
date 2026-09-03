@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../../../shared/config');
 const orderStatus = require('./order-status.service');
 const provisioningService = require('./provisioning.service');
+const emailNotifications = require('./email-notification.service');
 
 function requirePlatformAdmin(user) {
   if (!user || user.role !== 'platform_admin') {
@@ -212,19 +213,19 @@ function submitTrialRequest(payload) {
     return { error: 'Your trial request has already been approved', status: 409 };
   }
 
-  return {
-    data: repo.createTrialRequest({
-      restaurantName,
-      contactName,
-      email,
-      phone: String(payload?.phone || '').trim(),
-      packageTier: String(payload?.packageTier || 'restaurant').trim(),
-      operatingMode: String(payload?.operatingMode || 'restaurant').trim(),
-      message: String(payload?.message || '').trim(),
-      submittedByUserId: userId,
-      submittedByUsername: username || null,
-    }),
-  };
+  const request = repo.createTrialRequest({
+    restaurantName,
+    contactName,
+    email,
+    phone: String(payload?.phone || '').trim(),
+    packageTier: String(payload?.packageTier || 'restaurant').trim(),
+    operatingMode: String(payload?.operatingMode || 'restaurant').trim(),
+    message: String(payload?.message || '').trim(),
+    submittedByUserId: userId,
+    submittedByUsername: username || null,
+  });
+  emailNotifications.notifyTrialRequestSubmitted(request);
+  return { data: request };
 }
 
 function approveTrialRequest(user, requestId) {
@@ -267,6 +268,7 @@ function approveTrialRequest(user, requestId) {
     reviewedBy: user.username || 'platform',
   });
 
+  emailNotifications.notifyTrialRequestReviewed(updated);
   return { data: { ...updated, tenant, account } };
 }
 
@@ -278,12 +280,12 @@ function rejectTrialRequest(user, requestId) {
   if (!request) return { error: 'Trial request not found', status: 404 };
   if (request.status === 'approved') return { error: 'Trial request already approved', status: 409 };
 
-  return {
-    data: repo.updateTrialRequest(requestId, {
-      status: 'rejected',
-      reviewedBy: user.username || 'platform',
-    }),
-  };
+  const updated = repo.updateTrialRequest(requestId, {
+    status: 'rejected',
+    reviewedBy: user.username || 'platform',
+  });
+  emailNotifications.notifyTrialRequestReviewed(updated);
+  return { data: updated };
 }
 
 function listOrders(user) {
@@ -356,6 +358,7 @@ function createPublicMarketingSignup(payload) {
     passwordHash: bcrypt.hashSync(password, 10),
   });
 
+  emailNotifications.notifyMarketingSignup(signup);
   return { data: publicSignupResponse(signup) };
 }
 
@@ -439,11 +442,19 @@ async function getPublicMarketingSession(authorization = '') {
   const salesLeads = repo.listSalesLeads()
     .filter((lead) => String(lead.email || '').toLowerCase() === email)
     .slice(0, 10);
+  const supportTickets = repo.listSupportTickets()
+    .filter((ticket) => String(ticket.email || '').toLowerCase() === email)
+    .slice(0, 10)
+    .map((ticket) => ({
+      ...ticket,
+      messages: repo.listSupportTicketMessages(ticket.id),
+    }));
   return {
     data: {
       ...publicSignupResponse(signup),
       orders,
       salesLeads,
+      supportTickets,
     },
   };
 }
@@ -537,6 +548,7 @@ function createPublicOrder(payload) {
     orderType,
   });
 
+  emailNotifications.notifyOrderCreated(order);
   return {
     data: {
       orderCode: order.orderCode,
@@ -604,6 +616,7 @@ function createPublicSalesLead(payload) {
   }
 
   const lead = repo.createSalesLead({ name, phone, email, message });
+  emailNotifications.notifySalesLeadCreated(lead);
   return {
     data: {
       leadCode: lead.id,
@@ -626,6 +639,100 @@ function updateSalesLeadStatus(user, leadId, payload) {
   const lead = repo.updateSalesLeadStatus(leadId, status);
   if (!lead) return { error: 'Sales lead not found', status: 404 };
   return { data: lead };
+}
+
+function createPublicSupportTicket(payload) {
+  const signupResult = decodeMarketingSignupToken(String(payload?.marketingSignupToken || '').trim());
+  if (signupResult.error) return signupResult;
+  const signup = signupResult.signup;
+  const subject = String(payload?.subject || '').trim();
+  const body = String(payload?.message || payload?.body || '').trim();
+  const email = String(payload?.email || signup.email || '').trim().toLowerCase();
+  const customerName = String(payload?.name || signup.name || '').trim();
+  const phone = String(payload?.phone || '').trim();
+  const orderCode = String(payload?.orderCode || '').trim();
+  const priority = normalizeTicketPriority(payload?.priority);
+
+  if (!subject || !body || !email || !customerName) {
+    return { error: 'subject, message, name and email required', status: 400 };
+  }
+
+  const ticket = repo.createSupportTicket({
+    signupId: signup.id,
+    orderCode,
+    subject,
+    customerName,
+    email,
+    phone,
+    priority,
+    body,
+  });
+  const messages = repo.listSupportTicketMessages(ticket.id);
+  emailNotifications.notifySupportTicketCreated(ticket, messages[0]);
+  return {
+    data: {
+      ...ticket,
+      messages,
+    },
+  };
+}
+
+function listSupportTickets(user) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  return {
+    data: repo.listSupportTickets().map((ticket) => ({
+      ...ticket,
+      messages: repo.listSupportTicketMessages(ticket.id),
+    })),
+  };
+}
+
+function getSupportTicket(user, ticketId) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const ticket = repo.findSupportTicketById(ticketId);
+  if (!ticket) return { error: 'Support ticket not found', status: 404 };
+  return { data: { ...ticket, messages: repo.listSupportTicketMessages(ticket.id) } };
+}
+
+function replySupportTicket(user, ticketId, payload) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const ticket = repo.findSupportTicketById(ticketId);
+  if (!ticket) return { error: 'Support ticket not found', status: 404 };
+  const body = String(payload?.body || '').trim();
+  if (!body) return { error: 'Reply body required', status: 400 };
+  const message = repo.createSupportTicketMessage({
+    ticketId: ticket.id,
+    senderType: 'ADMIN',
+    senderName: user?.username || 'platform',
+    senderEmail: config.ADMIN_NOTIFY_EMAIL || '',
+    body,
+    sentByEmail: true,
+  });
+  const updated = repo.findSupportTicketById(ticket.id);
+  emailNotifications.notifySupportTicketReply(updated, message);
+  return { data: { ...updated, messages: repo.listSupportTicketMessages(ticket.id) } };
+}
+
+function updateSupportTicketStatus(user, ticketId, payload) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const status = normalizeTicketStatus(payload?.status);
+  const ticket = repo.updateSupportTicketStatus(ticketId, status);
+  if (!ticket) return { error: 'Support ticket not found', status: 404 };
+  return { data: { ...ticket, messages: repo.listSupportTicketMessages(ticket.id) } };
+}
+
+function normalizeTicketPriority(value) {
+  const priority = String(value || 'NORMAL').trim().toUpperCase();
+  return ['LOW', 'NORMAL', 'HIGH', 'URGENT'].includes(priority) ? priority : 'NORMAL';
+}
+
+function normalizeTicketStatus(value) {
+  const status = String(value || 'OPEN').trim().toUpperCase();
+  return ['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'RESOLVED', 'CLOSED'].includes(status) ? status : 'OPEN';
 }
 
 function createOrder(user, payload) {
@@ -671,7 +778,9 @@ function transitionOrder(user, orderId, nextStatus, extra = {}) {
     updates.rejectionReason = String(extra.reason || '').trim();
   }
 
-  return { data: repo.updateOrder(order.id, updates) };
+  const updated = repo.updateOrder(order.id, updates);
+  emailNotifications.notifyOrderStatusChanged(updated);
+  return { data: updated };
 }
 
 function markOrderContacted(user, orderId) {
@@ -744,6 +853,48 @@ function toggleRolePermission(user, role, permission) {
   return { data: repo.togglePermission(role, permission) };
 }
 
+function getEmailStatus(user) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const mailer = require('../../../shared/mailer');
+  return { data: mailer.getStatus() };
+}
+
+function listEmailOutbox(user) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const mailer = require('../../../shared/mailer');
+  return { data: { items: mailer.listOutbox(30) } };
+}
+
+async function sendTestEmail(user, payload) {
+  const access = requirePlatformAdmin(user);
+  if (access) return access;
+  const to = String(payload?.to || '').trim();
+  if (!to) return { error: 'Email nhan la bat buoc', status: 400 };
+
+  const mailer = require('../../../shared/mailer');
+  const result = await mailer.sendMail({
+    to,
+    subject: 'POS Platform - Test email',
+    text: [
+      'Day la email test tu POS Admin App.',
+      '',
+      `Nguoi gui test: ${user?.username || 'platform'}`,
+      `Thoi gian: ${new Date().toISOString()}`,
+    ].join('\n'),
+    html: [
+      '<div style="font-family:Arial,sans-serif;line-height:1.5;color:#10143a">',
+      '<h2>POS Platform - Test email</h2>',
+      '<p>Day la email test tu POS Admin App.</p>',
+      `<p><strong>Nguoi gui test:</strong> ${user?.username || 'platform'}</p>`,
+      `<p><strong>Thoi gian:</strong> ${new Date().toISOString()}</p>`,
+      '</div>',
+    ].join(''),
+  });
+  return { data: { ok: true, ...result } };
+}
+
 module.exports = {
   getBootstrap,
   getSummary,
@@ -772,6 +923,11 @@ module.exports = {
   getPublicOrderStatus,
   createPublicSalesLead,
   updateSalesLeadStatus,
+  createPublicSupportTicket,
+  listSupportTickets,
+  getSupportTicket,
+  replySupportTicket,
+  updateSupportTicketStatus,
   createOrder,
   markOrderContacted,
   quoteOrder,
@@ -784,4 +940,7 @@ module.exports = {
   provisionOrder,
   getPermission,
   toggleRolePermission,
+  getEmailStatus,
+  listEmailOutbox,
+  sendTestEmail,
 };

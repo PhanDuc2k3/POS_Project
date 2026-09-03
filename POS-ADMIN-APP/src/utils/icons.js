@@ -3,6 +3,7 @@ const iconMap = {
   audit: 'clipboard-list',
   catalog: 'boxes',
   default: 'activity',
+  email: 'mail',
   finance: 'circle-dollar-sign',
   grid: 'layout-dashboard',
   key: 'key-round',
@@ -17,6 +18,7 @@ const iconMap = {
   sync: 'refresh-cw',
   tenant: 'building-2',
   tenants: 'building-2',
+  tickets: 'messages-square',
   trials: 'flask-conical',
 };
 

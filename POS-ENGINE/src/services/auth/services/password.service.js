@@ -10,6 +10,7 @@ const userRepo = require('../repositories/user.repo');
 const sessionRepo = require('../repositories/session.repo');
 const passwordResetRepo = require('../repositories/password-reset.repo');
 const auditRepo = require('../repositories/audit.repo');
+const emailNotifications = require('./email-notification.service');
 
 function changePassword(userId, { currentPassword, newPassword }, ip) {
   if (!currentPassword || !newPassword) {
@@ -94,6 +95,7 @@ function resetPassword(resetToken, newPassword, ip) {
   passwordResetRepo.markUsed(reset.id);
   sessionRepo.deleteAllByUserId(reset.userId);
   auditRepo.create(reset.userId, 'PASSWORD_RESET', 'Via security question', ip);
+  emailNotifications.notifyPasswordReset(userRepo.findById(reset.userId));
 
   return { message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.' };
 }
